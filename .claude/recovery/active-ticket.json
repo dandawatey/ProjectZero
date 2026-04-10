@@ -1,0 +1,8 @@
+{
+  "ticketId": null,
+  "status": null,
+  "agent": null,
+  "lastAction": null,
+  "checkpoint": null,
+  "retryCount": 0
+}

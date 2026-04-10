@@ -1,0 +1,26 @@
+{
+  "jira": {
+    "enabled": false,
+    "baseUrl": "",
+    "projectKey": "",
+    "auth": "env:JIRA_API_TOKEN",
+    "userEmail": "env:JIRA_USER_EMAIL"
+  },
+  "confluence": {
+    "enabled": false,
+    "baseUrl": "",
+    "spaceKey": "",
+    "auth": "env:CONFLUENCE_API_TOKEN"
+  },
+  "github": {
+    "enabled": true,
+    "owner": "",
+    "repo": "",
+    "auth": "env:GITHUB_TOKEN",
+    "defaultBranch": "main"
+  },
+  "slack": {
+    "enabled": false,
+    "webhook": "env:SLACK_WEBHOOK"
+  }
+}

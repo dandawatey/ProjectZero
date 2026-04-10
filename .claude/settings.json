@@ -1,0 +1,39 @@
+{
+  "factory": {
+    "name": "ProjectZeroFactory",
+    "version": "1.0.0",
+    "mode": "governed"
+  },
+  "behavior": {
+    "autonomy": "supervised",
+    "lowTokenMode": false,
+    "truthfulCompletion": true,
+    "noTicketNoWork": true,
+    "learningEnabled": true
+  },
+  "governance": {
+    "requireMakerChecker": true,
+    "requireReview": true,
+    "requireApproval": true,
+    "requireTests": true,
+    "minTestCoverage": 80
+  },
+  "integrations": {
+    "jira": { "enabled": false, "project": "", "url": "" },
+    "confluence": { "enabled": false, "space": "", "url": "" },
+    "github": { "enabled": true, "org": "", "repo": "" }
+  },
+  "commands": {
+    "entryPoint": "/factory-init",
+    "productCreation": "/bootstrap-product"
+  },
+  "recovery": {
+    "checkpointEnabled": true,
+    "maxRetries": 3,
+    "autoResume": true
+  },
+  "concurrency": {
+    "maxParallelAgents": 3,
+    "queueOverflow": "block"
+  }
+}

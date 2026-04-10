@@ -1,0 +1,11 @@
+{
+  "initialized": false,
+  "lastCheckpoint": null,
+  "activeStage": null,
+  "activeCommand": null,
+  "activeStep": null,
+  "activeAgent": null,
+  "activeTicket": null,
+  "failureCount": 0,
+  "context": {}
+}
