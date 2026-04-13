@@ -200,6 +200,53 @@ class JiraClient:
         c = Counter(i.get("fields", {}).get("issuetype", {}).get("name", "Unknown") for i in issues)
         return [{"type": k, "count": v} for k, v in c.most_common()]
 
+    # ---------------- Issue creation ----------------
+
+    async def create_issue(
+        self,
+        project_key: str,
+        summary: str,
+        description: str = "",
+        issue_type: str = "Story",
+        priority: str = "Medium",
+        story_points: int | None = None,
+        labels: list[str] | None = None,
+    ) -> dict:
+        """Create a JIRA issue and return the created issue key + id."""
+        payload: dict = {
+            "fields": {
+                "project": {"key": project_key},
+                "summary": summary,
+                "issuetype": {"name": issue_type},
+                "priority": {"name": priority},
+            }
+        }
+        if description:
+            payload["fields"]["description"] = {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": description}],
+                    }
+                ],
+            }
+        if story_points is not None:
+            payload["fields"][self.sp_field] = story_points
+        if labels:
+            payload["fields"]["labels"] = labels
+
+        async with httpx.AsyncClient() as c:
+            r = await c.post(
+                f"{self.base}/rest/api/3/issue",
+                json=payload,
+                auth=self.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json()  # {"id": "...", "key": "PRJ0-42", "self": "..."}
+
     async def throughput(self, client: httpx.AsyncClient, project_key: str, days: int = 30) -> list[dict]:
         issues = await self.search(
             client,

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.product import Product
 from app.models.workflow import WorkflowRun
+from app.services.spec_parser import parse_prd_to_stories
 from app.temporal_integration import client as temporal
 from app.temporal_integration.workflows import WorkflowInput, ApprovalSignal
 
@@ -33,6 +34,13 @@ router = APIRouter()
 class SpecRequest(BaseModel):
     product_id: str
     jira_feature_id: str    # e.g. "INETZERO-42"
+
+
+class SpecParseRequest(BaseModel):
+    product_id: str
+    prd_text: str               # Raw PRD / feature description
+    jira_project_key: str
+    create_jira_tickets: bool = True  # If True, create JIRA tickets via JiraClient
 
 
 class ApproveRequest(BaseModel):
@@ -114,6 +122,82 @@ async def spec_command(req: SpecRequest, db: AsyncSession = Depends(get_db)):
         "temporal_workflow_id": wf_id,
         "stage": "specification",
         "status": "running",
+    }
+
+
+# ---------------------------------------------------------------------------
+# /spec/parse — synchronous PRD → stories (+ optional JIRA ticket creation)
+# ---------------------------------------------------------------------------
+
+@router.post("/spec/parse", status_code=200)
+async def spec_parse(req: SpecParseRequest, db: AsyncSession = Depends(get_db)):
+    """Synchronously parse PRD text → user stories. Optionally create JIRA tickets."""
+    from dataclasses import asdict
+    from app.services.jira_client import JiraClient
+
+    # 1. Parse PRD via Claude
+    try:
+        spec = await parse_prd_to_stories(req.prd_text, req.jira_project_key)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Claude parse failed: {exc}")
+
+    # 2. Optionally create JIRA tickets
+    jira_keys: list[str] = []
+    jira_errors: list[str] = []
+
+    if req.create_jira_tickets:
+        try:
+            jira = JiraClient()
+            priority_map = {1: "Highest", 2: "High", 3: "Medium", 4: "Low", 5: "Lowest"}
+            for story in spec.stories:
+                ac_text = "\n".join(
+                    f"Given {ac.given}\nWhen {ac.when}\nThen {ac.then}"
+                    for ac in story.acceptance_criteria
+                )
+                description = (
+                    f"As a {story.role}, I want to {story.action}, so that {story.benefit}.\n\n"
+                    f"Acceptance Criteria:\n{ac_text}"
+                )
+                try:
+                    result = await jira.create_issue(
+                        project_key=req.jira_project_key,
+                        summary=story.title,
+                        description=description,
+                        issue_type="Story",
+                        priority=priority_map.get(story.priority, "Medium"),
+                        story_points=story.estimate_sp,
+                        labels=["spec-agent", "PRJ0-40"],
+                    )
+                    jira_keys.append(result.get("key", ""))
+                except Exception as exc:
+                    jira_errors.append(f"{story.title}: {exc}")
+        except RuntimeError as exc:
+            # JIRA not configured — skip silently, report in response
+            jira_errors.append(f"JIRA not configured: {exc}")
+
+    # 3. Serialize SpecResult → dict
+    def _criterion_dict(ac):
+        return {"given": ac.given, "when": ac.when, "then": ac.then}
+
+    def _story_dict(s):
+        return {
+            "title": s.title,
+            "role": s.role,
+            "action": s.action,
+            "benefit": s.benefit,
+            "priority": s.priority,
+            "estimate_sp": s.estimate_sp,
+            "acceptance_criteria": [_criterion_dict(ac) for ac in s.acceptance_criteria],
+        }
+
+    return {
+        "feature_title": spec.feature_title,
+        "feature_summary": spec.feature_summary,
+        "risks": spec.risks,
+        "dependencies": spec.dependencies,
+        "stories": [_story_dict(s) for s in spec.stories],
+        "jira_tickets_created": jira_keys,
+        "jira_errors": jira_errors,
     }
 
 
