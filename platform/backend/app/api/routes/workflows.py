@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,6 +17,7 @@ from app.schemas.workflow import (
     WorkflowStepRead,
     WorkflowCatalogEntry,
 )
+from app.core.stage_gates import next_stage as _next_stage, is_terminal, STAGE_ORDER
 from app.services import workflow_service as svc
 from app.temporal_integration import client as temporal
 
@@ -87,3 +89,45 @@ async def signal_workflow(run_id: uuid.UUID, body: WorkflowSignal, db: AsyncSess
 async def get_workflow_steps(run_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     steps = await svc.get_steps_for_run(db, run_id)
     return [WorkflowStepRead.model_validate(s) for s in steps]
+
+
+class StageGateStatus(BaseModel):
+    current_stage: str | None
+    next_stage: str | None
+    can_advance: bool
+    blocking_reason: str | None
+
+
+@router.get("/{run_id}/stage-gate", response_model=StageGateStatus)
+async def get_stage_gate(run_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Return current stage, next stage, and whether workflow can advance."""
+    run = await svc.get_workflow_run(db, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    current = run.current_stage
+    nxt = _next_stage(current) if current else STAGE_ORDER[0]
+
+    blocking_reason: str | None = None
+    can_advance = True
+
+    if is_terminal(current or ""):
+        can_advance = False
+        blocking_reason = f"Workflow is in terminal state '{current}'"
+    elif run.status == "failed":
+        can_advance = False
+        blocking_reason = "Workflow has failed — resolve failure before advancing"
+    elif run.status == "blocked":
+        can_advance = False
+        blocking_reason = "Workflow is blocked — pending approval or manual intervention"
+    elif current == "completion":
+        can_advance = False
+        blocking_reason = "Already at final stage"
+        nxt = None
+
+    return StageGateStatus(
+        current_stage=current,
+        next_stage=nxt,
+        can_advance=can_advance,
+        blocking_reason=blocking_reason,
+    )

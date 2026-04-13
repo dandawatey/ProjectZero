@@ -9,6 +9,7 @@ from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from app.core.stage_gates import validate_stage_transition, StageGateError
 from app.models.workflow import (
     WorkflowRun,
     WorkflowStep,
@@ -96,9 +97,10 @@ async def update_workflow_state(
     if run is None:
         return None
 
-    run.status = status
     if stage is not None:
+        validate_stage_transition(run.current_stage, stage)
         run.current_stage = stage
+    run.status = status
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(run)
