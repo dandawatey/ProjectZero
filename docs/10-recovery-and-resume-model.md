@@ -107,7 +107,7 @@ The factory handles five classes of failure:
 
 **Handling**:
 - Integration-agent switches to local fallback mode
-- Pending sync operations are queued in `.claude/delivery/*/sync_queue/`
+- Pending sync operations are queued in product repo `.claude/delivery/*/sync_queue/`
 - Work continues using local file representations
 - When connectivity returns, reconciliation runs automatically
 
@@ -201,7 +201,7 @@ Resume work from the last checkpoint.
 Recover the state of a specific ticket.
 
 **What it does**:
-1. Looks up the ticket in `.claude/delivery/jira/issues/` or `.claude/delivery/features/`
+1. Looks up the ticket in product repo `.claude/delivery/jira/issues/` or `.claude/delivery/features/`
 2. Reads all related checkpoints
 3. Reads the retry state
 4. Reads the git branch state
@@ -242,7 +242,7 @@ When retries are exhausted:
 Retry limit reached
   |
   v
-Work item marked as BLOCKED in .claude/delivery/queue/
+Work item marked as BLOCKED in product repo .claude/delivery/queue/
   |
   v
 Failure logged in .claude/recovery/failure-log.json

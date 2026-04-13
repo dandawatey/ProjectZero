@@ -13,8 +13,8 @@ Implement server-side features following TDD, producing clean, tested, secure co
 ## Input Expectations
 - Architecture document and module definitions
 - Assigned ticket with acceptance criteria
-- API contracts (`.claude/contracts/api-contract.yaml`)
-- Database schema (`.claude/contracts/db-schema.sql`)
+- API contracts (`.claude/templates/api-contract-template.yaml`)
+- Database schema (`.claude/templates/db-schema-template.sql`)
 
 ## Output Expectations
 - Working API endpoints matching contracts

@@ -26,12 +26,12 @@ IDLE → PLANNING → ASSIGNING → MONITORING → RECOVERING → REPORTING → 
 ## Input Expectations
 - Commands from user (/implement, /release, etc.)
 - Status updates from all agents
-- Queue state from `.claude/delivery/queue/`
+- Queue state from `product repo: .claude/delivery/queue/`
 - Recovery state from `.claude/recovery/`
 
 ## Output Expectations
 - Agent assignments (which agent works on which ticket)
-- Status reports (`.claude/reports/progress.md`, `queue-status.md`)
+- Status reports (`product repo: .claude/reports/progress.md`, `queue-status.md`)
 - Escalations to user (blocks that can't be auto-resolved)
 - Recovery triggers (retry, reassign, checkpoint)
 

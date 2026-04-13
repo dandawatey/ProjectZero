@@ -22,9 +22,9 @@ Design system architecture that fulfills specifications while maintaining modula
 ## Output Expectations
 - Architecture document with diagrams (text-based)
 - Module definitions with clear boundaries and APIs
-- `.claude/contracts/api-contract.yaml` (OpenAPI 3.0)
-- `.claude/contracts/db-schema.sql` (PostgreSQL DDL)
-- `.claude/contracts/frontend-types.ts` (TypeScript interfaces)
+- `.claude/templates/api-contract-template.yaml` (OpenAPI 3.0)
+- `.claude/templates/db-schema-template.sql` (PostgreSQL DDL)
+- `.claude/templates/frontend-types-template.ts` (TypeScript interfaces)
 - ADRs in `.claude/memory/decisions-log.md`
 
 ## Boundaries

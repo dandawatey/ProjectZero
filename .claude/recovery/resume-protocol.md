@@ -1,11 +1,11 @@
 # Resume Protocol
 
 ## Steps
-1. **Read state**: Load `.claude/recovery/state.json`
+1. **Read state**: Load `product repo: .claude/recovery/state.json`
 2. **Validate state**: Check that `initialized` is true, identify `activeCommand` and `activeStep`
 3. **Verify files**: Check that files referenced by the checkpoint actually exist
 4. **Load memory**: Read relevant memory files for current context
-5. **Verify queue**: Check `.claude/delivery/queue/` state is consistent
+5. **Verify queue**: Check `product repo: .claude/delivery/queue/` state is consistent
 6. **Verify git**: Check git status — clean tree or expected in-progress changes
 7. **Report**: Show user where we're resuming from
 8. **Continue**: Execute from the checkpoint step

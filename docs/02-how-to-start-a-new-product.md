@@ -101,7 +101,7 @@ Then run:
 /setup jira
 ```
 
-This validates the connection, confirms the project exists, and syncs the initial board state to `.claude/delivery/jira/state/`.
+This validates the connection, confirms the project exists, and syncs the initial board state to `product repo .claude/delivery/jira/state/`.
 
 ### 4b: Confluence Configuration
 

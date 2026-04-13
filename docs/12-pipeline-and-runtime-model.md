@@ -26,7 +26,7 @@ Dagster (orchestration and scheduling)
 .claude/runtime/ (state tracking)
   |
   v
-.claude/delivery/queue/ (work queue)
+product repo .claude/delivery/queue/ (work queue)
 ```
 
 ### FastAPI Workers
@@ -110,7 +110,7 @@ from dagster import job, op, In, Out
 @op
 def load_specification(context, ticket_id: str):
     """Load the story specification and related architecture."""
-    # Read from .claude/delivery/features/{ticket_id}.json
+    # Read from product repo .claude/delivery/features/{ticket_id}.json
     # Read from .claude/modules/{module}/architecture.md
     return spec
 
@@ -222,12 +222,12 @@ This command:
 
 ## Work Queue Model
 
-### .claude/delivery/queue/
+### product repo .claude/delivery/queue/
 
 The work queue is the primary mechanism for tracking work items, even when pipeline mode is disabled.
 
 ```
-.claude/delivery/queue/
+product repo .claude/delivery/queue/
   ready/                  # Items ready to be worked on
     MYP-13.json
     MYP-14.json
@@ -291,7 +291,7 @@ ready --> active --> completed
 | Worker requirement | None | FastAPI workers required |
 | Redis requirement | None | Required |
 | Dagster requirement | None | Required for complex pipelines |
-| Queue usage | `.claude/delivery/queue/` (files) | Redis queues + file-based state |
+| Queue usage | `product repo .claude/delivery/queue/` (files) | Redis queues + file-based state |
 | Recovery | Checkpoint-based | Checkpoint + Dagster run recovery |
 | Best for | Small products, early stages | Large products, realization stage |
 
@@ -347,4 +347,4 @@ Before stopping workers, drain the queue:
 /pipeline-drain
 ```
 
-This stops accepting new tasks, waits for active tasks to complete, and writes final state to `.claude/delivery/queue/`.
+This stops accepting new tasks, waits for active tasks to complete, and writes final state to `product repo .claude/delivery/queue/`.

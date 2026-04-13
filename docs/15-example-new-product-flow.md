@@ -33,9 +33,9 @@ Validating factory structure...
   .claude/commands/        OK
   .claude/skills/          OK (17 skills found)
   .claude/workflows/       OK
-  .claude/contracts/       OK
+  .claude/contracts/       OK (product repo)
   .claude/core/            OK
-  .claude/delivery/        OK
+  product repo .claude/delivery/        OK
   .claude/memory/          OK
   .claude/recovery/        OK
 

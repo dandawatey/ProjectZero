@@ -18,8 +18,8 @@ Check required directories exist:
 
 ### Step 2: Check for Product Leakage
 Scan for files that should NOT be in the factory:
-- .claude/delivery/ (should not exist in factory)
-- .claude/reports/ (should not exist in factory)
+- .claude/templates/product-skeleton/delivery/ (should not exist in factory)
+- .claude/templates/product-skeleton/reports/ (should not exist in factory)
 - .claude/recovery/state.json, active-ticket.json, active-workflow.json (should not exist)
 - .claude/memory/ should only have org-context.md
 - .claude/integrations/config.json should not exist (template only)

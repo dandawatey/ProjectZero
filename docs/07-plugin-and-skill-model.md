@@ -60,7 +60,7 @@ The `skill.md` file is the authoritative definition. It must contain:
 **Trigger**: Invoked by backend-engineer or frontend-engineer at the start of implementing a new story.
 
 **Inputs**:
-- Story specification (from `.claude/delivery/features/`)
+- Story specification (from `product repo .claude/delivery/features/`)
 - Module architecture (from `.claude/modules/{name}/architecture.md`)
 - Data model (from `.claude/modules/{name}/data-model.md`)
 - Stack configuration
@@ -185,7 +185,7 @@ The `skill.md` file is the authoritative definition. It must contain:
 **How it works**:
 1. For each ticket, create a feature branch from the base branch
 2. Create a git worktree for each branch at a predictable path
-3. Register the worktree mapping in `.claude/delivery/github/state/`
+3. Register the worktree mapping in `product repo .claude/delivery/github/state/`
 4. Return the paths so agents can work in parallel
 5. When work is complete, merge and clean up worktrees
 

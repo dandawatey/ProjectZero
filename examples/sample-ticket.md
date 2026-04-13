@@ -41,7 +41,7 @@ patient-vitals, frontend, websocket, dashboard
 - Use WebSocket (not polling) for real-time updates
 - Chart library: Chart.js or Recharts (confirm with architect)
 - Use design system components from packages/ui
-- Consume types from .claude/contracts/frontend-types.ts
+- Consume types from product repo .claude/contracts/frontend-types.ts
 - Responsive: works on tablet (primary use case) and desktop
 
 ## Test Approach

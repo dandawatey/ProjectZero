@@ -226,8 +226,8 @@ Every component emits telemetry:
 ## Offline Mode
 
 When external integrations (JIRA, Confluence, GitHub) are unavailable, the factory operates in offline mode:
-- Tickets stored as JSON in `.claude/delivery/jira/issues/`
-- Pages stored as Markdown in `.claude/delivery/confluence/pages/`
+- Tickets stored as JSON in product repo `.claude/delivery/jira/issues/`
+- Pages stored as Markdown in product repo `.claude/delivery/confluence/pages/`
 - Git operations performed on local repository
 - Reconciliation syncs when integrations come back online
 

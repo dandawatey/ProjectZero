@@ -9,7 +9,7 @@
 
 ## 2. API-First Design
 - Design API contracts (OpenAPI 3.0) before writing implementation
-- Contracts stored in `.claude/contracts/api-contract.yaml`
+- Contracts stored in `.claude/templates/api-contract-template.yaml`
 - Frontend and backend develop against contracts in parallel
 - **Enforcement**: Contract tests validate responses match spec
 - **Example**: Define `POST /api/vitals` contract → backend implements → frontend consumes → contract test validates both

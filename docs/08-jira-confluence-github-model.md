@@ -64,14 +64,14 @@ The integration-agent synchronizes between local state and JIRA:
 
 ```
 Local State                          JIRA
-.claude/delivery/jira/issues/    <-->  JIRA REST API
-.claude/delivery/jira/state/     <-->  Board state
-.claude/delivery/jira/sync_queue/ -->  Pending updates
-.claude/delivery/jira/logs/      <--  Sync audit trail
-.claude/delivery/jira/mappings/  <-->  Local ID <-> JIRA ID
+product repo .claude/delivery/jira/issues/    <-->  JIRA REST API
+product repo .claude/delivery/jira/state/     <-->  Board state
+product repo .claude/delivery/jira/sync_queue/ -->  Pending updates
+product repo .claude/delivery/jira/logs/      <--  Sync audit trail
+product repo .claude/delivery/jira/mappings/  <-->  Local ID <-> JIRA ID
 ```
 
-**Local issue format** (`.claude/delivery/jira/issues/{ticket-id}.json`):
+**Local issue format** (`product repo .claude/delivery/jira/issues/{ticket-id}.json`):
 ```json
 {
   "local_id": "MYP-11",
@@ -118,7 +118,7 @@ The integration-agent processes the sync queue on a best-effort basis. If JIRA i
 The factory tracks sprints locally:
 - Sprint planning: `/story-create` assigns stories to sprints
 - Sprint progress: Updated as stories move through states
-- Sprint reports: Generated at sprint end in `.claude/reports/`
+- Sprint reports: Generated at sprint end in `product repo .claude/reports/`
 
 ---
 
@@ -169,14 +169,14 @@ Product Hub (parent page)
 
 ```
 Local State                              Confluence
-.claude/delivery/confluence/pages/   <-->  Confluence REST API
-.claude/delivery/confluence/mappings/<-->  Local page <-> Confluence page ID
-.claude/delivery/confluence/sync_queue/ -> Pending updates
-.claude/delivery/confluence/logs/    <--  Sync audit trail
-.claude/delivery/confluence/payloads/<-->  API request/response payloads
+product repo .claude/delivery/confluence/pages/   <-->  Confluence REST API
+product repo .claude/delivery/confluence/mappings/<-->  Local page <-> Confluence page ID
+product repo .claude/delivery/confluence/sync_queue/ -> Pending updates
+product repo .claude/delivery/confluence/logs/    <--  Sync audit trail
+product repo .claude/delivery/confluence/payloads/<-->  API request/response payloads
 ```
 
-**Local page format** (`.claude/delivery/confluence/pages/{page-slug}.md`):
+**Local page format** (`product repo .claude/delivery/confluence/pages/{page-slug}.md`):
 The page content is stored as Markdown locally. When syncing to Confluence, the integration-agent converts Markdown to Confluence Storage Format (XHTML).
 
 ### Automatic Page Updates
@@ -263,10 +263,10 @@ One PR per story. If a story has multiple tasks/subtasks, they are all included 
 
 ```
 Local State                          GitHub
-.claude/delivery/github/branches/<-->  Git branches
-.claude/delivery/github/state/   <-->  PR state, review state
-.claude/delivery/github/logs/    <--  Sync audit trail
-.claude/delivery/github/repos/   <-->  Repository configuration
+product repo .claude/delivery/github/branches/<-->  Git branches
+product repo .claude/delivery/github/state/   <-->  PR state, review state
+product repo .claude/delivery/github/logs/    <--  Sync audit trail
+product repo .claude/delivery/github/repos/   <-->  Repository configuration
 ```
 
 ### CI/CD Integration
@@ -286,19 +286,19 @@ The factory configures the pipeline during `/setup github`.
 When integrations are unavailable (`ENABLE_LOCAL_FALLBACK=true`), the factory uses local file representations:
 
 ### JIRA Fallback
-- Tickets are JSON files in `.claude/delivery/jira/issues/`
-- Status tracking in `.claude/delivery/jira/state/board-state.json`
-- Sprint tracking in `.claude/delivery/jira/state/current-sprint.json`
+- Tickets are JSON files in `product repo .claude/delivery/jira/issues/`
+- Status tracking in `product repo .claude/delivery/jira/state/board-state.json`
+- Sprint tracking in `product repo .claude/delivery/jira/state/current-sprint.json`
 - The factory operates exactly the same -- agents reference tickets by ID regardless of where they are stored
 
 ### Confluence Fallback
-- Pages are Markdown files in `.claude/delivery/confluence/pages/`
-- Page hierarchy tracked in `.claude/delivery/confluence/mappings/hierarchy.json`
+- Pages are Markdown files in `product repo .claude/delivery/confluence/pages/`
+- Page hierarchy tracked in `product repo .claude/delivery/confluence/mappings/hierarchy.json`
 - The factory reads and writes pages locally
 
 ### GitHub Fallback
 - Git operations happen on the local repository
-- PRs are represented as JSON files in `.claude/delivery/github/state/`
+- PRs are represented as JSON files in `product repo .claude/delivery/github/state/`
 - Merge operations happen locally
 - When GitHub becomes available, the integration-agent pushes and creates real PRs
 
@@ -309,7 +309,7 @@ When integrations become available after a period of local-only operation, the r
 1. Compares local state to remote state
 2. Identifies drift (tickets updated in JIRA but not locally, or vice versa)
 3. Applies a last-writer-wins strategy with manual override for conflicts
-4. Logs all reconciliation actions in `.claude/delivery/reconciliation/`
+4. Logs all reconciliation actions in `product repo .claude/delivery/reconciliation/`
 5. Reports any conflicts that require human resolution
 
 The reconciliation process runs automatically when `/setup {integration}` succeeds after a period of fallback.

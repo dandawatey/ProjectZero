@@ -66,5 +66,5 @@ A work item is DONE only when ALL of the following are true:
 
 **Violation handling:**
 - If a completed item is found to violate these rules, it is immediately moved back to "in progress"
-- The violation is logged in `.claude/reports/audit-log.md`
+- The violation is logged in `product repo: .claude/reports/audit-log.md`
 - Pattern of violations triggers review of agent behavior

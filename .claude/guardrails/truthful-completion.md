@@ -15,7 +15,7 @@ Work is complete ONLY when it actually meets all criteria. No exceptions. No "cl
 
 ## Enforcement
 - Checker agent validates all completion claims automatically
-- Violations logged in `.claude/reports/audit-log.md`
+- Violations logged in `product repo: .claude/reports/audit-log.md`
 - Repeated violations trigger agent behavior review
 - Immediate revert to "in progress" on any violation discovery
 

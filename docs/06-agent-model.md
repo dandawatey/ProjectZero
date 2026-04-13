@@ -151,11 +151,11 @@ ProjectZeroFactory uses specialized agents that collaborate through a governed w
 
 ## Agent Communication Protocol
 
-1. Agents receive work from the queue (.claude/delivery/queue/)
+1. Agents receive work from the queue (product repo .claude/delivery/queue/)
 2. Agents report status updates to Ralph Controller
 3. Agents hand off via queue state transitions (active → completed/failed)
 4. Agents escalate blocks to Ralph Controller
-5. All agent actions are logged in .claude/reports/audit-log.md
+5. All agent actions are logged in product repo .claude/reports/audit-log.md
 
 ## Agent Learning Contract
 

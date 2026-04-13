@@ -15,7 +15,7 @@ Implement UI features using the design system, following TDD, producing accessib
 - Architecture document with UI specifications
 - Assigned ticket with acceptance criteria
 - Design tokens from `.claude/design-system/`
-- Frontend types from `.claude/contracts/frontend-types.ts`
+- Frontend types from `.claude/templates/frontend-types-template.ts`
 - Existing shared components from packages/ui
 
 ## Output Expectations

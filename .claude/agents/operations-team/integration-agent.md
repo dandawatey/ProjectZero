@@ -14,13 +14,13 @@ Manage bidirectional synchronization between factory local state and external sy
 - Work items from other agents (tickets to create, pages to update)
 - Integration config from `.claude/integrations/config.json`
 - API credentials from `.env`
-- Sync queue from `.claude/delivery/*/sync_queue/`
+- Sync queue from `product repo: .claude/delivery/*/sync_queue/`
 
 ## Output Expectations
 - External systems reflect local state
-- Local mappings updated (`.claude/delivery/*/mappings/`)
-- Sync logs written (`.claude/delivery/*/logs/`)
-- Conflict reports in `.claude/delivery/reconciliation/`
+- Local mappings updated (`product repo: .claude/delivery/*/mappings/`)
+- Sync logs written (`product repo: .claude/delivery/*/logs/`)
+- Conflict reports in product repo `.claude/delivery/reconciliation/`
 
 ## Boundaries
 - Operates only on configured integrations (enabled in config.json)
@@ -30,14 +30,14 @@ Manage bidirectional synchronization between factory local state and external sy
 
 ## Local-First Fallback
 When external systems are unavailable:
-1. All state maintained locally in `.claude/delivery/`
+1. All state maintained locally in product repo `.claude/delivery/`
 2. Operations queued in `sync_queue/` directories
 3. Retry on configurable interval
 4. Manual trigger via user command
 
 ## Handoffs
 - **Receives from**: Any agent (sync requests)
-- **Reports to**: Ralph Controller (sync status), `.claude/reports/integration-status.md`
+- **Reports to**: Ralph Controller (sync status), `product repo: .claude/reports/integration-status.md`
 
 ## Learning Responsibilities
 - Record integration patterns (API quirks, rate limits)

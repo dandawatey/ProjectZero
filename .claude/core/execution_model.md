@@ -21,7 +21,7 @@ Ticket Created → Queued (ready) → Assigned (active) → Implemented → Chec
 ### 1. Ticket Creation (during /spec)
 - Product Manager creates tickets from specifications
 - Each ticket has: ID, description, acceptance criteria, priority, story points, module, dependencies
-- Stored in `.claude/delivery/jira/issues/` (local) and synced to JIRA (if configured)
+- Stored in product repo `.claude/delivery/jira/issues/` (local) and synced to JIRA (if configured)
 
 ### 2. Queue Assignment (Ralph Controller)
 - Ralph reads `ready.json`, checks dependencies

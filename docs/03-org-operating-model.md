@@ -173,7 +173,7 @@ The upgrade command:
 | `.claude/skills/` | Yes | Product extensions preserved |
 | `.claude/workflows/` | Yes | Product extensions preserved |
 | `.claude/core/` | Yes (merge) | Product config merged |
-| `.claude/contracts/` | Yes | |
+| `product repo .claude/contracts/` | Yes | |
 | `.claude/checklists/` | Yes | |
 | `.claude/definition-of-done/` | Yes | |
 | `.claude/templates/` | Yes | |
@@ -181,14 +181,14 @@ The upgrade command:
 | `.claude/memory/` | No | Fully preserved |
 | `.claude/learning/` | No (additive only) | Product learnings preserved |
 | `.claude/recovery/` | No | Fully preserved |
-| `.claude/delivery/` | No | Fully preserved |
+| `product repo .claude/delivery/` | No | Fully preserved |
 | `.claude/design-system/` | No | Fully preserved |
 
 ## Org-Wide Reporting
 
 ### Sprint Reports
 
-Each product generates sprint reports in `.claude/reports/`. The portfolio aggregates these into org-wide views:
+Each product generates sprint reports in `product repo .claude/reports/`. The portfolio aggregates these into org-wide views:
 
 - Total stories completed across all products
 - Average velocity per team
@@ -198,7 +198,7 @@ Each product generates sprint reports in `.claude/reports/`. The portfolio aggre
 
 ### Risk Aggregation
 
-Risks identified in individual products (in `.claude/delivery/` risk registers) are aggregated at the portfolio level. This enables leadership to see:
+Risks identified in individual products (in `product repo .claude/delivery/` risk registers) are aggregated at the portfolio level. This enables leadership to see:
 
 - Shared risks across products (e.g., dependency on a single external API)
 - Resource conflicts (e.g., two products need the same shared service upgraded)

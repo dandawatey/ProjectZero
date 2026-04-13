@@ -41,7 +41,7 @@ Transform the BMAD and PRD into a complete, implementable specification consisti
    - Given [context], when [action], then [result]
    ```
 
-6. **Define API contracts**: For each inter-module communication, define the contract in `.claude/contracts/`:
+6. **Define API contracts**: For each inter-module communication, define the contract in product repo `.claude/contracts/`:
    ```json
    {
      "contract_id": "user-management-to-billing",
@@ -57,9 +57,9 @@ Transform the BMAD and PRD into a complete, implementable specification consisti
 
 7. **Identify cross-cutting concerns**: Authentication, authorization, logging, monitoring, error handling, rate limiting. These become their own stories or are attached as requirements to relevant stories.
 
-8. **Create JIRA artifacts**: Epics and stories are created in JIRA (or as local JSON files in `.claude/delivery/jira/issues/`).
+8. **Create JIRA artifacts**: Epics and stories are created in JIRA (or as local JSON files in `product repo .claude/delivery/jira/issues/`).
 
-9. **Create Confluence documentation**: The specification is published to the Confluence project hub (or saved locally in `.claude/delivery/confluence/pages/`).
+9. **Create Confluence documentation**: The specification is published to the Confluence project hub (or saved locally in `product repo .claude/delivery/confluence/pages/`).
 
 10. **Validate specification**: The checker agent reviews the specification for completeness, consistency, and clarity.
 
@@ -75,9 +75,9 @@ Transform the BMAD and PRD into a complete, implementable specification consisti
 ### Artifacts Produced
 
 - `.claude/modules/{module-name}/spec.md` for each module
-- `.claude/contracts/{source}-to-{target}.json` for each inter-module contract
-- `.claude/delivery/epics/{epic-id}.json` for each epic
-- `.claude/delivery/features/{story-id}.json` for each story
+- product repo `.claude/contracts/{source}-to-{target}.json` for each inter-module contract
+- `product repo .claude/delivery/epics/{epic-id}.json` for each epic
+- `product repo .claude/delivery/features/{story-id}.json` for each story
 - Confluence pages (or local equivalents)
 - JIRA epics and stories (or local equivalents)
 

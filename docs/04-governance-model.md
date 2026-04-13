@@ -305,4 +305,4 @@ These modes are activated explicitly:
 /implement --mode hotfix PROJ-100
 ```
 
-All exceptions are logged in `.claude/delivery/reconciliation/` for audit purposes.
+All exceptions are logged in `product repo .claude/delivery/reconciliation/` for audit purposes.
