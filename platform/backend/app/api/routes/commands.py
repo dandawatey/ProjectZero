@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.agent_resolver import STAGE_AGENT_MAP
 from app.models.product import Product
 from app.models.workflow import WorkflowRun
 from app.temporal_integration import client as temporal
@@ -156,3 +157,16 @@ async def approve_command(req: ApproveRequest, db: AsyncSession = Depends(get_db
 
     await db.commit()
     return {"signalled": True, "stage": req.stage, "approved": req.approved}
+
+
+# ---------------------------------------------------------------------------
+# /agent-map — expose STAGE_AGENT_MAP as JSON (PRJ0-39)
+# ---------------------------------------------------------------------------
+
+@router.get("/agent-map", status_code=200)
+async def agent_map():
+    """Return full STAGE_AGENT_MAP: stage → [{activity, agent_type, task_queue, description}]."""
+    return {
+        "stages": STAGE_AGENT_MAP,
+        "stage_order": list(STAGE_AGENT_MAP.keys()),
+    }
