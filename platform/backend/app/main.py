@@ -15,6 +15,7 @@ from app.api.routes import (
     integrations,
     activities,
     temporal_status,
+    brain,
 )
 
 
@@ -50,6 +51,7 @@ app.include_router(triggers.router, prefix="/api/v1/triggers", tags=["triggers"]
 app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
 app.include_router(activities.router, prefix="/api/v1/activities", tags=["activities"])
 app.include_router(temporal_status.router, prefix="/api/v1/temporal", tags=["temporal"])
+app.include_router(brain.router, prefix="/api/v1/brain", tags=["brain"])
 
 
 @app.get("/health")
