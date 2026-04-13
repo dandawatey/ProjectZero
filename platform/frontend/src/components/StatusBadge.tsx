@@ -27,7 +27,7 @@ interface StatusBadgeProps {
   status: string;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status }: StatusBadgeProps) {
   const colors = colorMap[status as Status] ?? 'bg-gray-100 text-gray-700';
   return (
     <span
@@ -37,3 +37,5 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     </span>
   );
 }
+
+export default StatusBadge;

@@ -39,6 +39,16 @@ async def validate_jira() -> IntegrationStatus:
     token = os.getenv("JIRA_API_TOKEN", "")
     if not all([base, email, token]):
         return IntegrationStatus("JIRA", "not_configured", "JIRA credentials incomplete")
+
+    # Check circuit breaker state first
+    from app.services.integration_health import health_registry
+    svc = health_registry.get("JIRA")
+    if svc and svc.circuit.is_open():
+        return IntegrationStatus(
+            "JIRA", "circuit_open",
+            f"Circuit OPEN — too many failures. Last error: {svc.last_error}. Retry in {svc.circuit.recovery_timeout}s."
+        )
+
     try:
         async with httpx.AsyncClient() as client:
             r = await client.get(
@@ -48,29 +58,52 @@ async def validate_jira() -> IntegrationStatus:
             )
             if r.status_code == 200:
                 name = r.json().get("displayName", "unknown")
+                if svc:
+                    svc.circuit.record_success()
                 return IntegrationStatus("JIRA", "valid", f"User: {name}")
+            if svc:
+                svc.circuit.record_failure()
             return IntegrationStatus("JIRA", "invalid", f"HTTP {r.status_code}")
     except Exception as e:
+        if svc:
+            svc.circuit.record_failure()
         return IntegrationStatus("JIRA", "unreachable", str(e))
 
 
 async def validate_confluence() -> IntegrationStatus:
     base = os.getenv("CONFLUENCE_BASE_URL", "")
     email = os.getenv("JIRA_USER_EMAIL", "")
-    token = os.getenv("CONFLUENCE_API_TOKEN", "")
-    if not all([base, token]):
+    token = os.getenv("CONFLUENCE_API_TOKEN", "") or os.getenv("JIRA_API_TOKEN", "")
+    if not all([base, email, token]):
         return IntegrationStatus("Confluence", "not_configured", "Confluence credentials incomplete")
+
+    # Check circuit breaker state first
+    from app.services.integration_health import health_registry
+    svc = health_registry.get("Confluence")
+    if svc and svc.circuit.is_open():
+        return IntegrationStatus(
+            "Confluence", "circuit_open",
+            f"Circuit OPEN — too many failures. Last error: {svc.last_error}. Retry in {svc.circuit.recovery_timeout}s."
+        )
+
     try:
         async with httpx.AsyncClient() as client:
             r = await client.get(
                 f"{base}/rest/api/space",
+                params={"limit": 1},
                 auth=(email, token),
                 timeout=10,
             )
             if r.status_code == 200:
+                if svc:
+                    svc.circuit.record_success()
                 return IntegrationStatus("Confluence", "valid", "Connected")
+            if svc:
+                svc.circuit.record_failure()
             return IntegrationStatus("Confluence", "invalid", f"HTTP {r.status_code}")
     except Exception as e:
+        if svc:
+            svc.circuit.record_failure()
         return IntegrationStatus("Confluence", "unreachable", str(e))
 
 
