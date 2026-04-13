@@ -11,6 +11,19 @@ Signal protocol:
 Query protocol:
   current_stage()             → str
   last_artifact()             → str (path)
+
+Agent resolver (PRJ0-39):
+  app.core.agent_resolver.STAGE_AGENT_MAP is the single source of truth for
+  stage → activity name + agent_type + task_queue.
+
+  Usage from workflow code:
+    from app.core.agent_resolver import resolve_activity_name, agent_type_for_contribution
+    activity_name = resolve_activity_name("realization", sub_step=0)  # "impl_activity"
+    agent_type    = agent_type_for_contribution("realization", sub_step=1)  # "review-agent"
+
+  The workflow below directly references activity functions for type safety.
+  The resolver is the authoritative metadata layer — use it for dynamic dispatch,
+  API exposure (/api/v1/commands/agent-map), and AgentContribution records.
 """
 
 from __future__ import annotations
