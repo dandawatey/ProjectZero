@@ -357,6 +357,41 @@ Status: READY for /arch
 
 **Temporal Workflow ID**: `arch-healthtracker-20260410-001`
 
+The user switches to **brainstorm** mode to explore architecture options before committing:
+
+```
+[Mode: brainstorm]
+
+User: Should we use WebSockets or SSE for real-time vital signs?
+
+Architect Agent: Let me check Brain for relevant patterns...
+
+  [Brain] Pattern recalled: "WebSocket vs SSE for real-time data"
+    Success rate: 87% for WebSockets when bidirectional needed
+    Anti-pattern: SSE with high-frequency data (>1 msg/sec) causes connection pooling issues
+
+Architect Agent: Based on patterns in Brain, WebSockets are preferred for
+vital signs because we need bidirectional communication (device -> server
+and server -> dashboard). SSE would work for alerts (server -> client only)
+but not for the vital signs ingestion path.
+
+User: Good. Let's go with WebSockets for vitals, SSE for alerts. Switch to plan mode.
+
+[Mode: plan]
+
+Architect Agent: Structuring the architecture approach:
+  1. WebSocket gateway for vital sign ingestion (ADR-003)
+  2. SSE for alert push to dashboard
+  3. Redis pub/sub as internal message bus (ADR-004)
+  4. PostgreSQL with row-level security for data isolation (ADR-001)
+
+User: Proceed. Switch to implement mode.
+
+[Mode: implement]
+```
+
+The Brain records this conversation and the decisions made. When later stories reference the alerting module, agents will recall from Brain that SSE was chosen for alerts and WebSockets for vitals.
+
 ```
 Starting architecture stage...
 
@@ -378,6 +413,11 @@ Architecture Decision Records:
   ADR-005: AES-256 encryption for PHI at rest
   ADR-006: OpenTelemetry for distributed tracing
   ADR-007: React with server components for dashboard
+
+[Brain] Decisions stored:
+  brain/decisions/ADR-001 through ADR-007        PERSISTED
+  Context: problem statement, options, rationale  STORED
+  Conversation history (brainstorm session)       STORED
 
 API contracts created in product repo:
   contracts/patient-management.yaml          CREATED
@@ -692,3 +732,5 @@ Status: ALL HEALTHY
 8. **Recovery built in**. If anything fails, `/resume`, `/recover-ticket`, or `/recover-workflow` picks up from the last checkpoint.
 9. **Business docs tied to reality**. Post-release `/business-docs --phase planning` generates financials based on the actual built product, not projections.
 10. **Caveman simple**. Run the commands in order. The factory handles the rest.
+11. **Brain remembers everything**. Decisions stored in Brain during `/arch` are recalled during `/implement`. Patterns learned during early stories improve later stories. Conversation history in Brain means `/resume` picks up exactly where you left off.
+12. **Interaction modes match your intent**. Brainstorm mode during architecture explores options freely. Plan mode structures the approach. Implement mode executes. Switch anytime.

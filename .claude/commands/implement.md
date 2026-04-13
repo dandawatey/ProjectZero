@@ -116,6 +116,17 @@ Or use `/monitor` command to check status.
 /approve FEAT-42
 ```
 
+## Interaction Modes
+
+During implementation, the user can switch interaction modes at any time via the React UI or by sending a Temporal signal:
+
+- **`chat`**: Ask questions about the current ticket, check status, request clarifications.
+- **`brainstorm`**: Explore implementation alternatives before committing to an approach.
+- **`plan`**: Break down a complex ticket into sub-tasks and sequence them.
+- **`implement`**: Default for this command. Agent writes code, tests, and commits following TDD.
+
+Mode switches are logged in the activity monitor (`/api/v1/activities/`).
+
 ## Next Command
 
 - `/monitor` -- Check workflow progress

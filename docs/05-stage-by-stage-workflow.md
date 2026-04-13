@@ -8,6 +8,19 @@ All phases are Temporal workflows. All transitions are Temporal signals. No phas
 Phase 0 --> 1 --> 2a/2b --> 3 --> 4 --> 5 --> 6 --> 7 --> 8
 ```
 
+### Interaction Modes at Every Phase
+
+Every workflow step across all phases supports four user interaction modes:
+
+| Mode | Purpose | Example |
+|---|---|---|
+| **chat** | Discuss, ask questions, clarify requirements | "What does this acceptance criterion mean?" |
+| **brainstorm** | Explore ideas, challenge assumptions, generate alternatives | "What other auth approaches could work here?" |
+| **plan** | Structure approach, define steps, set priorities | "Break this module into implementation steps" |
+| **implement** | Execute, write code, generate artifacts | "Write the API endpoint for user registration" |
+
+Users switch modes at any step via the Control Tower UI or Temporal signal. The current mode is stored in the Brain conversations table and persists across sessions. Agents adapt their behavior based on the active mode -- for example, in brainstorm mode an agent generates multiple options rather than committing to one.
+
 ---
 
 ## Phase 0: Factory Init

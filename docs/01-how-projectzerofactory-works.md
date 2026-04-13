@@ -34,6 +34,38 @@ ProjectZeroFactory is a governed product development system with five components
                            └──────────────────────────────────┘
 ```
 
+## Brain (Persistent Memory DB)
+
+ProjectZero includes a Postgres-backed persistent memory system called the Brain, accessible at `/api/v1/brain/`. It has four subsystems:
+
+- **`/brain/memory`** -- persistent memories scoped to factory, product, or session. Categorized and promotable (session -> product -> factory).
+- **`/brain/decisions`** -- architecture decisions with context, options considered, and rationale.
+- **`/brain/patterns`** -- proven patterns with success rates and anti-patterns.
+- **`/brain/conversations`** -- conversation history per workflow step, including interaction mode.
+
+Agents read the brain before executing any activity and write back after completion. This replaces file-based memory in `.claude/memory/` with a queryable, structured database.
+
+## Interaction Modes
+
+Every workflow step supports four user interaction modes:
+
+- **chat** -- discuss, ask questions, clarify requirements
+- **brainstorm** -- explore ideas, challenge assumptions, generate alternatives
+- **plan** -- structure approach, define steps, set priorities
+- **implement** -- execute, write code, generate artifacts
+
+Users can switch modes at any step via the Control Tower UI or by sending a Temporal signal. The current mode is stored in the Brain conversations table.
+
+## Activity Monitor
+
+Central user activity tracking is available at `/api/v1/activities/`. Every user action is logged -- workflow starts, approvals, commands, navigation. The Activity Monitor provides:
+
+- Activity summary dashboard with category breakdown
+- User timeline view
+- System event tracking (integration changes, errors, deployments)
+
+Activity data feeds into the Control Tower dashboard for real-time visibility.
+
 ## Core Principle: Feature = Workflow
 
 Every feature, bug fix, release, and governance action is a Temporal workflow. There is no work outside workflow context. This means:

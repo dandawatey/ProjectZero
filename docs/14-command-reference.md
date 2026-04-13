@@ -358,6 +358,31 @@ Full sequence:
 
 ---
 
+## Interaction Modes
+
+Every workflow step supports 4 user interaction modes. The user can switch modes at any time via the UI or by sending a Temporal signal. The current mode is stored in the Brain conversations table.
+
+| Mode | Purpose | When to Use |
+|---|---|---|
+| **chat** | Discuss, ask questions, clarify requirements | When you need information or have questions about the current step |
+| **brainstorm** | Explore ideas, challenge assumptions, generate alternatives | During `/vision-to-prd`, `/arch`, or any creative/exploratory phase |
+| **plan** | Structure approach, define steps, set priorities | During `/spec`, `/arch`, or when organizing work for `/implement` |
+| **implement** | Execute, write code, generate artifacts | During `/implement`, `/check`, `/release` -- action-oriented steps |
+
+Mode switching is available on all product commands (`/vision-to-prd`, `/spec`, `/arch`, `/implement`, `/check`, `/review`, `/release`, `/monitor`, `/optimize`). The factory commands (`/factory-init`, `/bootstrap-product`) default to **implement** mode.
+
+## Brain Integration
+
+All commands that involve agent execution read from and write to the Brain (`/api/v1/brain/`):
+
+- **Before execution**: Agent loads relevant memories, decisions, and patterns from Brain
+- **During execution**: Conversation history is written to Brain conversations table
+- **After execution**: Learnings, new patterns, and decisions are persisted to Brain
+
+Brain data is scoped (factory/product/session) and categorized. Use `GET /api/v1/brain/memory`, `/brain/decisions`, `/brain/patterns`, or `/brain/conversations` to inspect Brain state directly.
+
+---
+
 ## Integration Gate (7 Required Systems)
 
 All 7 must be validated during `/factory-init`:

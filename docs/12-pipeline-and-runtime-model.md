@@ -274,3 +274,44 @@ Shows:
 - Integration sync status
 
 All of this data comes from the Temporal API and Postgres. No separate monitoring infrastructure needed for the factory itself.
+
+## Brain as Runtime Component
+
+The Brain (`/api/v1/brain/`) is a core runtime component that sits between Postgres and the agents. It provides persistent memory that agents read before every action and write after every completion.
+
+**Runtime role**:
+- Agents query `/api/v1/brain/memory` and `/api/v1/brain/patterns` before executing any activity
+- Agents write to `/api/v1/brain/decisions` and `/api/v1/brain/conversations` during and after execution
+- The Brain is accessed via FastAPI -- it is not a separate service, but a set of endpoints backed by dedicated Postgres tables
+
+**In the runtime stack**:
+```
+Temporal Worker → Activity executes → Brain read (via FastAPI) → Agent runs → Brain write (via FastAPI) → Sync to Postgres
+```
+
+The Brain does not replace Temporal workflow state. Temporal owns execution state (what step are we on, what retried, what failed). Brain owns knowledge state (what do we know, what was decided, what patterns work).
+
+## Activity Monitor: Observability Layer
+
+The Activity Monitor at `/api/v1/activities/` is the central user activity tracking system. It provides an observability layer over all user and system actions.
+
+**What gets logged**:
+- Workflow starts and completions (which command, which product, which user)
+- Approval actions (approve, reject, with context)
+- Command executions from the UI or CLI
+- Navigation events (dashboard views, detail inspections)
+- System events (integration status changes, errors, deployments)
+
+**Endpoints**:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/activities/` | List activities with filters (user, category, date range) |
+| `GET /api/v1/activities/summary` | Activity summary dashboard with category breakdown |
+| `GET /api/v1/activities/timeline/{user_id}` | User-specific timeline view |
+
+**How it fits**:
+- The Activity Monitor is passive -- it logs, it does not block or gate
+- It complements Temporal UI (which shows workflow internals) by showing user-level actions
+- It feeds into the React Control Tower dashboard for operational visibility
+- System events (integration failures, deployment triggers) are automatically logged

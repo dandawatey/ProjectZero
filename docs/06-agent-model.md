@@ -142,3 +142,31 @@ Every agent MUST:
 4. **Promote through process**: Learnings promoted only via memory-agent approval workflow.
 
 No shortcuts. No skipping. The contract is enforced by Temporal workflow logic.
+
+## Brain Integration (Persistent Memory DB)
+
+In addition to file-based memory in `.claude/memory/`, agents read and write the Brain -- a Postgres-backed persistent memory system at `/api/v1/brain/`. The Brain provides structured, queryable storage that replaces flat-file memory for most operations.
+
+### Agent-Brain Protocol
+
+Every agent follows this protocol during workflow step execution:
+
+1. **Before execution**: Query `/brain/memory` for relevant memories (scoped to current session, product, and factory). Query `/brain/patterns` for proven patterns in the current domain. Query `/brain/decisions` for relevant architecture decisions.
+2. **During execution**: Write conversation entries to `/brain/conversations` with the current workflow step and interaction mode.
+3. **After completion**: Write new memories to `/brain/memory` (session-scoped by default). Record any new patterns discovered to `/brain/patterns`. Record any decisions made to `/brain/decisions`.
+
+### Memory Promotion
+
+Memories promote through scopes: session -> product -> factory. The Memory Agent evaluates session-level memories for promotion to product-level based on reuse frequency and validation. Product-level patterns that succeed across multiple products are promoted to factory-level by the CoE.
+
+### Brain vs File Memory
+
+| | Brain (Postgres) | File Memory (.claude/memory/) |
+|---|---|---|
+| **Storage** | Postgres via `/api/v1/brain/` | Markdown files in product repo |
+| **Queryable** | Yes -- filtered by scope, category, domain | Manual search |
+| **Cross-product** | Yes -- factory-scoped memories shared | No -- per-repo only |
+| **Structured** | Yes -- typed records with metadata | Semi-structured markdown |
+| **Promotable** | Yes -- session -> product -> factory | Manual copy |
+
+Agents use Brain as the primary memory source. File memory remains as a fallback and for offline scenarios.

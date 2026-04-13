@@ -166,4 +166,15 @@ CONFLUENCE_API_TOKEN=your-token
 CONFLUENCE_SPACE_KEY=MYP
 ```
 
+## Activity Monitor for Integration Operations
+
+Every integration sync operation is tracked by the central Activity Monitor at `/api/v1/activities/`. This provides full visibility into all external system interactions:
+
+- **Sync operations logged**: Every JIRA ticket create/update, Confluence page publish, GitHub branch/PR operation is recorded as a user activity in Postgres
+- **Category breakdown**: Activities are categorized by integration type (jira_sync, confluence_sync, github_sync) for dashboard filtering
+- **Failure tracking**: Failed sync operations appear in the activity timeline with error details, making it easy to diagnose integration issues without digging through logs
+- **User timeline**: All integration actions triggered by a user (manual syncs, forced reconciliations) appear in their activity timeline
+
+The Activity Monitor complements the existing retry and failure handling -- while the retry mechanism handles recovery, the Activity Monitor provides the audit trail of what happened and when.
+
 No integration, no execution. Validate first. Execute second.

@@ -30,6 +30,15 @@
 │  ┌───────────▼─────────────────────┼──────────────────────────────┐  │
 │  │              POSTGRES                                          │  │
 │  │  features | approvals | releases | audit_log | stages          │  │
+│  │                                                                │  │
+│  │  ┌─────────────────── BRAIN ────────────────────────────────┐  │  │
+│  │  │  brain_memory | brain_decisions | brain_patterns         │  │  │
+│  │  │  brain_conversations                                     │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  │                                                                │  │
+│  │  ┌─────────────── ACTIVITY MONITOR ─────────────────────────┐  │  │
+│  │  │  activities (user actions, system events, navigation)    │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────┘
                │                     ▲
@@ -62,8 +71,8 @@
 │  │ - fix        │ │ - unit_test  │ │ - review     │                 │
 │  │ - arch       │ │ - e2e_test   │ │ - signoff    │                 │
 │  └──────────────┘ └──────────────┘ └──────────────┘                 │
-│  Each worker: poll queue → execute activity → sync via FastAPI       │
-└──────────────────────────────────────────────────────────────────────┘
+│  Each worker: poll queue → read Brain → execute activity → write Brain → sync via FastAPI │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Temporal as Execution Engine
@@ -409,3 +418,75 @@ This produces distributed traces spanning:
 - Signal delivery from FastAPI -> Temporal workflow continuation
 
 Traces are exported to an OTLP collector and visualized in Grafana Tempo or Jaeger.
+
+## Brain: Persistent Memory Layer
+
+The Brain is a set of Postgres-backed tables and FastAPI endpoints (`/api/v1/brain/`) that provide persistent memory for all agents. It sits between Postgres and the Temporal workers in the architecture.
+
+### Brain Tables
+
+| Table | Purpose |
+|-------|---------|
+| `brain_memory` | Persistent memories scoped to factory, product, or session. Categorized and promotable (session -> product -> factory). |
+| `brain_decisions` | Architecture decisions with full context: problem, options considered, rationale, outcome. |
+| `brain_patterns` | Proven patterns with success rates. Includes anti-patterns to avoid. |
+| `brain_conversations` | Conversation history per workflow step. Stores interaction mode (chat/brainstorm/plan/implement). |
+
+### Brain in the Execution Flow
+
+```
+Temporal Worker picks up activity
+  → Worker calls GET /api/v1/brain/memory?scope=product&module=auth (read relevant memories)
+  → Worker calls GET /api/v1/brain/patterns?category=security (read relevant patterns)
+  → Agent executes with Brain context injected
+  → Worker calls POST /api/v1/brain/conversations (write conversation history)
+  → Worker calls POST /api/v1/brain/decisions (write any new decisions)
+  → Worker syncs result to Postgres via FastAPI (existing sync pattern)
+```
+
+The Brain does not own execution state (Temporal does). The Brain owns knowledge state: what the system has learned, decided, and discussed.
+
+### Interaction Modes
+
+Every workflow step supports 4 user interaction modes, tracked in the Brain conversations table:
+
+- **chat** -- discuss, ask questions, clarify requirements
+- **brainstorm** -- explore ideas, challenge assumptions, generate alternatives
+- **plan** -- structure approach, define steps, set priorities
+- **implement** -- execute, write code, generate artifacts
+
+Users switch modes via the React UI or by sending a Temporal signal. The mode determines agent behavior (e.g., brainstorm mode generates multiple options rather than committing to one).
+
+## Activity Monitor: Central Activity Tracking
+
+The Activity Monitor at `/api/v1/activities/` logs every user and system action to Postgres. It provides operational observability independent of Temporal's workflow-level visibility.
+
+### What Is Tracked
+
+| Category | Examples |
+|----------|----------|
+| Workflow | Workflow starts, completions, failures |
+| Approval | Approve/reject actions with context |
+| Command | Command executions from UI or CLI |
+| Navigation | Dashboard views, detail page visits |
+| System | Integration status changes, errors, deployments |
+
+### Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/activities/` | List activities with filters (user, category, date range) |
+| `GET /api/v1/activities/summary` | Category breakdown dashboard |
+| `GET /api/v1/activities/timeline/{user_id}` | Per-user activity timeline |
+
+### Relationship to Observability Stack
+
+The Activity Monitor complements the existing observability stack:
+
+- **Temporal UI** shows workflow internals (activity retries, event history)
+- **Prometheus/Grafana** shows system metrics (latency, error rates, resource usage)
+- **Sentry** shows errors with stack traces
+- **OpenTelemetry** shows distributed traces across services
+- **Activity Monitor** shows user-level actions (who did what, when, from where)
+
+Together these provide full observability from user action down to distributed trace.

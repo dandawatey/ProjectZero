@@ -20,6 +20,18 @@ React (Control Tower) --> FastAPI (API) --> Postgres (State) --> Temporal (Execu
 - **Temporal**: Execution engine. Every feature = workflow. Every governance gate = signal. Every retry = built-in.
 - **Agents**: 8 teams, 22+ specialized agents. Execute within Temporal activities. No freelancing.
 - **Redis**: Caching, rate limiting, session state.
+- **Brain**: Postgres-backed persistent memory (`/api/v1/brain/`). Stores memories, architecture decisions, proven patterns, and conversation history. Scoped at factory, product, and session levels. Agents read brain before acting and write after completing work.
+
+## Interaction Modes
+
+Every workflow step supports four user interaction modes, switchable at any time via UI or Temporal signal:
+
+- **chat** -- discuss, ask questions, clarify requirements
+- **brainstorm** -- explore ideas, challenge assumptions, generate alternatives
+- **plan** -- structure approach, define steps, set priorities
+- **implement** -- execute, write code, generate artifacts
+
+Mode is stored in the Brain conversations table and persists across sessions.
 
 ## What's Inside
 

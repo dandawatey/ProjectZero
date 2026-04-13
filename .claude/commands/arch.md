@@ -27,5 +27,13 @@ All steps must complete. Governance chain must pass where applicable.
 - Max 3 retries for recoverable failures
 - Escalate to user after retry exhaustion
 
+## Brain Integration
+
+Architecture decisions are stored in the Brain (`/api/v1/brain/decisions`). Before starting architecture work, the agent queries Brain for prior ADRs, rejected alternatives, and proven patterns. After completing architecture, all new ADRs and tech stack decisions are written back. This ensures architecture knowledge persists across products and sessions.
+
+## Interaction Modes
+
+Use `brainstorm` mode during design exploration (Steps 2-3) to evaluate trade-offs and alternatives before committing. Switch to `plan` mode for structuring contracts and module boundaries, and `implement` mode when writing final ADRs and contract files. Mode is switchable via React UI or Temporal signal.
+
 ## Next Command
 /implement

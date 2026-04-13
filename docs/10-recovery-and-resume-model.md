@@ -147,3 +147,24 @@ Retry limit hit
 | **Factory** | Recovery workflow definitions, retry policies |
 
 Temporal never loses state. That's the whole point.
+
+## Brain Persistence Across Crashes
+
+The Brain (`/api/v1/brain/`) stores all conversation history and agent context in Postgres, which means it survives any crash scenario:
+
+- **IDE crash / session end**: Brain conversations table retains the full dialogue history for every workflow step. When `/resume` runs, agents reload their conversation context from Brain rather than reconstructing it from files.
+- **Context overflow**: When a new session starts after context overflow, the Brain conversations endpoint provides the previous session's full context, scoped to the exact workflow step. No context is lost.
+- **Worker crash**: Brain state is committed to Postgres independently of Temporal workers. Even if a worker dies mid-activity, all Brain writes up to that point are preserved.
+
+### Conversation Resume from Brain
+
+When `/resume` executes:
+
+1. Reads Temporal workflow state for active workflows (as before)
+2. **Queries Brain conversations** for the last workflow step's dialogue history
+3. **Queries Brain decisions** for any architecture decisions made during the interrupted session
+4. Reads `.claude/recovery/` files (supplementary, as before)
+5. Reconstructs full agent context from Brain + Temporal state
+6. Presents status report and continues
+
+This means conversations resume seamlessly. The agent knows what was discussed, what was decided, and what interaction mode the user was in.

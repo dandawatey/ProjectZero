@@ -135,6 +135,17 @@ Alerts follow a severity model:
 | P3 - Medium | Within 4 hours | Slack | Error rate > 1%, disk > 85% |
 | P4 - Low | Next business day | Email | Warning thresholds, non-critical |
 
+### Activity Monitor
+
+The Activity Monitor at `/api/v1/activities/` provides operational visibility into all user and system actions. During release and operations phases, it tracks:
+
+- **Release actions**: Who triggered `/release`, when, what version, approval decisions
+- **Incident response**: Triage assignments, mitigation steps taken, resolution timeline
+- **Operational commands**: `/monitor` and `/optimize` invocations with results summary
+- **System events**: Deployment successes/failures, rollback triggers, integration errors
+
+The Activity Monitor dashboard (`GET /api/v1/activities/summary`) gives operations teams a single view of all actions taken, categorized by type (release, incident, monitoring, optimization). The user timeline view (`GET /api/v1/activities/timeline/{user_id}`) shows what each team member did and when -- useful for post-incident reviews and operational audits.
+
 ## Monitoring Command
 
 ```

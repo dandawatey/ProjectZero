@@ -106,6 +106,14 @@ What happens (all via Temporal workflow):
 
 Product repo is now live. Factory orchestrates it. Code lives there, not here.
 
+### Brain Persistence
+
+The Brain (persistent memory DB) is initialized for every new product. All memories, decisions, patterns, and conversation history persist across sessions. If you close your terminal and come back later, the Brain retains full context. Memories promote from session to product to factory level over time, so learnings from one session inform the next.
+
+### Interaction Modes at Every Step
+
+From this point forward, every workflow step supports four interaction modes: **chat**, **brainstorm**, **plan**, and **implement**. You can switch modes at any time via the Control Tower UI or Temporal signal. Start in chat mode to clarify requirements, switch to brainstorm to explore alternatives, move to plan to structure your approach, then implement to execute.
+
 ## Step 5: Vision to PRD (If No PRD Exists)
 
 If you have a PRD/BMAD already, skip to Step 6.

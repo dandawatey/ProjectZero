@@ -193,3 +193,25 @@ Accessible via:
 - Control Tower (governance dashboard)
 - Postgres queries (for reporting)
 - Confluence (auto-published governance reports)
+
+## Activity Monitor as Audit Trail
+
+The Activity Monitor (`/api/v1/activities/`) complements the Temporal audit trail by tracking all user-level actions:
+
+- Every workflow start, approval, rejection, and command invocation is logged
+- Activity summary dashboard provides category breakdown (governance actions, workflow operations, navigation)
+- User timeline view shows the full sequence of a user's actions across products
+- System events (integration changes, errors, deployments) are captured alongside user actions
+
+This provides a human-readable audit trail that pairs with Temporal's workflow-level event history for complete traceability.
+
+## Brain-Stored Decisions
+
+Architecture and governance decisions are persisted in the Brain (`/api/v1/brain/decisions`). Each decision record includes:
+
+- The decision context (what problem was being solved)
+- Options considered with trade-offs
+- Selected option with rationale
+- Outcome tracking (was the decision validated over time)
+
+This means governance reviewers can query past decisions when evaluating new proposals, and the Maker-Checker-Reviewer-Approver chain has access to historical decision patterns.

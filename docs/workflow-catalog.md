@@ -130,6 +130,14 @@ bug_fix_workflow
 └── maker_checker_reviewer_approver_workflow  (fix review)
 ```
 
+## Interaction Modes
+
+All workflows support four interaction modes: `chat`, `brainstorm`, `plan`, `implement`. The active mode is set per workflow step and switchable at runtime via the React UI or a Temporal signal (`mode_signal`). Agents adapt their behavior to the active mode -- exploring alternatives in brainstorm, producing artifacts in implement.
+
+## Brain Integration
+
+All workflows read from and write to the Brain (`/api/v1/brain/`). At stage start, agents query Brain for relevant memories, decisions, and patterns. At stage end, agents write back new decisions, learnings, and patterns. Brain is the Postgres-backed persistent memory layer shared across all products and sessions.
+
 ## Task Queue Summary
 
 | Queue | Workflows/Activities | Scaling |

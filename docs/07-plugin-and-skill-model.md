@@ -95,3 +95,23 @@ Compressed sprint. Map (problem + user journey) → Sketch (multiple solutions) 
 
 ### superpowers
 Meta-skill. Analyze task complexity → decompose into subtasks → determine agent sequencing (parallel where possible) → plan context window usage → set self-correction checkpoints.
+
+## Brain Integration for Skills
+
+Skills can query the Brain (`/api/v1/brain/`) to improve their output quality and consistency:
+
+### Pattern Lookup
+
+Before executing, skills query `/brain/patterns` for proven patterns in their domain. For example:
+- **code-reviewer** queries for known anti-patterns and their resolution history
+- **feature-forge** queries for successful scaffolding patterns used in similar modules
+- **secure-code-guardian** queries for previously identified security patterns and vulnerabilities
+- **rag-architect** queries for RAG design patterns that achieved high success rates
+
+### Decision Context
+
+Skills that make architectural choices (rag-architect, frontend-design, feature-forge) query `/brain/decisions` for prior decisions in the same product or factory. This ensures consistency -- a skill won't recommend a pattern that contradicts an existing ADR.
+
+### Pattern Recording
+
+After execution, skills write successful patterns back to `/brain/patterns` with metadata (success rate, context, constraints). Over time, this builds a queryable knowledge base that makes every skill invocation more informed than the last.

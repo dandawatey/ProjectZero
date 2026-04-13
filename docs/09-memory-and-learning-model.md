@@ -1,14 +1,57 @@
 # Memory and Learning Model
 
-Memory lives in the PRODUCT REPO. Factory has org-level memory and factory-level learning patterns. That's it.
+Memory lives in the PRODUCT REPO and the **Brain** (Postgres-backed persistent memory). Factory has org-level memory and factory-level learning patterns. The Brain is the system of record; file-based memory still exists but Brain takes precedence.
 
 ## Architecture
 
 ```
-React UI → FastAPI → Postgres → Temporal → Memory Activities → Product Repo Files
+React UI → FastAPI → Postgres (Brain) → Temporal → Memory Activities → Product Repo Files
 ```
 
-Temporal activities read memory before agent execution. Temporal activities write learnings after agent completion.
+Temporal activities read memory from Brain before agent execution. Temporal activities write learnings to Brain after agent completion. File-based memory in the product repo is maintained as a secondary store for CLI access and human inspection.
+
+## Brain: Persistent Memory Database
+
+The Brain is a Postgres-backed persistent memory system accessible at `/api/v1/brain/`. It is the primary system of record for all memory, decisions, patterns, and conversations. File-based memory in `.claude/memory/` still exists but is synchronized from the Brain.
+
+### Brain Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/v1/brain/memory` | Persistent memories scoped to factory, product, or session. Categorized, searchable, promotable. |
+| `/api/v1/brain/decisions` | Architecture decisions with full context: problem statement, options considered, rationale, outcome. |
+| `/api/v1/brain/patterns` | Proven patterns with success rates and anti-patterns. Agents consult these before making choices. |
+| `/api/v1/brain/conversations` | Conversation history per workflow step. Preserves full dialogue context including interaction mode. |
+
+### Brain Read/Write Cycle
+
+Every agent follows a strict read-before-act, write-after-act cycle with the Brain:
+
+1. **Before action**: Agent queries Brain for relevant memories, decisions, and patterns (scoped by module, agent type, category)
+2. **During action**: Conversation is streamed to Brain conversations table in real time
+3. **After action**: Agent writes learnings, new patterns, and decisions back to Brain
+
+### Memory Promotion via Brain
+
+Memory promotes through scopes: **session -> product -> factory**.
+
+- **Session scope**: Learnings from the current workflow execution
+- **Product scope**: Patterns observed 3+ times in the same product (auto-promoted)
+- **Factory scope**: Universal patterns observed across 2+ products (requires CoE approval)
+
+The Brain tracks promotion history, so you can trace where a factory-level pattern originated.
+
+### Brain vs File-Based Memory
+
+| Aspect | Brain (Postgres) | File-based (.claude/memory/) |
+|---|---|---|
+| **Role** | System of record | Secondary/CLI access |
+| **Query** | SQL, scoped, filtered | File read, grep |
+| **Promotion** | Automatic with approval gates | Manual |
+| **Cross-session** | Native (Postgres persists) | Requires file commit |
+| **Agent access** | API call to `/api/v1/brain/` | File read via Temporal activity |
+
+When Brain and file-based memory conflict, Brain wins. A sync activity periodically writes Brain state to product repo files for offline access.
 
 ## Where Memory Lives
 
@@ -145,4 +188,4 @@ Memory agent runs as Temporal activities. Maintenance runs at sprint boundaries.
 | **Factory** `.claude/memory/org-context.md` | Org-wide context and standards |
 | **Factory** | Factory-level learning pattern templates |
 
-Factory never stores product memory. Product repo is the source of truth.
+Factory never stores product memory. Brain (Postgres) is the system of record. Product repo files are the secondary store for offline and CLI access.

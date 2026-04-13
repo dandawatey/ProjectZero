@@ -143,6 +143,15 @@ FastAPI API → Postgres
 
 Key constraint: Temporal workers sync state to Postgres ONLY through the FastAPI sync layer, never through direct database writes. This ensures all writes go through validation and audit logging.
 
+## Brain (Persistent Memory)
+
+The Brain is a Postgres-backed persistent memory system living in `platform/backend/`. It is exposed at `/api/v1/brain/` and stores memories, decisions, patterns, and conversations centrally.
+
+- Brain data is **NOT** stored as files in product repos. It lives exclusively in Postgres within the platform backend.
+- All products share the same Brain instance. Product isolation is enforced via `product_id` foreign keys, consistent with other platform data.
+- Product-level `.claude/memory/` files are local snapshots. Brain is the authoritative cross-product, cross-session store.
+- Brain is central to all products -- every agent reads from and writes to Brain regardless of which product repo they operate in.
+
 ## Rules
 
 1. **Factory never contains live product state.** No active tickets, no queue items, no product-specific data in the factory repo.

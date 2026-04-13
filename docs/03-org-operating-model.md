@@ -156,3 +156,13 @@ Factory learns across products. Temporal workflow execution data feeds back into
 - If a workflow stage times out frequently, the activity timeout or retry policy needs adjustment
 
 Learnings stored in Postgres. Surfaced in Control Tower. Applied by CoE to next factory version.
+
+### Brain: Cross-Product Learning at the DB Level
+
+The Brain (`/api/v1/brain/`) provides structured, queryable cross-product learning that goes beyond Temporal execution data:
+
+- **Patterns** (`/brain/patterns`) -- proven patterns with success rates are promoted from product to factory scope. When a pattern succeeds across 3+ products, it becomes a factory-level recommendation.
+- **Decisions** (`/brain/decisions`) -- architecture decisions and their outcomes are stored with full context. New products can query factory-level decisions to avoid repeating analysis.
+- **Memory promotion** -- session-level learnings promote to product-level, then to factory-level. The Brain's scoping model (factory/product/session) ensures knowledge flows upward automatically.
+
+This means the factory gets smarter with every product it builds, at the database level rather than through manual CoE curation alone.

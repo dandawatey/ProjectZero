@@ -305,6 +305,51 @@ When operating as a Claude agent within this factory, you agree to:
 
 ---
 
+## Brain (Persistent Memory Layer)
+
+The Brain is a Postgres-backed persistent memory system exposed at `/api/v1/brain/`. It stores memories, decisions, patterns, and conversation context across sessions and products.
+
+### Brain Endpoints
+- `GET /api/v1/brain/memories` -- Retrieve relevant memories for current context
+- `POST /api/v1/brain/memories` -- Store new memory after completing work
+- `GET /api/v1/brain/decisions` -- Retrieve past architecture and design decisions
+- `POST /api/v1/brain/decisions` -- Record new decisions with rationale
+- `GET /api/v1/brain/patterns` -- Retrieve proven patterns
+- `POST /api/v1/brain/patterns` -- Store new reusable patterns
+- `GET /api/v1/brain/conversations` -- Retrieve conversation history
+
+### Brain Rules
+- **Read before action**: Every agent MUST query Brain before starting any task. This supplements local `.claude/memory/` files with cross-product, cross-session knowledge.
+- **Write after action**: Every agent MUST write results, decisions, and learnings back to Brain after completing significant work.
+- Brain is the system of record for persistent memory. Local `.claude/memory/` files are product-scoped snapshots; Brain is the central, shared store.
+- Brain data lives in Postgres within `platform/backend/`. It is never stored as flat files in product repos.
+
+---
+
+## Interaction Modes
+
+Every workflow step supports four interaction modes. The active mode determines how the agent and user collaborate.
+
+| Mode | Purpose | When to Use |
+|------|---------|-------------|
+| `chat` | Conversational Q&A, status checks, clarifications | Default mode. Quick questions, progress queries. |
+| `brainstorm` | Open-ended exploration, ideation, trade-off analysis | Early stages: spec drafting, design exploration, architecture alternatives. |
+| `plan` | Structured planning, task breakdown, sequencing | Before implementation: defining steps, ordering work, estimating effort. |
+| `implement` | Direct execution: write code, create artifacts, run commands | Active building: TDD cycles, writing specs, producing deliverables. |
+
+### Mode Rules
+- Mode is set per workflow step and can be switched at any time via the React UI or a Temporal signal.
+- Agents respect the current mode: in `brainstorm` mode, agents explore options rather than committing to one; in `implement` mode, agents produce artifacts directly.
+- Mode transitions are logged in the activity monitor.
+
+---
+
+## Activity Monitor
+
+All user actions are logged centrally at `/api/v1/activities/`. This provides a complete audit trail of interactions, mode switches, approvals, and command executions across all products. Agents and the React UI read from this endpoint for context and display.
+
+---
+
 ## Memory Usage Rules
 
 ### When to Read Memory

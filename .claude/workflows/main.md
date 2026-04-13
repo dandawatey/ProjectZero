@@ -107,6 +107,14 @@ Temporal: BusinessDocsWorkflow (phase=planning)
 /optimize → improvements → new feature workflows
 ```
 
+## Interaction Modes
+
+Every phase supports four interaction modes: `chat`, `brainstorm`, `plan`, `implement`. Mode is set per workflow step and switchable via React UI or Temporal signal. Agents adapt behavior to the active mode (e.g., brainstorm explores alternatives, implement produces artifacts).
+
+## Brain as Data Layer
+
+All phases read from and write to the Brain (`/api/v1/brain/`). Before entering any phase, the orchestrating agent queries Brain for relevant memories, decisions, and patterns. After completing a phase, results and learnings are written back. Brain (Postgres-backed) is the persistent cross-session, cross-product memory layer.
+
 ## Workflow Registry
 
 | Workflow | Class | When |

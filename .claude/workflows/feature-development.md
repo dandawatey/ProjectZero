@@ -257,6 +257,21 @@ class FeatureDevelopmentWorkflow:
         return self.current_stage
 ```
 
+## Interaction Modes per Stage
+
+Each stage can operate in any of four interaction modes: `chat`, `brainstorm`, `plan`, `implement`. The mode is switchable at any time via the React UI or a Temporal signal (`mode_signal`).
+
+- **Intake / Specification / Design**: `brainstorm` mode is typical for exploring requirements and alternatives.
+- **Architecture**: `brainstorm` for design exploration, `plan` for finalizing decisions.
+- **Implementation / Testing**: `implement` mode for direct artifact production.
+- **Review / Approval**: `chat` mode for discussion and clarification.
+
+Agents respect the active mode and adjust behavior accordingly.
+
+## Brain Integration
+
+At the **start of each stage**, the executing agent queries the Brain (`/api/v1/brain/`) for relevant memories, decisions, and patterns from prior work. At the **end of each stage**, the agent writes back decisions made, patterns discovered, and any learnings. This ensures cross-session and cross-product knowledge accumulation.
+
 ## Signals
 
 | Signal | Source | Purpose |

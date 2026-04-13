@@ -27,5 +27,9 @@ All steps must complete. Governance chain must pass where applicable.
 - Max 3 retries for recoverable failures
 - Escalate to user after retry exhaustion
 
+## Interaction Modes
+
+Specification benefits from `brainstorm` mode during early steps (exploring requirements, identifying edge cases, debating scope). Switch to `plan` mode when structuring epics and stories, and `implement` mode when writing the final spec artifacts. Mode is switchable via React UI or Temporal signal.
+
 ## Next Command
 /arch
