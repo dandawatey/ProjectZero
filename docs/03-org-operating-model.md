@@ -1,242 +1,158 @@
 # 03 - Org Operating Model
 
-## Overview
+## Core Boundary: Factory vs Product
 
-ProjectZeroFactory is designed to operate at the organizational level, not just the project level. A single factory template governs multiple product instances, enabling consistent standards, shared learning, and centralized oversight across an entire engineering organization.
+Two repos. Always.
+
+| | Factory Repo | Product Repo |
+|---|---|---|
+| **What** | Reusable OS | Specific product |
+| **Contains** | Agents, skills, workflows, commands, templates, governance, platform/ | Application code, tests, state, configs |
+| **Git** | `ProjectZeroFactory` | `MyProduct`, `AnotherProduct`, etc. |
+| **Owned by** | Platform/CoE team | Product team |
+| **Changes** | Factory upgrades | Product development |
+
+Factory is the engine. Product is the car. You don't fork the engine for each car.
+
+## What Factory Provides
+
+### .claude/ -- The OS
+
+```
+.claude/
+  core/           # System prompts, orchestration config
+  agents/         # 8 teams of specialized agents
+  commands/       # Slash commands (/factory-init, /spec, /implement, etc.)
+  workflows/      # Temporal workflow definitions
+  skills/         # Reusable agent capabilities
+  templates/      # Scaffolding templates for products
+  checklists/     # Definition-of-done, governance checklists
+  guardrails/     # Safety rules, scope limits
+```
+
+### platform/ -- The Infrastructure
+
+```
+platform/
+  backend/        # FastAPI API layer, Temporal client, DB models, migrations
+  frontend/       # React Control Tower -- dashboard for monitoring everything
+  temporal/       # Temporal worker, workflow definitions, activity implementations
+```
+
+### Governance
+
+- BMAD/PRD validation rules
+- SPARC stage gates (Temporal-enforced)
+- Maker-Checker-Reviewer-Approver chain (Temporal child workflow)
+- TDD enforcement
+- No Ticket No Work enforcement
+- Integration gate validation
+
+## What Product Provides
+
+Product repo contains only product-specific artifacts:
+
+- **Source code** -- the actual application
+- **Tests** -- unit, integration, E2E
+- **State** -- product-specific Postgres records
+- **Configs** -- product `.env`, deployment configs
+- **JIRA tickets** -- tracked in JIRA, synced by factory workflows
+- **Confluence pages** -- published by factory workflows
+- **GitHub PRs** -- created by factory workflows
+
+Product repos have NO factory code. No agents. No workflows. No platform.
 
 ## Portfolio Model
 
-The `.claude/portfolio/` directory tracks all product instances created from the factory:
+Factory manages multiple products simultaneously. Postgres tracks all of them.
 
 ```
-.claude/portfolio/
-  registry.json           # Master list of all products
-  health-dashboard.json   # Aggregated health metrics
-  product-a/
-    status.json           # Current stage, velocity, risks
-    config.json           # Product-specific overrides
-  product-b/
-    status.json
-    config.json
-  product-c/
-    status.json
-    config.json
-```
-
-### Registry Format
-
-```json
-{
-  "factory_version": "1.0.0",
-  "products": [
-    {
-      "name": "ProductA",
-      "repo": "https://github.com/org/product-a",
-      "jira_key": "PA",
-      "confluence_space": "PA",
-      "created_at": "2026-01-15T10:00:00Z",
-      "factory_version_at_creation": "1.0.0",
-      "current_stage": "realization",
-      "stack": ["nextjs", "fastapi", "postgresql"],
-      "team_size": 3,
-      "status": "active"
-    }
-  ]
-}
-```
-
-### Health Dashboard
-
-The portfolio health dashboard aggregates metrics across all products:
-
-- **Velocity**: Stories completed per sprint per product
-- **Quality**: Defect density, test coverage, security findings
-- **Governance compliance**: Percentage of work that passed all governance gates
-- **Recovery frequency**: How often products need to use recovery mechanisms
-- **Learning rate**: Number of learnings promoted from session to factory level
-
-## Multi-Project Governance
-
-### Consistent Standards
-
-Every product instance inherits the same governance model:
-- Same SPARC workflow stages
-- Same Maker-Checker-Reviewer-Approver chain
-- Same definition-of-done criteria
-- Same agent roles and responsibilities
-- Same quality gates
-
-This consistency means that team members can move between products without relearning processes, and that leadership can compare metrics across products on an apples-to-apples basis.
-
-### Shared Learning
-
-The factory's learning model operates at three levels:
-
-1. **Session learnings**: Captured during a single Claude session, stored in `.claude/memory/`
-2. **Project learnings**: Promoted from sessions, stored in `.claude/learning/`
-3. **Factory learnings**: Promoted from projects, stored in the factory template and propagated to all products
-
-When a product discovers a useful pattern (e.g., "always add retry logic to external API calls"), that learning can be promoted to the factory level so that all future products benefit.
-
-### Cross-Product Patterns
-
-The portfolio model enables identification of cross-product patterns:
-
-- If three products all struggle with the same integration pattern, that is a signal to add it as a factory-level skill
-- If a particular agent consistently produces lower-quality output in a specific domain, that is a signal to refine the agent's training
-- If recovery is triggered frequently in a particular workflow stage, that is a signal to improve the stage's robustness
-
-## Center of Excellence Ownership
-
-### CoE Responsibilities
-
-The Center of Excellence (CoE) is the team that owns and maintains the factory template. Their responsibilities:
-
-1. **Factory development**: Adding new agents, skills, commands, and workflows
-2. **Factory upgrades**: Versioning and releasing new factory versions
-3. **Quality assurance**: Ensuring the factory itself meets quality standards
-4. **Governance enforcement**: Defining and updating governance rules
-5. **Learning curation**: Reviewing and promoting project-level learnings to factory level
-6. **Support**: Helping product teams with factory adoption and troubleshooting
-7. **Metrics**: Tracking portfolio-wide metrics and reporting to leadership
-
-### CoE Workflow
-
-```
-Product teams report issues/suggestions
+Factory (1) --> Products (many)
+  |               |
+  |               +-- MyProduct (GitHub repo, JIRA project, Confluence space)
+  |               +-- AnotherProduct (GitHub repo, JIRA project, Confluence space)
+  |               +-- ThirdProduct (GitHub repo, JIRA project, Confluence space)
   |
-  v
-CoE triages and prioritizes
-  |
-  v
-CoE develops factory improvements
-  |
-  v
-CoE tests in staging product instance
-  |
-  v
-CoE releases new factory version
-  |
-  v
-Product teams upgrade (at their own pace)
+  +-- Temporal: workflows for all products
+  +-- Postgres: state for all products
+  +-- Redis: cache for all products
+  +-- Control Tower: dashboard for all products
 ```
 
-### CoE Staffing Model
+### Portfolio Tracking
 
-A typical CoE for ProjectZeroFactory includes:
-- **1 Factory Architect**: Owns the overall factory design and agent model
-- **1-2 Factory Engineers**: Implement new skills, commands, and integrations
-- **1 Governance Lead**: Defines and maintains governance rules and checklists
-- **1 Learning Curator**: Reviews and promotes learnings across products
+Postgres stores per-product:
+- Current phase (0-8)
+- Workflow state (active workflows, completed, failed)
+- Agent activity (who did what, when)
+- Governance records (every gate pass/fail)
+- Velocity metrics (stories/sprint, cycle time)
+- Quality metrics (coverage, defect density, security findings)
 
-For smaller organizations, these roles can be combined. The minimum viable CoE is one person who understands the factory architecture and can make changes to the template.
+Control Tower (React) visualizes all of this across the portfolio.
 
-## Factory Versioning
+## Factory Upgrades
 
-### Version Scheme
-
-The factory uses semantic versioning: `MAJOR.MINOR.PATCH`
-
-- **MAJOR**: Breaking changes to agent contracts, command interfaces, or directory structure
-- **MINOR**: New agents, skills, commands, or non-breaking enhancements
-- **PATCH**: Bug fixes, learning promotions, documentation updates
-
-### Version Tracking
-
-Each product instance tracks:
-- `factory_version_at_creation`: The factory version when the product was bootstrapped
-- `factory_version_current`: The factory version currently in use
-- `factory_version_available`: The latest factory version available for upgrade
-
-### Upgrade Process
+Factory is versioned. Products pin to a factory version.
 
 ```
-# In the product repo
-/factory-upgrade --version 1.2.0
+/factory-upgrade --version 2.1.0
 ```
 
-The upgrade command:
-1. Downloads the new factory version
-2. Diffs the `.claude/` directories (product vs. new factory)
-3. Applies non-conflicting changes automatically
-4. Flags conflicts for manual resolution
-5. Preserves all product-specific data (memory, learning, recovery, delivery)
-6. Updates `factory_version_current`
-7. Runs the readiness validator to confirm the upgrade succeeded
+What upgrades touch:
 
-### What Upgrades Touch
+| Upgraded | NOT Touched |
+|---|---|
+| Agents | Product source code |
+| Commands | Product tests |
+| Workflows | Product configs |
+| Skills | Product state in Postgres |
+| Templates | Product JIRA/Confluence content |
+| Platform (backend, frontend, temporal) | Product GitHub repo |
+| Governance rules | |
+| Checklists | |
 
-| Directory | Upgraded | Preserved |
-|---|---|---|
-| `.claude/agents/` | Yes | Product overrides preserved |
-| `.claude/commands/` | Yes | Product extensions preserved |
-| `.claude/skills/` | Yes | Product extensions preserved |
-| `.claude/workflows/` | Yes | Product extensions preserved |
-| `.claude/core/` | Yes (merge) | Product config merged |
-| `product repo .claude/contracts/` | Yes | |
-| `.claude/checklists/` | Yes | |
-| `.claude/definition-of-done/` | Yes | |
-| `.claude/templates/` | Yes | |
-| `.claude/guardrails/` | Yes | |
-| `.claude/memory/` | No | Fully preserved |
-| `.claude/learning/` | No (additive only) | Product learnings preserved |
-| `.claude/recovery/` | No | Fully preserved |
-| `product repo .claude/delivery/` | No | Fully preserved |
-| `.claude/design-system/` | No | Fully preserved |
+Upgrade process (Temporal workflow):
+1. Pull new factory version
+2. Diff `.claude/` and `platform/`
+3. Apply non-conflicting changes
+4. Flag conflicts for manual resolution
+5. Run integration gate to validate
+6. Update factory version record in Postgres
 
-## Org-Wide Reporting
+Products don't need to do anything. Factory upgrades are factory-side. Products keep building.
 
-### Sprint Reports
+## Org Scaling
 
-Each product generates sprint reports in `product repo .claude/reports/`. The portfolio aggregates these into org-wide views:
+### Small (1-5 products)
 
-- Total stories completed across all products
-- Average velocity per team
-- Governance compliance rate
-- Security findings by severity
-- Test coverage trends
+- 1 factory instance
+- 1 person maintains factory (part-time)
+- Single Temporal namespace
+- Single Postgres database
 
-### Risk Aggregation
+### Medium (5-20 products)
 
-Risks identified in individual products (in `product repo .claude/delivery/` risk registers) are aggregated at the portfolio level. This enables leadership to see:
+- 1 factory instance
+- 2-3 person CoE team (dedicated)
+- Temporal namespace per product (isolation)
+- Postgres with schema-per-product or shared with RLS
 
-- Shared risks across products (e.g., dependency on a single external API)
-- Resource conflicts (e.g., two products need the same shared service upgraded)
-- Timeline risks (e.g., a product is behind and may delay a dependent product)
+### Large (20+ products)
 
-### Audit Trail
+- Factory repo with CI/CD, automated testing, staged rollouts
+- 4-6 person CoE team
+- Temporal cluster (multiple workers, high availability)
+- Postgres cluster (read replicas, connection pooling)
+- Redis cluster
+- Control Tower with role-based access per product team
 
-Every governance decision is logged. The portfolio can produce an audit trail showing:
-- Who (which agent) made each decision
-- What governance gate was applied
-- Whether it passed or failed
-- What action was taken on failure
-- When the decision was made
+## Cross-Product Patterns
 
-This is critical for regulated industries (healthcare, finance, government) where software development processes must be auditable.
+Factory learns across products. Temporal workflow execution data feeds back into factory improvements.
 
-## Scaling Considerations
+- If 3 products fail at the same governance gate, the gate rule needs tuning
+- If an agent consistently produces low-quality output in a domain, the agent prompt needs refinement
+- If a workflow stage times out frequently, the activity timeout or retry policy needs adjustment
 
-### Small Org (1-5 products)
-
-- Single factory repo, manual upgrades
-- CoE is 1 person (part-time)
-- Portfolio tracking in registry.json
-- Monthly review of learnings
-
-### Medium Org (5-20 products)
-
-- Factory repo with CI/CD for releases
-- CoE is 2-3 people (dedicated)
-- Automated portfolio health dashboard
-- Weekly review of learnings
-- Standardized upgrade cadence (monthly)
-
-### Large Org (20+ products)
-
-- Factory repo with automated testing and staged rollouts
-- CoE is 4-6 people (dedicated team)
-- Real-time portfolio dashboard with alerting
-- Continuous learning curation with ML-assisted pattern detection
-- Staggered upgrade rollout (canary -> early adopters -> general availability)
-- Product-specific factory extensions versioned separately
+Learnings stored in Postgres. Surfaced in Control Tower. Applied by CoE to next factory version.

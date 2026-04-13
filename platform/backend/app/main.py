@@ -13,6 +13,8 @@ from app.api.routes import (
     dashboard,
     triggers,
     integrations,
+    activities,
+    temporal_status,
 )
 
 
@@ -46,6 +48,8 @@ app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(triggers.router, prefix="/api/v1/triggers", tags=["triggers"])
 app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
+app.include_router(activities.router, prefix="/api/v1/activities", tags=["activities"])
+app.include_router(temporal_status.router, prefix="/api/v1/temporal", tags=["temporal"])
 
 
 @app.get("/health")

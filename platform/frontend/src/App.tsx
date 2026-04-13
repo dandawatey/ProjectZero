@@ -8,6 +8,8 @@ import {
   Package,
   ScrollText,
   AlertTriangle,
+  Zap,
+  Activity,
 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import WorkflowRuns from './pages/WorkflowRuns';
@@ -17,12 +19,16 @@ import AgentContributions from './pages/AgentContributions';
 import Artifacts from './pages/Artifacts';
 import AuditLog from './pages/AuditLog';
 import Failures from './pages/Failures';
+import TemporalExecution from './pages/TemporalExecution';
+import ActivityMonitor from './pages/ActivityMonitor';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/temporal', label: 'Temporal', icon: Zap },
   { to: '/workflows', label: 'Workflows', icon: GitBranch },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
   { to: '/agents', label: 'Agents', icon: Bot },
+  { to: '/activities', label: 'Activity Monitor', icon: Activity },
   { to: '/artifacts', label: 'Artifacts', icon: Package },
   { to: '/audit', label: 'Audit Log', icon: ScrollText },
   { to: '/failures', label: 'Failures', icon: AlertTriangle },
@@ -72,6 +78,8 @@ export default function App() {
           <Route path="/artifacts" element={<Artifacts />} />
           <Route path="/audit" element={<AuditLog />} />
           <Route path="/failures" element={<Failures />} />
+          <Route path="/temporal" element={<TemporalExecution />} />
+          <Route path="/activities" element={<ActivityMonitor />} />
         </Routes>
       </main>
     </div>

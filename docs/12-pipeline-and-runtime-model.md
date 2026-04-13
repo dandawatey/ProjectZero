@@ -2,349 +2,275 @@
 
 ## Overview
 
-ProjectZeroFactory supports an optional pipeline mode for asynchronous task execution. This is useful for large products where multiple stories can be implemented in parallel, or where long-running tasks (test suites, deployments, security scans) should not block the interactive session.
-
-Pipeline mode is enabled via:
-```env
-ENABLE_PIPELINE_MODE=true
-```
+Temporal IS the pipeline engine. There is no separate Dagster. There is no Redis queue. There are no file-based queues. Every piece of work in ProjectZeroFactory flows through Temporal workflows, with Postgres as the system of record and FastAPI as the API layer.
 
 ## Architecture
 
-### Components
-
 ```
-FastAPI Workers (execute tasks)
+React (Control Tower)     localhost:3000
   |
   v
-Redis (message queue and cache)
+FastAPI (Backend API)     localhost:8000
   |
   v
-Dagster (orchestration and scheduling)
+Postgres (System of Record)
   |
   v
-.claude/runtime/ (state tracking)
+Temporal (Workflow Engine)  localhost:7233 (gRPC) / localhost:8233 (UI)
   |
   v
-product repo .claude/delivery/queue/ (work queue)
+Workers (platform/temporal/workers/main.py)
 ```
 
-### FastAPI Workers
+That is it. No Dagster. No Redis. No `.claude/delivery/queue/` files. No `.claude/runtime/` state files.
 
-FastAPI workers are lightweight HTTP services that execute factory tasks asynchronously. They run as background processes and accept work items from the Redis queue.
+## Temporal as Pipeline Engine
 
-**Configuration**:
-```env
-WORKER_HOST=0.0.0.0
-WORKER_PORT=8000
-WORKER_CONCURRENCY=4
+### Why Temporal Replaces Everything Else
+
+Old model had Dagster for orchestration, Redis for queuing, FastAPI workers for execution, and file-based queues for tracking. Temporal replaces all of them:
+
+| Old Component | What It Did | Temporal Replacement |
+|---|---|---|
+| Dagster | Orchestration, scheduling, DAGs | Temporal workflows with child workflows |
+| Redis queues | Message passing between workers | Temporal task queues |
+| FastAPI workers | Task execution | Temporal activities executed by workers |
+| `.claude/delivery/queue/` files | Work item tracking | Postgres rows via FastAPI + Temporal workflow state |
+| `.claude/runtime/` state files | Runtime state tracking | Temporal workflow state + Postgres |
+| Cron jobs | Scheduled tasks | Temporal schedules (native) |
+
+### Task Queue Model
+
+Temporal task queues replace file-based queues. Work items are tracked in Postgres via FastAPI.
+
+**How it works**:
+1. A command (e.g., `/implement`) starts a Temporal workflow
+2. The workflow dispatches activities to task queues
+3. Workers registered in `platform/temporal/workers/main.py` pick up activities
+4. Each activity is idempotent -- safe to retry
+5. Activity results are persisted to Postgres via FastAPI calls
+6. Temporal maintains workflow state for recovery and visibility
+
+**Task queues in use**:
+- `factory-main` -- primary queue for all factory workflows
+- `factory-governance` -- governance chain activities (check, review, approve)
+- `factory-integration` -- JIRA, Confluence, GitHub sync activities
+- `factory-heavy` -- long-running activities (security scans, full test suites)
+
+### Workers
+
+All workers are registered in a single entry point:
+
+```
+platform/temporal/workers/main.py
 ```
 
-**Worker responsibilities**:
-- Execute implementation tasks (code generation for a specific story)
-- Run test suites (unit, integration, E2E)
-- Execute security scans
-- Perform integration syncs (JIRA, Confluence, GitHub)
-- Generate reports
+This file registers all workflows and activities with the Temporal worker. When the platform starts, this worker connects to the Temporal server and begins polling task queues.
 
-**Worker endpoints**:
-```
-POST /tasks/execute     # Submit a task for execution
-GET  /tasks/{id}/status # Check task status
-GET  /tasks/{id}/result # Retrieve task result
-POST /tasks/{id}/cancel # Cancel a running task
-GET  /health            # Worker health check
+**What the worker registers**:
+- All workflow classes (FeatureDevelopmentWorkflow, DeploymentReadinessWorkflow, etc.)
+- All activity functions (create_jira_ticket, run_tests, sync_confluence, etc.)
+- Task queue bindings
+
+**Starting the worker**:
+```bash
+cd platform
+python -m temporal.workers.main
 ```
 
-### Redis Queue
+The worker runs as part of the platform stack. When you start the platform (FastAPI + Temporal + Postgres), the worker starts automatically.
 
-Redis serves as both the message queue and a cache layer.
+## State Management
 
-**Queue model**:
-- Each task type has its own queue: `factory:queue:{task-type}`
-- Task types: `implement`, `test`, `review`, `scan`, `sync`, `report`
-- Tasks are JSON messages with a defined schema
+### Postgres is the System of Record
 
-**Task message format**:
-```json
-{
-  "task_id": "task-20260122-001",
-  "type": "implement",
-  "ticket_id": "MYP-13",
-  "agent": "backend-engineer",
-  "priority": "normal",
-  "payload": {
-    "module": "user-management",
-    "story_spec": "...",
-    "architecture": "...",
-    "data_model": "..."
-  },
-  "created_at": "2026-01-22T15:00:00Z",
-  "timeout_ms": 300000,
-  "retry_count": 0,
-  "max_retries": 3
-}
+Every meaningful state change is written to Postgres through FastAPI endpoints. Temporal syncs via idempotent activities -- meaning an activity can be retried without causing duplicate records or corrupted state.
+
+**What Postgres tracks**:
+- Product metadata (name, stack, status, phase)
+- Feature/story records (ticket ID, status, module, assigned agent)
+- Workflow execution records (workflow ID, type, status, started_at, completed_at)
+- Governance chain results (checker, reviewer, approver outcomes per story)
+- Integration sync state (last sync timestamps, sync status per system)
+- Audit trail (who did what, when)
+
+**Idempotent activity pattern**:
+```python
+@activity.defn
+async def update_story_status(story_id: str, status: str) -> bool:
+    """Update story status in Postgres. Idempotent -- safe to retry."""
+    async with httpx.AsyncClient() as client:
+        response = await client.put(
+            f"{FASTAPI_URL}/api/stories/{story_id}/status",
+            json={"status": status}
+        )
+        return response.status_code == 200
 ```
 
-**Cache usage**:
-- Agent context cached for fast retrieval
-- Checkpoint data cached for quick resume
-- Integration state cached to reduce API calls
+If Temporal retries this activity (due to a transient failure), the PUT request simply overwrites with the same value. No harm done.
 
-**Configuration**:
-```env
-REDIS_URL=redis://localhost:6379
-REDIS_PASSWORD=
+### Temporal Workflow State
+
+Temporal itself maintains workflow execution state. This gives you:
+- **Exactly-once execution semantics**: Activities execute exactly once (or are safely retried)
+- **Durable timers**: Sleep for hours or days without losing state
+- **Signal handling**: External signals can modify running workflows
+- **Query handling**: Query a running workflow for its current state
+- **Automatic recovery**: If a worker crashes, another worker picks up where it left off
+
+## Runtime Visibility
+
+### Temporal UI
+
+The Temporal UI runs at `localhost:8233` and provides:
+- List of all running and completed workflows
+- Workflow execution history (every activity, every state transition)
+- Workflow input/output inspection
+- Manual workflow termination or cancellation
+- Search by workflow ID, type, or status
+- Task queue monitoring (backlog depth, worker count)
+
+This replaces the old `.claude/runtime/` state files and pipeline monitoring.
+
+### React Control Tower
+
+The React frontend at `localhost:3000` provides:
+- Product dashboard (current phase, progress)
+- Feature board (stories by status)
+- Workflow status (active Temporal workflows)
+- Integration health (JIRA, Confluence, GitHub, Temporal connection status)
+- Governance chain visibility (which stories are in check/review/approve)
+- Command execution (trigger commands from the UI)
+
+### FastAPI Endpoints
+
+The FastAPI backend at `localhost:8000` provides the API layer:
+
+```
+GET  /api/products                    # List products
+GET  /api/products/{id}               # Product details
+GET  /api/stories                     # List stories (filterable)
+GET  /api/stories/{id}                # Story details with governance state
+GET  /api/workflows                   # List workflow executions
+GET  /api/workflows/{id}              # Workflow details
+POST /api/commands/{command}          # Trigger a command
+GET  /api/integrations/health         # Integration health check
+GET  /api/health                      # System health
 ```
 
-### Dagster Orchestration
+## Scheduling, Retries, and Timeouts
 
-Dagster manages complex pipelines where tasks have dependencies and must execute in a specific order.
+Temporal handles all of this natively. No external cron. No custom retry logic.
 
-**Pipeline definitions** live in `.claude/pipelines/`:
+### Retries
+
+Activities have retry policies defined in workflow code:
 
 ```python
-# Example: .claude/pipelines/implementation_pipeline.py
-from dagster import job, op, In, Out
-
-@op
-def load_specification(context, ticket_id: str):
-    """Load the story specification and related architecture."""
-    # Read from product repo .claude/delivery/features/{ticket_id}.json
-    # Read from .claude/modules/{module}/architecture.md
-    return spec
-
-@op(ins={"spec": In()})
-def write_tests(context, spec):
-    """Write tests based on the specification (TDD)."""
-    # Invoke qa-engineer agent
-    return test_files
-
-@op(ins={"spec": In(), "tests": In()})
-def implement_code(context, spec, tests):
-    """Implement the code to pass the tests."""
-    # Invoke backend-engineer or frontend-engineer agent
-    return code_files
-
-@op(ins={"code": In()})
-def run_checker(context, code):
-    """Run checker validation."""
-    # Invoke checker agent
-    return check_result
-
-@op(ins={"code": In(), "check": In()})
-def run_reviewer(context, code, check):
-    """Run reviewer if checker passed."""
-    if check.status != "PASS":
-        raise Exception(f"Checker failed: {check.reason}")
-    # Invoke reviewer agent
-    return review_result
-
-@job
-def implementation_pipeline():
-    spec = load_specification()
-    tests = write_tests(spec)
-    code = implement_code(spec, tests)
-    check = run_checker(code)
-    run_reviewer(code, check)
+retry_policy = RetryPolicy(
+    initial_interval=timedelta(seconds=1),
+    backoff_coefficient=2.0,
+    maximum_interval=timedelta(minutes=5),
+    maximum_attempts=5,
+    non_retryable_error_types=["ValidationError", "AuthorizationError"],
+)
 ```
 
-**Configuration**:
-```env
-DAGSTER_HOME=/opt/dagster/home
-DAGSTER_HOST=localhost
-DAGSTER_PORT=3000
+### Timeouts
+
+Workflows and activities have timeouts:
+
+```python
+# Workflow-level timeout
+workflow_execution_timeout = timedelta(hours=24)
+
+# Activity-level timeouts
+activity_start_to_close_timeout = timedelta(minutes=10)
+activity_schedule_to_close_timeout = timedelta(minutes=30)
+activity_heartbeat_timeout = timedelta(minutes=2)
 ```
 
-### Pipeline Creation
+### Signals
 
-```
-/pipeline-create --type implementation --tickets MYP-13,MYP-14,MYP-15
-```
+External events can modify running workflows via Temporal signals:
 
-This command:
-1. Creates a Dagster pipeline that implements the specified tickets
-2. Determines dependencies between tickets (e.g., MYP-14 depends on MYP-13)
-3. Parallelizes independent tickets
-4. Configures the governance chain for each ticket
-5. Registers the pipeline with Dagster
+```python
+# Signal a running workflow to pause
+await client.get_workflow_handle(workflow_id).signal("pause")
 
-## Runtime State
-
-### .claude/runtime/
-
-```
-.claude/runtime/
-  workers/
-    worker-001.json       # Worker status and current task
-    worker-002.json       # Worker status and current task
-  pipelines/
-    pipeline-001.json     # Pipeline status and progress
-  scheduler/
-    cron.json             # Scheduled tasks (nightly tests, weekly reports)
-  health.json             # Overall runtime health status
+# Signal approval from the UI
+await client.get_workflow_handle(workflow_id).signal("approve", {"approved": True})
 ```
 
-**Worker state format**:
-```json
-{
-  "worker_id": "worker-001",
-  "status": "busy",
-  "current_task": "task-20260122-001",
-  "started_at": "2026-01-22T15:00:00Z",
-  "cpu_usage": 45,
-  "memory_usage_mb": 512,
-  "tasks_completed": 12,
-  "tasks_failed": 1,
-  "uptime_seconds": 3600
-}
+### Schedules
+
+Temporal handles recurring work via native schedules:
+
+```python
+# Schedule a nightly health check
+await client.create_schedule(
+    "nightly-health-check",
+    Schedule(
+        action=ScheduleActionStartWorkflow(
+            HealthCheckWorkflow.run,
+            id="health-check",
+            task_queue="factory-main",
+        ),
+        spec=ScheduleSpec(cron_expressions=["0 2 * * *"]),
+    ),
+)
 ```
 
-**Pipeline state format**:
-```json
-{
-  "pipeline_id": "pipeline-001",
-  "type": "implementation",
-  "status": "running",
-  "created_at": "2026-01-22T15:00:00Z",
-  "tickets": ["MYP-13", "MYP-14", "MYP-15"],
-  "progress": {
-    "MYP-13": {"status": "completed", "duration_ms": 120000},
-    "MYP-14": {"status": "running", "started_at": "2026-01-22T15:02:00Z"},
-    "MYP-15": {"status": "queued"}
-  },
-  "dependency_graph": {
-    "MYP-14": ["MYP-13"],
-    "MYP-15": []
-  }
-}
+## What Was Removed
+
+The following are no longer part of the system:
+
+- **Dagster**: No `DAGSTER_HOME`, no `dagster dev`, no pipeline definitions in `.claude/pipelines/`
+- **Redis**: No `REDIS_URL`, no message queues, no cache layer
+- **File-based queues**: No `.claude/delivery/queue/` directories (ready, active, completed, failed, blocked)
+- **Runtime state files**: No `.claude/runtime/` directory (workers, pipelines, scheduler, health.json)
+- **FastAPI task workers**: No `POST /tasks/execute` worker endpoints. FastAPI is the API layer only -- Temporal workers execute tasks.
+- **Pipeline mode toggle**: No `ENABLE_PIPELINE_MODE` flag. Temporal is always on. There is no "interactive vs pipeline" distinction -- everything is a workflow.
+
+## Starting the Platform
+
+```bash
+# Start all services (Temporal, Postgres, FastAPI, React)
+cd platform
+docker compose up -d
+
+# Or start individually:
+# Temporal server
+temporal server start-dev --ui-port 8233
+
+# Postgres (via Docker or local)
+docker compose up postgres -d
+
+# FastAPI backend
+cd platform/backend
+uvicorn main:app --reload --port 8000
+
+# Temporal workers
+cd platform
+python -m temporal.workers.main
+
+# React frontend
+cd platform/frontend
+npm run dev
 ```
 
-## Work Queue Model
-
-### product repo .claude/delivery/queue/
-
-The work queue is the primary mechanism for tracking work items, even when pipeline mode is disabled.
-
-```
-product repo .claude/delivery/queue/
-  ready/                  # Items ready to be worked on
-    MYP-13.json
-    MYP-14.json
-  active/                 # Items currently being worked on
-    MYP-15.json
-  completed/              # Items that have passed all governance gates
-    MYP-11.json
-    MYP-12.json
-  failed/                 # Items that have exhausted retries
-  blocked/                # Items blocked by dependencies or escalation
-```
-
-### Queue Item Format
-
-```json
-{
-  "ticket_id": "MYP-13",
-  "type": "story",
-  "module": "user-management",
-  "priority": 2,
-  "dependencies": [],
-  "assigned_agent": null,
-  "status": "ready",
-  "created_at": "2026-01-20T10:00:00Z",
-  "queue_position": 3,
-  "estimated_effort_hours": 4,
-  "governance_state": {
-    "checker": null,
-    "reviewer": null,
-    "approver": null
-  }
-}
-```
-
-### Queue Transitions
-
-```
-ready --> active --> completed
-  |         |
-  |         +--> failed (after max retries)
-  |         |
-  |         +--> blocked (dependency unmet or escalated)
-  |
-  +--> blocked (dependency not yet completed)
-```
-
-**Transition rules**:
-- **ready -> active**: When an agent starts work (`/implement` or pipeline picks it up)
-- **active -> completed**: When the approver approves
-- **active -> failed**: When retry limit is exhausted
-- **active -> blocked**: When a dependency is discovered or the work is escalated
-- **ready -> blocked**: When a dependency item is not yet completed
-- **blocked -> ready**: When the blocking condition is resolved
-- **failed -> ready**: When a human resets the item for re-attempt
-
-## Pipeline Mode vs. Interactive Mode
-
-| Aspect | Interactive Mode | Pipeline Mode |
-|---|---|---|
-| Execution | One story at a time, synchronous | Multiple stories in parallel, async |
-| Worker requirement | None | FastAPI workers required |
-| Redis requirement | None | Required |
-| Dagster requirement | None | Required for complex pipelines |
-| Queue usage | `product repo .claude/delivery/queue/` (files) | Redis queues + file-based state |
-| Recovery | Checkpoint-based | Checkpoint + Dagster run recovery |
-| Best for | Small products, early stages | Large products, realization stage |
-
-## Monitoring Pipeline Mode
-
-### Health Check
+## Monitoring
 
 ```
 /monitor --pipeline
 ```
 
 Shows:
-- Worker status (count, busy/idle, uptime)
-- Queue depth per task type
-- Active pipelines with progress
-- Failed tasks requiring attention
-- Resource utilization
+- Active Temporal workflows (count, types, durations)
+- Task queue depth per queue
+- Worker health (connected workers, last heartbeat)
+- Failed workflows requiring attention
+- Postgres connection health
+- Integration sync status
 
-### Pipeline Logs
-
-Pipeline execution logs are stored in `.claude/runtime/pipelines/` and include:
-- Task start/end timestamps
-- Agent invocations and their results
-- Governance chain outcomes
-- Error details for failures
-
-## Starting and Stopping Pipeline Mode
-
-### Start Workers
-
-```bash
-# Start FastAPI workers
-python -m factory.workers --concurrency 4
-
-# Start Dagster
-dagster dev -f .claude/pipelines/
-```
-
-### Stop Workers
-
-```bash
-# Graceful shutdown (finish current tasks)
-kill -SIGTERM $(cat .claude/runtime/workers/pid)
-
-# Force shutdown (after timeout)
-kill -SIGKILL $(cat .claude/runtime/workers/pid)
-```
-
-### Draining the Queue
-
-Before stopping workers, drain the queue:
-```
-/pipeline-drain
-```
-
-This stops accepting new tasks, waits for active tasks to complete, and writes final state to `product repo .claude/delivery/queue/`.
+All of this data comes from the Temporal API and Postgres. No separate monitoring infrastructure needed for the factory itself.

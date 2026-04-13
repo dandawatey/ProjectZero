@@ -1,308 +1,195 @@
 # 04 - Governance Model
 
-## Overview
+## Core Rule
 
-The governance model is the enforcement mechanism that ensures every artifact produced by the factory meets quality, security, and compliance standards. It operates through three interlocking systems: process governance (BMAD + SPARC), quality governance (Maker-Checker-Reviewer-Approver), and operational governance (No Ticket No Work + TDD).
+All governance is enforced through Temporal workflows. Not documentation. Not honor system. Temporal.
 
-## BMAD: Business Model Architecture Document
+If a governance gate fails, the workflow blocks. No workaround. No override. Fix the issue, signal the workflow, continue.
 
-### Purpose
+## Integration Gate
 
-The BMAD is the foundational document for every product. It answers "what are we building and why?" before any code is written. No development work can proceed without a validated BMAD.
+Before ANY workflow executes, the integration gate validates:
 
-### Required Sections
-
-| Section | Content | Validated By |
+| Integration | What's Checked | Failure = |
 |---|---|---|
-| Business Context | Market, problem, opportunity | product-manager |
-| Target Users | Personas, segments, needs | product-manager |
-| Value Proposition | Why users choose this product | product-manager |
-| Revenue Model | How the product makes money | product-manager, finops-analyst |
-| Competitive Landscape | Alternatives and differentiation | product-manager |
-| Technical Constraints | Platform, performance, compliance | architect |
-| Non-Functional Requirements | Scalability, security, availability | architect, sre-engineer |
-| Success Metrics | KPIs with targets | product-manager |
-| Risk Assessment | Business and technical risks | product-manager, architect |
+| GitHub | Token valid, org access, repo perms | All workflows blocked |
+| JIRA | Token valid, project access, write perms | All workflows blocked |
+| Confluence | Token valid, space access, write perms | All workflows blocked |
+| Temporal | Server reachable, namespace exists | All workflows blocked |
+| Postgres | Connected, schema current, migrations applied | All workflows blocked |
+| Redis | Connected, read/write operational | All workflows blocked |
+| Anthropic | API key valid, model accessible | All workflows blocked |
 
-### BMAD Validation
+No keys = no workflows. Period.
 
-The product-manager agent validates the BMAD for:
-- **Completeness**: All required sections are present
-- **Consistency**: No contradictions between sections
-- **Measurability**: Success metrics have concrete targets
-- **Feasibility**: Technical constraints are compatible with the chosen stack
-- **Clarity**: Ambiguous statements are flagged for clarification
+Integration gate runs at `/factory-init` and is re-validated at workflow start. Stale tokens caught at execution time, not just init time.
 
-A BMAD that fails validation cannot be used to start the SPARC workflow.
+## BMAD Before Build
 
-## SPARC: The Development Lifecycle
+No development workflow starts without a validated BMAD (Business Model Architecture Document).
 
-SPARC defines five stages through which every feature passes. Each stage has entry criteria, required activities, and exit criteria. No stage can be skipped.
+Two paths to BMAD:
+1. **Bring your own**: Load existing BMAD/PRD via `/spec --type bmad --input path/to/bmad.md`
+2. **Generate**: Run `/vision-to-prd` -- Temporal workflow generates PRD + BMAD from a vision statement
 
-### S - Specification
+BMAD validation (Temporal activity):
+- All required sections present (business context, personas, value prop, metrics, risks)
+- No contradictions between sections
+- Success metrics have concrete targets
+- Technical constraints compatible with chosen stack
 
-**Objective**: Define what will be built with enough precision that it can be designed and implemented without ambiguity.
+Failed BMAD validation = workflow blocks until BMAD is fixed and re-validated.
 
-**Entry criteria**: BMAD is loaded and validated.
+## SPARC Stages = Temporal Workflow Stages
 
-**Activities**:
-- Decompose BMAD into modules (bounded contexts)
-- Define epics per module
-- Break epics into user stories with acceptance criteria
-- Define API contracts between modules
-- Identify cross-cutting concerns (auth, logging, monitoring)
+The 8-phase model maps to Temporal workflows. Each phase is a workflow (or set of workflows). Phase transitions are Temporal signals.
 
-**Exit criteria**: All stories have acceptance criteria. All module boundaries are defined. All API contracts are documented. Product-manager agent has signed off.
+```
+Phase 0 (Factory Init)     = FactoryInitWorkflow
+Phase 1 (Product Creation) = BootstrapProductWorkflow
+Phase 2a (Vision-to-PRD)   = VisionToPrdWorkflow
+Phase 2b (Business Disc.)  = BusinessDocsWorkflow (discovery)
+Phase 3 (Specification)    = SpecificationWorkflow
+Phase 4 (Architecture)     = ArchitectureWorkflow
+Phase 5 (Implementation)   = ImplementationWorkflow (per story)
+Phase 6 (Quality+Release)  = ReleaseWorkflow
+Phase 7 (Business Plan)    = BusinessDocsWorkflow (planning)
+Phase 8 (Operations)       = MonitorWorkflow, OptimizeWorkflow
+```
 
-### P - Pseudocode / Design
+**Temporal enforces ordering.** You cannot start Phase 5 without Phase 4 completion signal. You cannot start Phase 4 without Phase 3 completion signal. No skipping.
 
-**Objective**: Design the solution at a logical level before writing any implementation code.
+## TDD Enforcement
 
-**Entry criteria**: Specification is complete and approved.
+Implementation workflows (Phase 5) enforce TDD:
 
-**Activities**:
-- Create pseudocode for complex algorithms
-- Design data models and schemas
-- Design UI wireframes and user flows
-- Define state management approach
-- Plan error handling and edge cases
-- Create test plans (what will be tested, at what level)
+1. `WriteTestsActivity` -- agent writes tests FIRST
+2. `RunTestsActivity` -- confirms tests fail (red)
+3. `ImplementActivity` -- agent writes implementation
+4. `RunTestsActivity` -- confirms tests pass (green)
+5. `RefactorActivity` -- agent refactors, tests still green
+6. `CoverageCheckActivity` -- validates coverage >= threshold (default 80%)
 
-**Exit criteria**: All complex logic has pseudocode. Data models are defined. UI flows are documented. Test plans are complete. Architect agent has signed off.
-
-### A - Architecture
-
-**Objective**: Make and document all technical decisions that constrain implementation.
-
-**Entry criteria**: Design is complete and approved.
-
-**Activities**:
-- Select patterns (repository, CQRS, event-driven, etc.)
-- Define service boundaries and communication protocols
-- Design database schema and migration strategy
-- Define infrastructure requirements
-- Establish security architecture
-- Document architecture decision records (ADRs)
-- Review against non-functional requirements from BMAD
-
-**Exit criteria**: All architecture decisions are documented as ADRs. Infrastructure requirements are defined. Security architecture is reviewed. Architect and security-reviewer agents have signed off.
-
-### R - Realization
-
-**Objective**: Build the software according to the specification, design, and architecture.
-
-**Entry criteria**: Architecture is complete and approved.
-
-**Activities**:
-- Implement code module by module
-- Write unit tests (TDD: test first, then code)
-- Write integration tests
-- Write end-to-end tests (using Playwright for UI)
-- Pass each module through Maker-Checker-Reviewer-Approver
-- Sync progress to JIRA and Confluence
-
-**Exit criteria**: All stories are implemented. All tests pass. All modules have passed governance chain. Test coverage meets threshold (default 80%). No critical or high security findings.
-
-### C - Completion
-
-**Objective**: Release, monitor, and learn from the delivery.
-
-**Entry criteria**: Realization is complete and all governance gates have passed.
-
-**Activities**:
-- Final integration testing
-- Performance testing against NFR benchmarks
-- Security scan (final)
-- Create release notes
-- Deploy to staging
-- Smoke test in staging
-- Deploy to production
-- Configure monitoring and alerting
-- Conduct retrospective
-- Capture learnings
-
-**Exit criteria**: Production deployment successful. Monitoring is active. Release notes published. Learnings captured and promoted.
-
-## TDD: Test-Driven Development
-
-TDD is not optional in the factory. The enforcement works as follows:
-
-### The TDD Cycle
-
-1. **Write the test first**: Before any implementation code, the engineer agent writes a failing test that describes the expected behavior
-2. **Run the test**: Confirm it fails (red)
-3. **Write the minimum code** to make the test pass (green)
-4. **Refactor**: Clean up the code while keeping tests green
-5. **Repeat**
-
-### TDD Enforcement
-
-The checker agent validates TDD compliance by examining:
-- **Test timestamps**: Tests must be committed before or in the same commit as implementation code
-- **Test coverage**: New code must have corresponding tests
-- **Test quality**: Tests must test behavior, not implementation details
-- **Test levels**: Unit, integration, and E2E tests are all required for features with UI
-
-### Test Level Requirements
-
-| Test Level | Required For | Minimum Coverage |
-|---|---|---|
-| Unit tests | All code | 80% line coverage |
-| Integration tests | All API endpoints, all database operations | All happy paths + critical error paths |
-| E2E tests | All user-facing features with UI | All critical user flows |
-| Performance tests | All features with NFR benchmarks | All benchmarked operations |
-| Security tests | All authentication/authorization flows | All auth flows, all input validation |
+If `CoverageCheckActivity` fails, workflow blocks. No merge. No PR. Write more tests.
 
 ## No Ticket No Work
 
-### Principle
+Every workflow step creates or updates JIRA tickets. Enforced by Temporal activities.
 
-Every piece of work must trace to a ticket. This means:
-- No code changes without a JIRA ticket (or local equivalent)
-- No branch without a ticket number in the branch name
-- No PR without a ticket reference
-- No deployment without an approved ticket trail
+- `/spec` creates epics and stories in JIRA
+- `/implement` requires a ticket ID, creates branch `feature/{TICKET-ID}-{desc}`
+- Every commit message includes ticket reference
+- Every PR references a ticket
+- `/release` updates all tickets to Done
 
-### Enforcement
+No ticket ID = `ImplementationWorkflow` refuses to start.
 
-The factory enforces this through:
+Branch naming enforced: `{type}/{ticket-id}-{description}`. Temporal activity validates before creating branch.
 
-1. **Branch naming**: Branches must match the pattern `{type}/{ticket-id}-{description}` (e.g., `feature/PROJ-42-user-authentication`)
-2. **Commit messages**: Must include a ticket reference
-3. **PR validation**: The repo-validator agent checks that every PR references a valid ticket
-4. **Implementation gate**: The `/implement` command requires a ticket ID
+## Maker-Checker-Reviewer-Approver
 
-### Ticket Hierarchy
+The governance chain is a **Temporal child workflow** with signal-based gates.
 
 ```
-Epic (PROJ-10: User Management)
+ImplementationWorkflow
   |
-  +-- Story (PROJ-11: As a user, I can register)
-  |     +-- Task (PROJ-12: Implement registration API)
-  |     +-- Task (PROJ-13: Implement registration UI)
-  |     +-- Task (PROJ-14: Write registration tests)
-  |
-  +-- Story (PROJ-15: As a user, I can log in)
-        +-- Task (PROJ-16: Implement login API)
-        +-- Task (PROJ-17: Implement login UI)
-        +-- Task (PROJ-18: Write login tests)
+  +-- starts --> GovernanceChainWorkflow (child)
+       |
+       +-- MakerActivity: agent produces artifact
+       |
+       +-- CheckerActivity: validates against spec
+       |     |-- FAIL --> signal: return to Maker (max 3 retries)
+       |     +-- PASS --> continue
+       |
+       +-- ReviewerActivity: quality, security, standards
+       |     |-- BLOCK --> signal: return to Maker (critical issue)
+       |     |-- REQUEST_CHANGES --> signal: return to Maker (max 3 retries)
+       |     +-- APPROVE --> continue
+       |
+       +-- ApproverActivity: final sign-off
+             |-- REJECTED --> signal: return to Maker (with rationale)
+             +-- APPROVED --> signal: parent workflow continues
 ```
 
-## Maker-Checker-Reviewer-Approver Chain
+### Bounded Retries
 
-This is the quality gate chain that every artifact passes through.
+- Maker-Checker loop: max 3 attempts
+- Maker-Reviewer loop: max 3 attempts
+- Total chain iterations: max 5
+- Exhausted retries = workflow pauses + escalation alert in Control Tower
 
-### Maker
+### Signal-Based Gates
 
-The **Maker** is the agent that produces the artifact. For code, this is typically the backend-engineer, frontend-engineer, or data-engineer. For specifications, this is the product-manager. For architecture, this is the architect.
+Each gate is a Temporal signal. External reviewers (humans) can also send signals through the Control Tower API. This enables human-in-the-loop governance when needed.
 
-**Maker responsibilities**:
-- Produce the artifact according to the specification
-- Self-check against the definition of done
-- Write tests (for code artifacts)
-- Document the work
+## Stage Gates
 
-### Checker
+Temporal enforces stage completion before allowing progression:
 
-The **checker** agent validates the artifact against its specification and contract.
+### Phase 3 (Spec) Exit Gate
+- All modules defined with boundaries
+- All stories have acceptance criteria
+- All contracts defined
+- JIRA tickets created
+- Checker + Approver signed off
 
-**Checker responsibilities**:
-- Verify the artifact matches the specification
-- Verify all acceptance criteria are met
-- Verify tests exist and pass
-- Verify the artifact conforms to its contract (input/output format)
-- Flag any deviations
+### Phase 4 (Arch) Exit Gate
+- All ADRs documented
+- Infrastructure requirements defined
+- Security architecture reviewed
+- Checker + Approver signed off
 
-**Checker output**: PASS (proceed to review) or FAIL (return to maker with specific issues)
+### Phase 5 (Implement) Exit Gate (per module)
+- All stories implemented
+- All tests pass
+- Coverage >= threshold
+- No critical security findings
+- All governance chains completed
+- All JIRA tickets updated
 
-### Reviewer
+### Phase 6 (Release) Exit Gate
+- All module gates passed
+- Full integration test suite green
+- Final security scan clean
+- Performance benchmarks met
+- Release notes published
+- Production deployment successful
+- Monitoring active
 
-The **reviewer** agent (and optionally specialized reviewers like security-reviewer or ux-reviewer) examines the artifact for quality.
-
-**Reviewer responsibilities**:
-- Code quality (readability, maintainability, SOLID principles)
-- Security (vulnerabilities, injection risks, auth issues)
-- Performance (N+1 queries, unnecessary computations, memory leaks)
-- Standards compliance (naming conventions, file organization)
-- UX quality (for UI artifacts)
-
-**Reviewer output**: APPROVE (proceed to approver), REQUEST_CHANGES (return to maker with specific feedback), or BLOCK (critical issue, cannot proceed)
-
-### Approver
-
-The **approver** agent gives final sign-off.
-
-**Approver responsibilities**:
-- Verify that checker passed
-- Verify that reviewer approved
-- Verify that all governance requirements are met
-- Authorize the artifact to proceed to the next stage
-
-**Approver output**: APPROVED (artifact can proceed) or REJECTED (with rationale)
-
-### Chain Visualization
-
-```
-Maker (produces artifact)
-  |
-  v
-Checker (validates against spec)
-  |-- FAIL --> return to Maker
-  |-- PASS
-  v
-Reviewer (examines quality)
-  |-- BLOCK --> return to Maker (critical)
-  |-- REQUEST_CHANGES --> return to Maker
-  |-- APPROVE
-  v
-Approver (final sign-off)
-  |-- REJECTED --> return to Maker (with rationale)
-  |-- APPROVED --> proceed to next stage
-```
-
-### Maximum Iterations
-
-To prevent infinite loops, the governance chain has bounded retries:
-- **Maker-Checker loop**: Maximum 3 attempts. If the checker fails 3 times, the issue is escalated (logged for human review).
-- **Maker-Reviewer loop**: Maximum 3 attempts. If the reviewer requests changes 3 times, the issue is escalated.
-- **Total chain**: Maximum 5 total iterations through the full chain. After 5, the work item is blocked and flagged.
-
-## Module Approval Gates
-
-Beyond individual artifacts, entire modules must pass approval gates before they can be considered complete:
-
-### Module Gate Checklist
-
-- [ ] All stories in the module are implemented
-- [ ] All tests pass (unit, integration, E2E)
-- [ ] Test coverage meets threshold (default 80%)
-- [ ] No critical or high security findings
-- [ ] All API contracts are honored
-- [ ] Documentation is complete (Confluence pages updated)
-- [ ] Performance benchmarks met (if NFRs defined)
-- [ ] UX review passed (if UI module)
-- [ ] Architecture review confirmed no drift from ADRs
-- [ ] All JIRA tickets updated to "Done"
-
-### Gate Enforcement
-
-```
-/approve --module user-management
-```
-
-The approver agent runs the module gate checklist. If any item fails, the module cannot be approved and the specific failures are reported.
+Each gate = Temporal activity that checks conditions. Conditions not met = workflow blocks.
 
 ## Governance Exceptions
 
-In rare cases, governance can be relaxed for specific purposes:
+Two modes, both logged:
 
-- **Prototype mode**: Skips checker and reviewer for rapid prototyping. Code produced in prototype mode cannot be promoted to production without going through the full chain.
-- **Hotfix mode**: Accelerated chain where checker and reviewer operate with reduced scope. Post-deployment, a full review is required within 48 hours.
-
-These modes are activated explicitly:
+### Prototype Mode
 ```
-/implement --mode prototype PROJ-99
-/implement --mode hotfix PROJ-100
+/implement --mode prototype TICKET-99
 ```
+Skips checker and reviewer. Code CANNOT be promoted to production. Temporal tags the workflow as prototype. Release workflow rejects prototype code.
 
-All exceptions are logged in `product repo .claude/delivery/reconciliation/` for audit purposes.
+### Hotfix Mode
+```
+/implement --mode hotfix TICKET-100
+```
+Accelerated chain (reduced reviewer scope). Post-deployment, Temporal schedules a full review workflow within 48 hours. If full review not completed in 48h, alert fires.
+
+All exceptions recorded in Postgres audit trail. Visible in Control Tower.
+
+## Audit Trail
+
+Every governance decision is a Temporal event. Immutable. Queryable.
+
+Stored:
+- Which agent made the decision
+- Which gate was applied
+- Pass or fail
+- Rationale (for failures and rejections)
+- Timestamp
+- Workflow ID (traceable to specific feature/ticket)
+
+Accessible via:
+- Temporal UI (raw workflow history)
+- Control Tower (governance dashboard)
+- Postgres queries (for reporting)
+- Confluence (auto-published governance reports)

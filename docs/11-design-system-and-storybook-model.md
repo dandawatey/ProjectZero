@@ -2,11 +2,13 @@
 
 ## Overview
 
-ProjectZeroFactory enforces UI governance through a shared design system, component-first development, and Storybook-driven visual testing. No ad-hoc styling is permitted -- all UI work uses shared components and design tokens.
+ProjectZeroFactory enforces UI governance through a shared design system, component-first development, and Storybook-driven visual testing. No ad-hoc styling is permitted. All UI work uses shared components and design tokens. Every component change goes through the governance chain as a Temporal child workflow.
 
-## Design System Architecture
+## Architecture: Where Things Live
 
-### Directory Structure
+Two repos. Two roles. One system.
+
+**Factory repo** (ProjectZeroFactory) -- defines the standards:
 
 ```
 .claude/design-system/
@@ -33,9 +35,7 @@ ProjectZeroFactory enforces UI governance through a shared design system, compon
     naming.md              # Component and CSS naming conventions
 ```
 
-### packages/ui Structure
-
-The shared component library lives in the product's source tree:
+**Product repo** -- contains the implementation:
 
 ```
 packages/ui/
@@ -60,7 +60,7 @@ packages/ui/
       useBreakpoint.ts
       useReducedMotion.ts
     tokens/
-      index.ts              # Generated from .claude/design-system/tokens/
+      index.ts              # Generated from factory .claude/design-system/tokens/
       colors.ts
       typography.ts
       spacing.ts
@@ -76,9 +76,36 @@ packages/ui/
   tsconfig.json
 ```
 
+Factory defines the rules. Product repo implements them. Storybook runs in the product repo for visual dev and testing.
+
+## Design System Initialization
+
+The `/design-system-init` command triggers a Temporal activity that scaffolds the design system.
+
+```
+/design-system-init
+```
+
+What happens:
+1. Temporal activity `initialize_design_system` fires
+2. Creates `.claude/design-system/` structure in the factory with default token standards
+3. Scaffolds `packages/ui/` in the product repo with Storybook configuration
+4. Creates the initial set of base components (Button, Input, Card, Layout)
+5. Configures the token-to-code generation pipeline
+6. Sets up Storybook with the project theme
+7. Registers completion in Postgres via FastAPI
+
+The default tokens can be customized to match the product's brand. Update the JSON files in `.claude/design-system/tokens/` and run:
+
+```
+/design-system-init --regenerate-tokens
+```
+
+This regenerates the TypeScript token files in `packages/ui/src/tokens/`.
+
 ## Design Tokens
 
-Design tokens are the foundation of visual consistency. They are defined as JSON in `.claude/design-system/tokens/` and consumed by the component library.
+Design tokens are the foundation of visual consistency. They are defined as JSON in the factory `.claude/design-system/tokens/` and consumed by the product repo component library.
 
 ### Color Tokens (colors.json)
 
@@ -168,17 +195,13 @@ Design tokens are the foundation of visual consistency. They are defined as JSON
 
 ## Storybook Integration
 
-### Purpose
+Storybook runs in the product repo at `localhost:6006` (configurable via `STORYBOOK_PORT` in `.env`).
 
-Storybook serves three purposes in the factory:
+### Purpose
 
 1. **Development environment**: Components are developed in isolation in Storybook before being composed into pages
 2. **Visual testing**: Every component has stories that serve as visual regression tests
 3. **Documentation**: Storybook is the living component documentation
-
-### Configuration
-
-Storybook runs on `localhost:6006` (configurable via `STORYBOOK_PORT` in `.env`).
 
 ### Story Structure
 
@@ -255,6 +278,80 @@ Every component must have stories for:
 - **Dark mode**: If the product supports dark mode
 - **Accessibility**: Stories demonstrating keyboard navigation and screen reader behavior
 
+## Component Creation Workflow
+
+When a new shared component is needed, the `/component-create` command kicks off a Temporal workflow.
+
+### Step 1: Request
+
+```
+/component-create --name DataTable --module billing
+```
+
+This starts `ComponentCreateWorkflow` in Temporal.
+
+### Step 2: Design Phase (Temporal Activity)
+
+The frontend-design skill produces:
+- Component API (props, events)
+- Sub-component structure
+- Responsive behavior
+- Accessibility plan
+- Usage examples
+
+### Step 3: Implementation (Temporal Activity)
+
+The frontend-engineer agent:
+1. Creates the component directory in `packages/ui/src/components/`
+2. Implements the component using design tokens
+3. Creates the Storybook stories (all required variants)
+4. Writes unit tests
+5. Registers the component in `.claude/design-system/components/registry.json`
+
+### Step 4: Governance Chain (Temporal Child Workflow)
+
+Every component goes through the full governance chain, executed as a Temporal child workflow:
+
+```
+maker -> checker -> reviewer -> approver
+```
+
+The `/component-review` command triggers this:
+
+```
+/component-review --name DataTable
+```
+
+The review includes:
+- Code quality review (code-reviewer skill) -- checker
+- Visual review (refactoring-ui skill) -- reviewer
+- Accessibility audit (ux-heuristics skill) -- reviewer
+- Design system compliance check -- reviewer
+- Final approval -- approver
+
+### Step 5: Registration
+
+After passing the governance chain:
+- Component status updated to "stable" in `component-status.json`
+- Component available for use by all modules
+- Storybook documentation published
+
+## UI Audit
+
+The `/ui-audit` command runs a comprehensive audit of the entire UI against design system standards.
+
+```
+/ui-audit
+```
+
+This triggers a Temporal workflow that:
+1. Scans all components in `packages/ui/` for token compliance
+2. Validates all stories render without errors
+3. Runs accessibility checks (WCAG 2.1 AA) on all stories
+4. Checks for ad-hoc styles or hardcoded values
+5. Verifies component registry is in sync
+6. Produces an audit report with pass/fail per component
+
 ## UI Governance Rules
 
 ### Rule 1: Shared Components First
@@ -262,7 +359,7 @@ Every component must have stories for:
 Before creating a new component, check:
 1. Does the design system already have this component? (Check `packages/ui/src/components/`)
 2. Can an existing component be extended or composed to meet the need?
-3. If a new component is truly needed, it must go through the component creation workflow (below)
+3. If a new component is truly needed, it must go through the `/component-create` workflow
 
 **Enforcement**: The checker agent validates that new UI code does not create ad-hoc components when shared components exist.
 
@@ -283,7 +380,7 @@ All styling must use:
 
 ### Rule 3: Accessibility is Not Optional
 
-All components must:
+WCAG 2.1 AA compliance is mandatory. All components must:
 - Meet WCAG 2.1 AA standards
 - Support keyboard navigation
 - Have appropriate ARIA attributes
@@ -291,7 +388,7 @@ All components must:
 - Support reduced motion preferences
 - Work with screen readers
 
-**Enforcement**: The ux-reviewer agent runs accessibility audits on all UI stories.
+**Enforcement**: The ux-reviewer agent runs accessibility audits on all UI stories. The `/ui-audit` command validates the entire UI.
 
 ### Rule 4: Component API Standards
 
@@ -302,72 +399,15 @@ All components must follow:
 - **Forwarded refs**: Components forward refs to their root DOM element
 - **Composition**: Prefer composition over configuration (compound components)
 
-## Component Creation Workflow
+## Temporal Integration Summary
 
-When a new shared component is needed:
+| Command | Temporal Workflow/Activity | What It Does |
+|---|---|---|
+| `/design-system-init` | `initialize_design_system` activity | Scaffolds design system in both repos |
+| `/component-create` | `ComponentCreateWorkflow` | Design + implement + govern a new component |
+| `/component-review` | Child workflow: maker-checker-reviewer-approver | Governance chain for component approval |
+| `/story-create` | Activity within component workflow | Creates Storybook stories for a component |
+| `/story-validate` | Activity within UI audit workflow | Validates stories render and pass a11y |
+| `/ui-audit` | `UIAuditWorkflow` | Full UI compliance audit |
 
-### Step 1: Request via /component-create
-
-```
-/component-create --name DataTable --module billing
-```
-
-### Step 2: Design Phase
-
-The frontend-design skill produces:
-- Component API (props, events)
-- Sub-component structure
-- Responsive behavior
-- Accessibility plan
-- Usage examples
-
-### Step 3: Implementation
-
-The frontend-engineer agent:
-1. Creates the component directory in `packages/ui/src/components/`
-2. Implements the component using design tokens
-3. Creates the Storybook stories (all required variants)
-4. Writes unit tests
-5. Registers the component in `.claude/design-system/components/registry.json`
-
-### Step 4: Review via /component-review
-
-```
-/component-review --name DataTable
-```
-
-The review includes:
-- Code quality review (code-reviewer skill)
-- Visual review (refactoring-ui skill)
-- Accessibility audit (ux-heuristics skill)
-- Design system compliance check
-
-### Step 5: Approval and Registration
-
-After passing the governance chain:
-- Component status is updated to "stable" in `component-status.json`
-- Component is available for use by all modules
-- Storybook documentation is published
-
-## Design System Initialization
-
-When starting a new product with a frontend stack:
-
-```
-/design-system-init
-```
-
-This command:
-1. Creates the `.claude/design-system/` structure with default tokens
-2. Scaffolds `packages/ui/` with the Storybook configuration
-3. Creates the initial set of base components (Button, Input, Card, Layout)
-4. Configures the token-to-code generation pipeline
-5. Sets up Storybook with the project theme
-
-The default tokens can be customized to match the product's brand. Update the JSON files in `.claude/design-system/tokens/` and run:
-
-```
-/design-system-init --regenerate-tokens
-```
-
-This regenerates the TypeScript token files in `packages/ui/src/tokens/`.
+All state tracked in Postgres via FastAPI. All visibility in Temporal UI at `localhost:8233`.

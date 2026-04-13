@@ -1,460 +1,313 @@
 # 05 - Stage-by-Stage Workflow
 
-## Overview
+## The 8-Phase Model
 
-This document details each SPARC stage with the specific steps, agents involved, artifacts produced, and exit criteria. Use this as the authoritative reference for what happens at each stage.
+All phases are Temporal workflows. All transitions are Temporal signals. No phase can be skipped.
+
+```
+Phase 0 --> 1 --> 2a/2b --> 3 --> 4 --> 5 --> 6 --> 7 --> 8
+```
 
 ---
 
-## Stage 1: Specification
+## Phase 0: Factory Init
 
-### Objective
+**Objective**: Validate all integrations. Initialize factory state. Confirm readiness.
 
-Transform the BMAD and PRD into a complete, implementable specification consisting of modules, epics, stories, and acceptance criteria.
+**Command**: `/factory-init`
 
-### Trigger
+**Temporal Workflow**: `FactoryInitWorkflow`
 
-```
-/spec
-```
+**Agents**: Factory orchestrator
 
-### Steps
+**What Happens**:
+1. `ValidateGitHubActivity` -- token, org, perms
+2. `ValidateJiraActivity` -- token, project perms
+3. `ValidateConfluenceActivity` -- token, space perms
+4. `ValidateTemporalActivity` -- server connection, namespace
+5. `ValidatePostgresActivity` -- connection, schema, migrations
+6. `ValidateRedisActivity` -- connection, read/write
+7. `ValidateAnthropicActivity` -- API key, model access
+8. `InitializeStoresActivity` -- create Postgres tables, Redis keys
+9. `WriteFactoryStateActivity` -- record factory version, config
 
-1. **Load context**: The product-manager agent reads `.claude/knowledge/bmad.md` and (if present) `.claude/knowledge/prd.md`.
+**Artifacts**: Factory state in Postgres. Integration validation records.
 
-2. **Identify modules**: Decompose the product into bounded contexts. Each module represents a self-contained area of functionality (e.g., user-management, billing, notifications, reporting).
-
-3. **Define module boundaries**: For each module, define:
-   - Responsibility (what it does)
-   - Owned entities (data it manages)
-   - Public API (how other modules interact with it)
-   - Dependencies (what it needs from other modules)
-
-4. **Create epics**: For each module, create one or more epics that represent major feature groups. Each epic maps to a JIRA epic.
-
-5. **Decompose into stories**: For each epic, create user stories in the format:
-   ```
-   As a [persona], I want to [action] so that [outcome].
-   
-   Acceptance criteria:
-   - Given [context], when [action], then [result]
-   - Given [context], when [action], then [result]
-   ```
-
-6. **Define API contracts**: For each inter-module communication, define the contract in product repo `.claude/contracts/`:
-   ```json
-   {
-     "contract_id": "user-management-to-billing",
-     "source_module": "user-management",
-     "target_module": "billing",
-     "endpoint": "/api/billing/create-subscription",
-     "method": "POST",
-     "request_schema": { ... },
-     "response_schema": { ... },
-     "error_codes": [ ... ]
-   }
-   ```
-
-7. **Identify cross-cutting concerns**: Authentication, authorization, logging, monitoring, error handling, rate limiting. These become their own stories or are attached as requirements to relevant stories.
-
-8. **Create JIRA artifacts**: Epics and stories are created in JIRA (or as local JSON files in `product repo .claude/delivery/jira/issues/`).
-
-9. **Create Confluence documentation**: The specification is published to the Confluence project hub (or saved locally in `product repo .claude/delivery/confluence/pages/`).
-
-10. **Validate specification**: The checker agent reviews the specification for completeness, consistency, and clarity.
-
-### Agents Involved
-
-| Agent | Role in this stage |
-|---|---|
-| product-manager | Primary: drives the specification |
-| architect | Advisory: validates module boundaries and API contracts |
-| checker | Validates the specification |
-| approver | Signs off on the specification |
-
-### Artifacts Produced
-
-- `.claude/modules/{module-name}/spec.md` for each module
-- product repo `.claude/contracts/{source}-to-{target}.json` for each inter-module contract
-- `product repo .claude/delivery/epics/{epic-id}.json` for each epic
-- `product repo .claude/delivery/features/{story-id}.json` for each story
-- Confluence pages (or local equivalents)
-- JIRA epics and stories (or local equivalents)
-
-### Exit Criteria
-
-- [ ] All modules are defined with clear boundaries
-- [ ] All epics are created with descriptions
-- [ ] All stories have acceptance criteria in Given/When/Then format
-- [ ] All inter-module contracts are defined
-- [ ] Cross-cutting concerns are identified and assigned
-- [ ] Checker has validated completeness
-- [ ] Approver has signed off
-- [ ] JIRA and Confluence are synced (or local equivalents created)
+**Exit Criteria**: All 7 integrations validated. Stores initialized. Factory state = READY.
 
 ---
 
-## Stage 2: Pseudocode / Design
+## Phase 1: Product Creation
 
-### Objective
+**Objective**: Create a new product as a separate repo with all supporting infrastructure.
 
-Design the solution at a logical level. Produce pseudocode for complex logic, data models, UI wireframes, and test plans.
+**Command**: `/bootstrap-product --name "X" --type saas --stack "nextjs,fastapi,postgresql"`
 
-### Trigger
+**Temporal Workflow**: `BootstrapProductWorkflow`
 
-```
-/arch --stage design
-```
+**Agents**: Factory orchestrator, integration agents
 
-### Steps
+**What Happens**:
+1. `CreateGitHubRepoActivity` -- new repo in org, initial structure
+2. `CreateJiraProjectActivity` -- project with board, initial epics structure
+3. `CreateConfluenceSpaceActivity` -- space with standard page hierarchy
+4. `ScaffoldProductActivity` -- generate project scaffold based on type + stack
+5. `InitProductStateActivity` -- create product record in Postgres
+6. `CommitAndPushActivity` -- initial commit to product repo
 
-1. **Load specification**: The architect agent reads all module specs and contracts.
+**Artifacts**: GitHub repo. JIRA project. Confluence space. Product record in Postgres.
 
-2. **Design data models**: For each module, define:
-   - Entities and their attributes
-   - Relationships (one-to-one, one-to-many, many-to-many)
-   - Indexes and constraints
-   - Migration strategy
-
-3. **Write pseudocode**: For each story with complex logic (algorithms, state machines, business rules), write pseudocode that:
-   - Describes the logic step by step
-   - Handles all edge cases from acceptance criteria
-   - Is implementation-language-agnostic
-   - Can be directly translated to code
-
-4. **Design UI flows**: For each user-facing story, the ux-reviewer agent produces:
-   - Screen inventory (what screens exist)
-   - Navigation flow (how users move between screens)
-   - Component hierarchy (what components compose each screen)
-   - State management plan (what state each screen needs)
-
-5. **Create test plans**: For each story, define:
-   - Unit test scenarios
-   - Integration test scenarios
-   - E2E test scenarios (if UI)
-   - Performance test scenarios (if NFR applies)
-
-6. **Review designs**: The checker validates designs against the specification. The architect validates technical feasibility.
-
-### Agents Involved
-
-| Agent | Role in this stage |
-|---|---|
-| architect | Primary: drives data model and pseudocode design |
-| ux-reviewer | UI flow design and wireframes |
-| product-manager | Validates designs match requirements |
-| qa-engineer | Creates test plans |
-| checker | Validates designs against spec |
-| approver | Signs off on designs |
-
-### Artifacts Produced
-
-- `.claude/modules/{module-name}/data-model.md` for each module
-- `.claude/modules/{module-name}/pseudocode.md` for complex logic
-- `.claude/modules/{module-name}/ui-flows.md` for UI modules
-- `.claude/modules/{module-name}/test-plan.md` for each module
-- Updated Confluence pages
-
-### Exit Criteria
-
-- [ ] Data models defined for all modules
-- [ ] Pseudocode written for all complex logic
-- [ ] UI flows documented for all user-facing features
-- [ ] Test plans complete for all stories
-- [ ] Checker validated against specification
-- [ ] Approver signed off
+**Exit Criteria**: Repo exists and is accessible. JIRA project has board. Confluence space has page hierarchy. Product state = CREATED.
 
 ---
 
-## Stage 3: Architecture
+## Phase 2a: Vision-to-PRD
 
-### Objective
+**Objective**: Transform a vision statement into a structured PRD and BMAD.
 
-Make and document all technical decisions. Select patterns, define infrastructure, establish security architecture.
+**Command**: `/vision-to-prd`
 
-### Trigger
+**Temporal Workflow**: `VisionToPrdWorkflow`
 
-```
-/arch
-```
+**Agents**: Product manager, cofounder, CXO
 
-### Steps
+**What Happens**:
+1. `AnalyzeVisionActivity` -- parse vision, identify market, users, value prop
+2. `GenerateBmadActivity` -- business model, personas, metrics, risks, constraints
+3. `GeneratePrdActivity` -- features, user stories, acceptance criteria, NFRs
+4. `ValidateBmadActivity` -- completeness, consistency, measurability checks
+5. `PublishToConfluenceActivity` -- BMAD + PRD pages
+6. `CommitToProductRepoActivity` -- store in product repo
 
-1. **Select architectural patterns**: Based on the product type and requirements:
-   - API style (REST, GraphQL, gRPC)
-   - Database strategy (single DB, DB per service, CQRS)
-   - Communication (synchronous, event-driven, hybrid)
-   - Caching strategy
-   - Authentication/authorization approach
+**Artifacts**: BMAD document. PRD document. Confluence pages.
 
-2. **Document Architecture Decision Records (ADRs)**: For each significant decision:
-   ```markdown
-   # ADR-001: Use PostgreSQL with row-level security
-   
-   ## Status: Accepted
-   
-   ## Context
-   The product handles multi-tenant patient data requiring strict isolation.
-   
-   ## Decision
-   Use PostgreSQL with row-level security policies for tenant isolation.
-   
-   ## Consequences
-   - Positive: Strong isolation without separate databases
-   - Positive: Standard PostgreSQL, no vendor lock-in
-   - Negative: RLS policies add complexity to queries
-   - Negative: Must validate RLS in all integration tests
-   ```
-
-3. **Define infrastructure requirements**: The devops-engineer agent specifies:
-   - Compute requirements (CPU, memory, scaling rules)
-   - Storage requirements (database size, object storage)
-   - Networking (VPC, subnets, load balancers)
-   - CI/CD pipeline configuration
-   - Environment definitions (dev, staging, production)
-
-4. **Establish security architecture**: The security-reviewer agent defines:
-   - Authentication mechanism (JWT, session, OAuth2)
-   - Authorization model (RBAC, ABAC)
-   - Data encryption (at rest, in transit)
-   - Secret management approach
-   - Input validation and sanitization rules
-   - OWASP Top 10 mitigation plan
-
-5. **Define observability architecture**: The sre-engineer agent defines:
-   - Logging strategy (structured logs, log levels, retention)
-   - Metrics (what to measure, thresholds, alerts)
-   - Tracing (distributed tracing setup)
-   - Dashboards (key operational dashboards)
-   - Incident response runbooks
-
-6. **Review architecture**: The checker validates completeness. The security-reviewer validates security posture. The sre-engineer validates operability.
-
-### Agents Involved
-
-| Agent | Role in this stage |
-|---|---|
-| architect | Primary: drives all architectural decisions |
-| security-reviewer | Security architecture |
-| sre-engineer | Observability and operability architecture |
-| devops-engineer | Infrastructure and CI/CD |
-| finops-analyst | Cost estimation and optimization |
-| checker | Validates architecture completeness |
-| approver | Signs off on architecture |
-
-### Artifacts Produced
-
-- `.claude/modules/{module-name}/architecture.md` for each module
-- `.claude/knowledge/adrs/ADR-{number}.md` for each decision
-- `.claude/devops/infrastructure.md` for infrastructure requirements
-- `.claude/devops/ci-cd.md` for CI/CD pipeline configuration
-- `.claude/operations/observability.md` for monitoring setup
-- Updated Confluence pages
-
-### Exit Criteria
-
-- [ ] All architectural decisions documented as ADRs
-- [ ] Infrastructure requirements defined
-- [ ] Security architecture reviewed and approved
-- [ ] Observability architecture defined
-- [ ] Cost estimates produced by finops-analyst
-- [ ] Checker validated completeness
-- [ ] Approver signed off
+**Exit Criteria**: BMAD passes validation. PRD has features with acceptance criteria. Both published.
 
 ---
 
-## Stage 4: Realization
+## Phase 2b: Business Discovery
 
-### Objective
+**Objective**: Generate business analysis artifacts from BMAD.
 
-Build the software. Implement all stories using TDD, passing each through the governance chain.
+**Command**: `/business-docs --phase discovery`
 
-### Trigger
+**Temporal Workflow**: `BusinessDocsWorkflow` (mode=discovery)
 
-```
-/implement {ticket-id}
-```
+**Agents**: Cofounder, product manager, FinOps analyst
 
-(Repeated for each story/task)
+**What Happens**:
+1. `TamAnalysisActivity` -- TAM/SAM/SOM calculations
+2. `CompetitiveAnalysisActivity` -- landscape mapping, differentiation
+3. `TeamModelActivity` -- roles needed, hiring plan
+4. `BusinessModelActivity` -- revenue model, pricing, unit economics
+5. `RiskAssessmentActivity` -- market, technical, operational risks
+6. `PublishToConfluenceActivity` -- all docs to Confluence
 
-### Steps
+**Artifacts**: TAM analysis. Competitive landscape. Team model. Business model. Risk assessment.
 
-For each story:
-
-1. **Create branch**: `feature/{ticket-id}-{description}`
-
-2. **Write tests first** (TDD):
-   - Unit tests based on test plan
-   - Integration tests for API endpoints
-   - E2E tests for UI flows (using Playwright)
-
-3. **Implement code**:
-   - Follow pseudocode from design stage
-   - Honor data models from design stage
-   - Honor architecture decisions from architecture stage
-   - Use shared components from design system (for UI)
-
-4. **Self-check**:
-   - All tests pass
-   - Code meets linting and formatting standards
-   - No TODO/FIXME left unresolved
-   - Documentation comments present
-
-5. **Pass governance chain**:
-   - **Checker**: Validates against specification and contract
-   - **Reviewer**: Code quality, security, performance review
-   - **Approver**: Final sign-off
-
-6. **Create PR**: With ticket reference, description, and test evidence
-
-7. **Sync status**: Update JIRA ticket to "In Review" then "Done"
-
-8. **Checkpoint**: Save recovery state in `.claude/recovery/`
-
-### Agents Involved
-
-| Agent | Role in this stage |
-|---|---|
-| backend-engineer | Implements backend code |
-| frontend-engineer | Implements frontend code |
-| data-engineer | Implements data pipelines and schemas |
-| qa-engineer | Writes and validates tests |
-| security-reviewer | Scans for vulnerabilities |
-| ux-reviewer | Reviews UI implementation |
-| checker | Validates against spec |
-| reviewer | Code quality review |
-| approver | Final sign-off |
-| release-manager | Creates PRs and manages branches |
-| integration-agent | Syncs with JIRA/Confluence/GitHub |
-
-### Artifacts Produced
-
-- Source code files (implementation)
-- Test files (unit, integration, E2E)
-- Git branches and commits
-- Pull requests
-- Updated JIRA tickets
-- Updated Confluence pages
-- Recovery checkpoints
-
-### Exit Criteria (Per Story)
-
-- [ ] All acceptance criteria met
-- [ ] All tests pass
-- [ ] Test coverage meets threshold (80%)
-- [ ] No critical or high security findings
-- [ ] Checker passed
-- [ ] Reviewer approved
-- [ ] Approver approved
-- [ ] PR created and ready for merge
-- [ ] JIRA ticket updated
-
-### Exit Criteria (Per Module)
-
-- [ ] All stories in the module are done
-- [ ] Module integration tests pass
-- [ ] Module gate checklist complete (see [04-governance-model.md](04-governance-model.md))
-- [ ] Module approved via `/approve --module {name}`
+**Exit Criteria**: All discovery documents generated and published.
 
 ---
 
-## Stage 5: Completion
+## Phase 3: Specification
 
-### Objective
+**Objective**: Decompose BMAD/PRD into implementable modules, epics, stories, contracts.
 
-Release the product (or module), establish monitoring, conduct retrospective, capture learnings.
+**Command**: `/spec`
 
-### Trigger
+**Temporal Workflow**: `SpecificationWorkflow`
 
-```
-/release
-```
+**Agents**: Product manager, architect (advisory), checker, approver
 
-### Steps
+**What Happens**:
+1. `LoadContextActivity` -- read BMAD, PRD from product repo
+2. `DecomposeModulesActivity` -- identify bounded contexts
+3. `DefineContractsActivity` -- API contracts between modules
+4. `CreateEpicsActivity` -- group stories into epics
+5. `CreateStoriesActivity` -- user stories with Given/When/Then acceptance criteria
+6. `IdentifyCrossCuttingActivity` -- auth, logging, monitoring, error handling
+7. `CreateJiraTicketsActivity` -- epics + stories in JIRA
+8. `PublishToConfluenceActivity` -- specification docs
+9. `GovernanceChainWorkflow` -- checker validates, approver signs off
 
-1. **Pre-release validation**:
-   - All module gates passed
-   - Full integration test suite passes
-   - Performance tests pass against NFR benchmarks
-   - Final security scan (no critical/high findings)
-   - Release notes drafted
+**Artifacts**: Module specs. API contracts. JIRA epics + stories. Confluence spec pages.
 
-2. **Staging deployment**:
-   - Deploy to staging environment
-   - Run smoke tests
-   - Validate monitoring and alerting
-   - Conduct user acceptance testing (if applicable)
-
-3. **Production deployment**:
-   - Deploy to production
-   - Run production smoke tests
-   - Validate monitoring dashboards
-   - Confirm alerting is active
-
-4. **Post-deployment**:
-   - Monitor error rates for 24 hours
-   - Monitor performance metrics
-   - Address any immediate issues
-
-5. **Retrospective**:
-   - What went well?
-   - What could be improved?
-   - What did we learn?
-
-6. **Learning capture**:
-   - Capture session-level learnings
-   - Promote significant learnings to project level
-   - Nominate factory-level learnings for CoE review
-
-7. **Close out**:
-   - Update all JIRA tickets to final status
-   - Update Confluence with release notes
-   - Archive recovery checkpoints
-   - Update portfolio status
-
-### Agents Involved
-
-| Agent | Role in this stage |
-|---|---|
-| release-manager | Primary: orchestrates the release |
-| qa-engineer | Final testing validation |
-| security-reviewer | Final security scan |
-| sre-engineer | Monitoring and observability setup |
-| devops-engineer | Deployment execution |
-| product-manager | Release notes and stakeholder communication |
-| memory-agent | Learning capture and promotion |
-| integration-agent | Final JIRA/Confluence sync |
-
-### Artifacts Produced
-
-- Release notes (Confluence and GitHub)
-- Deployment records
-- Monitoring dashboards
-- Alerting rules
-- Retrospective document
-- Learning entries
-- Updated portfolio status
-
-### Exit Criteria
-
-- [ ] Production deployment successful
-- [ ] Monitoring active and validated
-- [ ] No critical issues in first 24 hours
-- [ ] Release notes published
-- [ ] All JIRA tickets closed
-- [ ] Retrospective conducted
-- [ ] Learnings captured
-- [ ] Portfolio status updated
+**Exit Criteria**: All modules defined. All stories have acceptance criteria. All contracts documented. Checker passed. Approver approved. JIRA synced.
 
 ---
 
-## Stage Transitions
+## Phase 4: Architecture
+
+**Objective**: Make all technical decisions. Document as ADRs. Define infrastructure and security.
+
+**Command**: `/arch`
+
+**Temporal Workflow**: `ArchitectureWorkflow`
+
+**Agents**: Architect, security reviewer, SRE, DevOps, FinOps, checker, approver
+
+**What Happens**:
+1. `LoadSpecActivity` -- read module specs and contracts
+2. `SelectPatternsActivity` -- API style, DB strategy, caching, auth approach
+3. `CreateAdrsActivity` -- architecture decision records
+4. `DefineInfraActivity` -- compute, storage, networking, CI/CD
+5. `DefineSecurityActivity` -- auth mechanism, encryption, OWASP mitigation
+6. `DefineObservabilityActivity` -- logging, metrics, tracing, dashboards, runbooks
+7. `CostEstimateActivity` -- FinOps cost projections
+8. `PublishToConfluenceActivity` -- architecture docs
+9. `GovernanceChainWorkflow` -- checker validates, security reviewer checks, approver signs off
+
+**Artifacts**: ADRs. Infrastructure spec. Security architecture. Observability plan. Cost estimate. Confluence pages.
+
+**Exit Criteria**: All ADRs documented. Infra defined. Security reviewed. Observability defined. Checker passed. Approver approved.
+
+---
+
+## Phase 5: Implementation
+
+**Objective**: Build the software. TDD. Governance chain per story.
+
+**Command**: `/implement {TICKET-ID}`
+
+**Temporal Workflow**: `ImplementationWorkflow` (one per story)
+
+**Agents**: Backend engineer, frontend engineer, data engineer, QA, security reviewer, UX reviewer, checker, reviewer, approver, release manager
+
+**What Happens (per story)**:
+1. `CreateBranchActivity` -- `feature/{TICKET-ID}-{desc}`
+2. `WriteTestsActivity` -- unit + integration + E2E tests (TDD: tests first)
+3. `RunTestsActivity` -- confirm tests fail (red)
+4. `ImplementActivity` -- write code following pseudocode, data models, ADRs
+5. `RunTestsActivity` -- confirm tests pass (green)
+6. `RefactorActivity` -- clean up, tests still green
+7. `CoverageCheckActivity` -- validate >= 80%
+8. `GovernanceChainWorkflow` (child workflow):
+   - Checker: validates against spec + contract
+   - Reviewer: code quality, security, performance
+   - Approver: final sign-off
+9. `CreatePrActivity` -- PR with ticket ref, description, test evidence
+10. `UpdateJiraActivity` -- ticket status to Done
+
+**Artifacts**: Source code. Tests. Git branch. PR. Updated JIRA ticket.
+
+**Exit Criteria (per story)**: All acceptance criteria met. All tests pass. Coverage >= 80%. Governance chain complete. PR created. JIRA updated.
+
+**Exit Criteria (per module)**: All stories done. Module integration tests pass. Module gate checklist complete. `/approve --module {name}` passed.
+
+### The 10-Stage Feature Development Workflow (Detail)
+
+For a single feature/story, the full workflow within Phase 5:
+
+| Stage | Activity | Agent | Gate |
+|---|---|---|---|
+| 1 | Create branch | Release manager | Branch name matches `{type}/{ticket}-{desc}` |
+| 2 | Write failing tests | QA + Engineering | Tests exist and fail |
+| 3 | Implement code | Engineering | Tests pass |
+| 4 | Refactor | Engineering | Tests still pass |
+| 5 | Coverage check | QA | Coverage >= threshold |
+| 6 | Self-check | Engineering | Lint, format, no TODOs |
+| 7 | Checker validation | Checker | Matches spec + contract |
+| 8 | Review | Reviewer + Security | Quality, security, perf |
+| 9 | Approval | Approver | Final sign-off |
+| 10 | PR + JIRA sync | Release manager + Integration | PR created, ticket updated |
+
+Each stage is a Temporal activity. Failure at any stage blocks progression. Retries bounded (max 3 per gate, max 5 total chain).
+
+---
+
+## Phase 6: Quality + Release
+
+**Objective**: Final validation. Deploy. Establish monitoring.
+
+**Command**: `/release`
+
+**Temporal Workflow**: `ReleaseWorkflow`
+
+**Agents**: Release manager, QA, security reviewer, SRE, DevOps, product manager
+
+**What Happens**:
+1. `ValidateModuleGatesActivity` -- all modules passed `/approve`
+2. `FullIntegrationTestActivity` -- run complete test suite
+3. `FinalSecurityScanActivity` -- no critical/high findings
+4. `PerformanceTestActivity` -- benchmarks against NFRs
+5. `GenerateReleaseNotesActivity` -- from JIRA tickets + PRs
+6. `DeployStagingActivity` -- deploy to staging
+7. `SmokeTestActivity` -- validate staging
+8. `DeployProductionActivity` -- deploy to production
+9. `ValidateMonitoringActivity` -- dashboards, alerts active
+10. `PublishReleaseNotesActivity` -- Confluence + GitHub release
+
+**Artifacts**: Release notes. Deployment records. Monitoring dashboards. Alert rules.
+
+**Exit Criteria**: Production deployment successful. Monitoring active. No critical issues. Release notes published. All JIRA tickets closed.
+
+---
+
+## Phase 7: Business Planning
+
+**Objective**: Generate post-build business artifacts for go-to-market and funding.
+
+**Command**: `/business-docs --phase planning`
+
+**Temporal Workflow**: `BusinessDocsWorkflow` (mode=planning)
+
+**Agents**: Cofounder, product manager, sales, marketing, FinOps
+
+**What Happens**:
+1. `FinancialModelActivity` -- projections, burn rate, runway, unit economics
+2. `GtmStrategyActivity` -- channels, messaging, launch plan, pricing strategy
+3. `PitchDeckActivity` -- investor-ready deck from all prior artifacts
+4. `PublishToConfluenceActivity` -- all planning docs
+
+**Artifacts**: Financial model. GTM strategy. Pitch deck. Confluence pages.
+
+**Exit Criteria**: All planning documents generated and published.
+
+---
+
+## Phase 8: Operations
+
+**Objective**: Ongoing monitoring, optimization, incident response, learning capture.
+
+**Commands**: `/monitor`, `/optimize`
+
+**Temporal Workflows**: `MonitorWorkflow` (cron), `OptimizeWorkflow`
+
+**Agents**: SRE, DevOps, FinOps, memory/learning agents
+
+**What Happens**:
+- `MonitorWorkflow` (cron -- runs continuously):
+  1. `CheckErrorRatesActivity` -- alert if above threshold
+  2. `CheckPerformanceActivity` -- alert if degraded
+  3. `CheckUptimeActivity` -- alert if below SLA
+  4. `CheckCostActivity` -- alert if above budget
+
+- `OptimizeWorkflow` (on-demand):
+  1. `AnalyzePerformanceActivity` -- identify bottlenecks
+  2. `AnalyzeCostActivity` -- identify waste
+  3. `AnalyzeArchitectureActivity` -- identify improvement opportunities
+  4. `GenerateRecommendationsActivity` -- actionable recommendations
+  5. `CaptureLearningsActivity` -- store in Postgres for cross-product learning
+
+**Artifacts**: Monitoring alerts. Optimization recommendations. Learning records.
+
+**Exit Criteria**: None -- ongoing. Operations phase runs until product is decommissioned.
+
+---
+
+## Phase Transitions
 
 ```
-Specification --[approved]--> Design --[approved]--> Architecture --[approved]--> Realization --[all modules approved]--> Completion --[deployed + stable]--> DONE
-     |                          |                          |                            |                                      |
-     |                          |                          |                            |                                      |
-     +-- [failed] --> rework    +-- [failed] --> rework    +-- [failed] --> rework      +-- [failed] --> rework                +-- [incident] --> hotfix
+Phase 0  --[all integrations valid]--> Phase 1
+Phase 1  --[product created]---------> Phase 2a or 2b (parallel ok)
+Phase 2a --[BMAD+PRD validated]------> Phase 3
+Phase 2b --[discovery complete]------> Phase 3 (or parallel with 2a)
+Phase 3  --[spec approved]-----------> Phase 4
+Phase 4  --[arch approved]-----------> Phase 5
+Phase 5  --[all modules approved]----> Phase 6
+Phase 6  --[deployed + stable]-------> Phase 7
+Phase 7  --[planning complete]-------> Phase 8
+Phase 8  --[ongoing]----------------->  (continuous)
 ```
 
-Each transition requires explicit approval from the approver agent. There is no implicit progression. The factory tracks the current stage in `.claude/recovery/current-stage.json`.
+Every transition = Temporal signal. Current phase tracked in Postgres. Visible in Control Tower. Cannot skip. Cannot regress without explicit recovery workflow.

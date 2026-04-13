@@ -2,279 +2,274 @@
 
 ## Prerequisites
 
-Before starting, ensure you have:
+- Claude Code CLI installed and authenticated
+- Git installed
+- Docker running (Temporal + Postgres + Redis)
+- Python 3.11+ (FastAPI backend)
+- Node.js 18+ (React Control Tower)
+- Access to ProjectZeroFactory repo
+- API keys: GitHub, JIRA, Confluence, Anthropic
 
-1. **Claude Code CLI** installed and authenticated
-2. **Git** installed and configured
-3. **Node.js 18+** (for Storybook and frontend tooling)
-4. **Python 3.11+** (for FastAPI workers and Dagster pipelines, if using pipeline mode)
-5. Access to the **ProjectZeroFactory** template repository
-6. (Optional) JIRA, Confluence, and GitHub credentials
-7. (Optional) Redis and PostgreSQL for pipeline mode
-
-## Step 1: Clone the Factory
+## Step 1: Clone Factory
 
 ```bash
-git clone https://github.com/your-org/ProjectZeroFactory.git MyProduct
-cd MyProduct
+git clone https://github.com/your-org/ProjectZeroFactory.git
+cd ProjectZeroFactory
 ```
 
-This gives you the full factory template. The `.claude/` directory contains the entire operating system, but it is not yet configured for your specific product.
+Factory repo = OS. Your product will be a SEPARATE repo created in Step 4.
 
-## Step 2: Run /factory-init
+## Step 2: Configure Environment
 
-Open Claude Code in the cloned directory and run:
+### Option A: Guided Setup
+
+```bash
+./guided-setup.sh
+```
+
+Interactive. Prompts for all required values. Validates as it goes.
+
+### Option B: Manual
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your values:
+
+```env
+# Required -- Integration Gate
+GITHUB_TOKEN=ghp_xxx
+GITHUB_ORG=your-org
+JIRA_BASE_URL=https://your-org.atlassian.net
+JIRA_API_TOKEN=xxx
+JIRA_USER_EMAIL=you@org.com
+CONFLUENCE_BASE_URL=https://your-org.atlassian.net/wiki
+CONFLUENCE_API_TOKEN=xxx
+ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Required -- Platform
+POSTGRES_URL=postgresql://user:pass@localhost:5432/factory
+REDIS_URL=redis://localhost:6379
+TEMPORAL_HOST=localhost:7233
+TEMPORAL_NAMESPACE=projectzero
+
+# Product
+PRODUCT_NAME=MyProduct
+PRODUCT_TYPE=saas
+PRODUCT_STACK=nextjs,fastapi,postgresql
+```
+
+## Step 3: Factory Init
 
 ```
 /factory-init
 ```
 
-This command:
-1. Validates that the `.claude/` directory structure is intact
-2. Creates a fresh `.env` from `.env.example`
-3. Initializes empty memory, recovery, and learning stores
-4. Sets the factory version in `.claude/core/`
-5. Creates the local delivery queue structure
-6. Runs the repo-validator agent to confirm readiness
+This is the integration gate. It validates ALL connections before anything else happens:
 
-**Expected output:**
+| Check | What It Does | Blocks If Fails |
+|---|---|---|
+| GitHub | Validates token, org access, repo creation perms | YES |
+| JIRA | Validates token, project creation perms | YES |
+| Confluence | Validates token, space creation perms | YES |
+| Temporal | Connects to server, validates namespace | YES |
+| Postgres | Connects, runs migrations, validates schema | YES |
+| Redis | Connects, tests read/write | YES |
+| Anthropic | Validates API key, model access | YES |
+
+**If any check fails, factory init STOPS.** Fix the failing integration. Re-run. No partial init.
+
+On success:
 ```
-Factory initialized successfully.
-Factory version: 1.0.0
-Directory structure: VALID
-Memory store: INITIALIZED
-Recovery store: INITIALIZED
-Delivery queue: INITIALIZED
+Integration gate: ALL PASSED (7/7)
+Factory stores: INITIALIZED
+Temporal namespace: READY
 Status: READY for /bootstrap-product
 ```
 
-**If it fails:** Check that the `.claude/` directory was not corrupted during cloning. The most common issue is missing subdirectories. Run `ls -la .claude/` and compare against the expected structure in [01-how-projectzerofactory-works.md](01-how-projectzerofactory-works.md).
-
-## Step 3: Run /bootstrap-product
+## Step 4: Bootstrap Product
 
 ```
 /bootstrap-product --name "MyProduct" --type saas --stack "nextjs,fastapi,postgresql"
 ```
 
-Parameters:
-- `--name`: Product name (used in JIRA, Confluence, package.json)
-- `--type`: Product type (`saas`, `internal-tool`, `platform`, `mobile`, `api`)
-- `--stack`: Comma-separated technology stack
+This creates a SEPARATE product repo. Factory and product are different git repos.
 
-This command:
-1. Sets `PRODUCT_NAME` in `.env`
-2. Creates product-specific directories in the source tree
-3. Initializes `package.json` and/or `pyproject.toml` based on the stack
-4. Creates the initial module structure in `.claude/modules/`
-5. Sets up the design system skeleton in `.claude/design-system/` (if frontend stack)
-6. Configures agents for the chosen stack (e.g., enables frontend-engineer for Next.js)
-7. Creates the initial `.claude/knowledge/product-context.md` file
-8. Initializes git with an initial commit
+What happens (all via Temporal workflow):
+1. Creates GitHub repo `your-org/MyProduct`
+2. Creates JIRA project with key derived from name
+3. Creates Confluence space with standard page hierarchy
+4. Initializes product repo structure (src, tests, configs)
+5. Creates initial product state in Postgres
+6. Commits and pushes initial product scaffold
 
-**Expected output:**
-```
-Product bootstrapped: MyProduct
-Type: saas
-Stack: nextjs, fastapi, postgresql
-Modules initialized: 0 (ready for BMAD)
-Design system: INITIALIZED
-Git: Initial commit created
-Status: READY for integration configuration
-```
+Product repo is now live. Factory orchestrates it. Code lives there, not here.
 
-## Step 4: Configure Integrations
+## Step 5: Vision to PRD (If No PRD Exists)
 
-### 4a: JIRA Configuration
+If you have a PRD/BMAD already, skip to Step 6.
 
-Edit `.env` with your JIRA credentials:
-
-```env
-JIRA_BASE_URL=https://your-org.atlassian.net
-JIRA_API_TOKEN=your-api-token
-JIRA_USER_EMAIL=you@your-org.com
-JIRA_PROJECT_KEY=MYP
-JIRA_BOARD_ID=123
-```
-
-Then run:
-```
-/setup jira
-```
-
-This validates the connection, confirms the project exists, and syncs the initial board state to `product repo .claude/delivery/jira/state/`.
-
-### 4b: Confluence Configuration
-
-```env
-CONFLUENCE_BASE_URL=https://your-org.atlassian.net/wiki
-CONFLUENCE_API_TOKEN=your-api-token
-CONFLUENCE_SPACE_KEY=MYP
-```
-
-Then run:
-```
-/setup confluence
-```
-
-This creates the Confluence project hub with the standard page hierarchy:
-- Product Overview
-- Architecture Decisions
-- Module Documentation
-- Sprint Reports
-- Risk Register
-- Decision Log
-- Release Notes
-
-### 4c: GitHub Configuration
-
-```env
-GITHUB_TOKEN=your-github-token
-GITHUB_ORG=your-org
-GITHUB_DEFAULT_BRANCH=main
-```
-
-Then run:
-```
-/setup github
-```
-
-This configures branch naming conventions, PR templates, and webhook settings.
-
-### 4d: Skip Integrations (Local-Only Mode)
-
-If you do not have JIRA/Confluence/GitHub access, ensure:
-
-```env
-ENABLE_LOCAL_FALLBACK=true
-```
-
-The factory will use local file representations for all integration points. You can configure integrations later and the reconciliation system will sync.
-
-## Step 5: Load the BMAD
-
-The BMAD (Business Model Architecture Document) is the foundation document that defines what you are building and why. Create it or load an existing one:
-
-### Option A: Create from scratch
+If you only have a vision:
 
 ```
-/spec --type bmad
+/vision-to-prd
 ```
 
-The product-manager agent will guide you through a structured interview covering:
-- Business context and problem statement
-- Target users and personas
-- Value proposition
-- Revenue model
-- Technical constraints
-- Success metrics (KPIs)
-- Non-functional requirements (performance, security, compliance)
-- Competitive landscape
+Input: vision statement (plain text describing what you want to build).
+Output: full PRD + BMAD generated by product and cofounder agents.
 
-The output is saved to `.claude/knowledge/bmad.md`.
+Temporal workflow: `VisionToPrdWorkflow`
+- Analyzes vision for market fit, technical feasibility
+- Generates BMAD (business model, personas, value prop, metrics)
+- Generates PRD (features, user stories, acceptance criteria)
+- Stores both in product repo and Confluence
 
-### Option B: Load existing BMAD
-
-If you already have a BMAD or PRD document:
+## Step 6: Business Discovery
 
 ```
-/spec --type bmad --input path/to/your/bmad.md
+/business-docs --phase discovery
 ```
 
-The product-manager agent will parse it, validate completeness, and store it in the standard format.
+Generates business analysis artifacts:
+- **TAM/SAM/SOM** analysis
+- **Competitive landscape** mapping
+- **Team model** (roles, hiring plan)
+- **Business model** (revenue, pricing, unit economics)
+- **Risk assessment** (market, technical, operational)
 
-## Step 6: Load the PRD (Optional but Recommended)
+All stored in Confluence and product repo. All tracked in Postgres.
 
-If you have a separate Product Requirements Document:
+## Step 7: Build Pipeline
 
-```
-/spec --type prd --input path/to/your/prd.md
-```
-
-The PRD supplements the BMAD with detailed feature requirements, user stories, and acceptance criteria.
-
-## Step 7: Validate Readiness
-
-Run the readiness check:
+Sequential. Each command triggers a Temporal workflow. Each workflow enforces governance gates. Can't skip phases.
 
 ```
-/setup validate
+/spec                           # Phase 3: Specification
+                                # Modules, epics, stories, contracts
+                                # Creates JIRA tickets for everything
+
+/arch                           # Phase 4: Architecture
+                                # ADRs, patterns, infrastructure, security
+                                # Publishes to Confluence
+
+/implement                      # Phase 5: Implementation (per story)
+                                # TDD, governance chain, branch/PR/merge
+                                # Updates JIRA tickets as work progresses
+
+/check                          # Validates implementation against spec
+                                # Runs checker agent via Temporal activity
+
+/review                         # Code quality, security, standards review
+                                # Runs reviewer agent via Temporal activity
+
+/approve                        # Final sign-off, module gate validation
+                                # Runs approver agent via Temporal activity
+
+/release                        # Phase 6: Quality + Release
+                                # Final tests, security scan, deploy, monitor
 ```
 
-This runs the readiness-validator agent, which checks:
-
-| Check | Required | Status |
-|---|---|---|
-| `.claude/` structure intact | Yes | |
-| `.env` configured | Yes | |
-| Product name set | Yes | |
-| Stack defined | Yes | |
-| BMAD loaded | Yes | |
-| JIRA connected | No (local fallback) | |
-| Confluence connected | No (local fallback) | |
-| GitHub connected | No (local fallback) | |
-| Memory store accessible | Yes | |
-| Recovery store accessible | Yes | |
-| Design system initialized | If frontend | |
-
-**Expected output:**
-```
-Readiness validation: PASSED
-  Required checks: 6/6 PASSED
-  Optional checks: 3/3 PASSED (or SKIPPED with fallback)
-  Status: READY to begin /spec
-```
-
-## Step 8: Begin Specification
-
-You are now ready to start building. Run:
+## Step 8: Business Planning
 
 ```
-/spec
+/business-docs --phase planning
 ```
 
-This enters the **Specification** stage of SPARC. The product-manager agent will:
-1. Read the BMAD and PRD
-2. Decompose the product into modules (bounded contexts)
-3. Define epics for each module
-4. Break epics into user stories with acceptance criteria
-5. Create JIRA epics and stories (or local equivalents)
-6. Produce the specification document
+Post-build business artifacts:
+- **Financial model** (projections, burn rate, runway)
+- **GTM strategy** (channels, messaging, launch plan)
+- **Pitch deck** (investor-ready, auto-generated from all prior artifacts)
 
-See [05-stage-by-stage-workflow.md](05-stage-by-stage-workflow.md) for detailed stage documentation.
+## Step 9: Operations
 
-## Quick-Start Checklist
+```
+/monitor                        # Phase 8: Monitoring dashboard
+                                # Error rates, performance, uptime
 
-For the impatient, here is the minimum path to start building:
+/optimize                       # Recommendations for performance,
+                                # cost, and architecture improvements
+```
+
+Ongoing. Temporal cron workflows for continuous monitoring.
+
+## Full Quick-Start
 
 ```bash
-# 1. Clone
-git clone https://github.com/your-org/ProjectZeroFactory.git MyProduct
-cd MyProduct
+# Clone + configure
+git clone https://github.com/your-org/ProjectZeroFactory.git && cd ProjectZeroFactory
+./guided-setup.sh               # or cp .env.example .env + edit
 
-# 2. Open Claude Code and run:
-/factory-init
+# Initialize
+/factory-init                   # Integration gate -- blocks if anything fails
+
+# Create product
 /bootstrap-product --name "MyProduct" --type saas --stack "nextjs,fastapi,postgresql"
-/spec --type bmad
-# (answer the BMAD interview questions)
-/setup validate
-/spec
+
+# Business foundation
+/vision-to-prd                  # If no PRD exists
+/business-docs --phase discovery
+
+# Build
+/spec --> /arch --> /implement --> /check --> /review --> /approve --> /release
+
+# Business + ops
+/business-docs --phase planning
+/monitor --> /optimize
 ```
 
-Total time from clone to first specification: approximately 30-45 minutes, depending on the complexity of your BMAD.
+## Troubleshooting
 
-## Common Issues
+### "Integration gate failed: Temporal"
 
-### "Factory structure invalid"
-The `.claude/` directory is missing subdirectories. Re-clone from the template.
+Temporal server not running or namespace doesn't exist.
 
-### "BMAD not found"
-You skipped Step 5. The factory requires a BMAD before any development work can begin.
+```bash
+# Start Temporal (Docker)
+docker-compose up -d temporal
 
-### "Integration connection failed"
-Check your `.env` credentials. Ensure `ENABLE_LOCAL_FALLBACK=true` if you want to work offline.
+# Create namespace
+temporal operator namespace create projectzero
+```
 
-### "Stack not recognized"
-Supported stacks: `nextjs`, `react`, `vue`, `angular`, `fastapi`, `django`, `express`, `nestjs`, `postgresql`, `mongodb`, `redis`, `elasticsearch`. Combine with commas.
+### "Integration gate failed: Postgres"
 
-### "Module structure empty"
-This is normal after bootstrap. Modules are created during the `/spec` stage based on your BMAD.
+Database not running or connection string wrong.
+
+```bash
+# Check connection
+psql $POSTGRES_URL -c "SELECT 1"
+
+# Run migrations
+cd platform/backend && alembic upgrade head
+```
+
+### "Integration gate failed: Redis"
+
+```bash
+docker-compose up -d redis
+redis-cli ping   # Should return PONG
+```
+
+### "Integration gate failed: GitHub/JIRA/Confluence"
+
+Bad token or insufficient permissions. Verify:
+- Token not expired
+- Token has repo creation scope (GitHub)
+- Token has project admin scope (JIRA)
+- Token has space creation scope (Confluence)
+
+### "Integration gate failed: Anthropic"
+
+API key invalid or rate limited. Check `ANTHROPIC_API_KEY` in `.env`.
+
+### "Workflow failed: timeout"
+
+Temporal workflow timed out. Check Temporal UI at `localhost:8233`. Look at workflow history for the failed activity. Common causes:
+- Agent took too long (increase activity timeout)
+- External API rate limited (retry policy handles this)
+- Network issue (Temporal auto-retries)
+
+### "Cannot skip to /implement -- /spec not complete"
+
+Temporal enforces phase ordering. Complete the current phase before advancing. Check workflow state in Control Tower or Temporal UI.

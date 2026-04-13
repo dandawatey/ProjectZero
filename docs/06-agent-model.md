@@ -1,166 +1,144 @@
 # Agent Model
 
-## Overview
+35 agents. 8 teams. Every agent executes inside Temporal workflow steps. No exceptions.
 
-ProjectZeroFactory uses specialized agents that collaborate through a governed workflow. Each agent has a defined mission, scope, and handoff protocol. No agent operates in isolation — all work flows through the maker-checker-reviewer-approver chain.
+## Architecture
 
-## Agent Registry
+```
+React UI → FastAPI → Postgres → Temporal → Agents
+```
 
-### Product Manager
-- **Purpose**: Translates business requirements (BMAD/PRD) into actionable specifications
-- **Scope**: Requirements intake, specification writing, backlog prioritization, acceptance criteria
-- **Inputs**: Raw BMAD document, PRD, stakeholder requirements
-- **Outputs**: Structured specifications, prioritized stories with acceptance criteria
-- **Handoff**: Sends approved specifications → Architect
+Each workflow step = one assigned agent. Execution tracked. Contribution recorded. Every feature is a Temporal workflow.
 
-### Architect
-- **Purpose**: Designs system architecture, defines module boundaries, creates technical contracts
-- **Scope**: System design, module decomposition, tech stack selection, API contracts, DB schemas
-- **Inputs**: Approved specifications from Product Manager
-- **Outputs**: Architecture document, module definitions, api-contract.yaml, db-schema.sql, frontend-types.ts
-- **Handoff**: Sends approved architecture → Engineers (via Ralph Controller)
+## Agent Types
 
-### Backend Engineer
-- **Purpose**: Implements server-side code following TDD
-- **Scope**: APIs, business logic, database operations, background jobs
-- **Inputs**: Architecture docs, assigned tickets with acceptance criteria
-- **Outputs**: Working code with passing tests, API documentation
-- **Handoff**: Sends completed work → Checker
+| Type | Description |
+|---|---|
+| **System** | Factory infrastructure agents. Orchestration, validation, integration. |
+| **AI** | Claude-powered agents. Implementation, review, analysis. |
+| **Human** | Human-in-the-loop checkpoints. Approval, override, escalation. |
+| **Integration** | External system agents. JIRA, Confluence, GitHub, CI/CD. |
 
-### Frontend Engineer
-- **Purpose**: Implements UI using the design system
-- **Scope**: Components, pages, state management, Storybook stories
-- **Inputs**: Architecture docs, design specs, assigned tickets
-- **Outputs**: Working UI with tests and Storybook stories
-- **Handoff**: Sends completed work → Checker
+## Teams and Agents
 
-### Data Engineer
-- **Purpose**: Implements data pipelines and analytics infrastructure
-- **Scope**: ETL pipelines, data models, analytics, data quality
-- **Inputs**: Data requirements, architecture docs
-- **Outputs**: Pipeline code, schemas, data quality tests
-- **Handoff**: Sends completed work → Checker
+### CXO Team (3 agents)
 
-### DevOps Engineer
-- **Purpose**: Configures infrastructure, CI/CD, and deployment
-- **Scope**: CI/CD pipelines, IaC, environments, monitoring setup
-- **Inputs**: Architecture docs, deployment requirements
-- **Outputs**: Pipeline configs, infrastructure code, deployment scripts
-- **Handoff**: Sends completed work → Checker
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| CEO Agent | Strategic direction | Product vision validation, go/no-go decisions |
+| CTO Agent | Technical leadership | Architecture approval, tech stack decisions |
+| CFO Agent | Financial oversight | Budget validation, cost-benefit analysis |
 
-### QA Engineer
-- **Purpose**: Validates quality through comprehensive testing
-- **Scope**: Test plans, integration tests, e2e tests, quality reports
-- **Inputs**: Specifications, acceptance criteria, implemented code
-- **Outputs**: Test suites, quality reports, bug reports
-- **Handoff**: Sends quality report → Reviewer
+### Cofounder Team (3 agents)
 
-### Security Reviewer
-- **Purpose**: Reviews code and architecture for security vulnerabilities
-- **Scope**: OWASP Top 10, dependency audit, auth/authz review, secret scanning
-- **Inputs**: Code changes, architecture docs
-- **Outputs**: Security findings, remediation recommendations
-- **Authority**: Can BLOCK approval if critical security issues found
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Product Cofounder | Product strategy | PRD validation, market fit assessment |
+| Technical Cofounder | Technical strategy | System design review, scalability decisions |
+| Growth Cofounder | Growth strategy | GTM validation, growth metric definition |
 
-### UX Reviewer
-- **Purpose**: Reviews UI for usability, accessibility, and design compliance
-- **Scope**: Usability review, WCAG 2.1 AA compliance, design system adherence
-- **Inputs**: UI components, Storybook stories, user flows
-- **Outputs**: UX findings, accessibility report
-- **Authority**: Can BLOCK approval if accessibility violations found
+### Product Team (5 agents)
 
-### SRE Engineer
-- **Purpose**: Ensures system reliability and operational readiness
-- **Scope**: Monitoring, alerting, SLO definition, runbooks, capacity planning
-- **Inputs**: Architecture docs, deployment configs
-- **Outputs**: Monitoring setup, alerting rules, runbooks, SLO definitions
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Product Manager | Requirements | Spec writing, backlog prioritization, acceptance criteria |
+| UX Designer | User experience | User flows, wireframes, usability validation |
+| UX Reviewer | UX quality gate | Heuristic evaluation, accessibility audit, design compliance |
+| Spec Miner | Requirement extraction | Unstructured docs to structured specs |
+| Design Sprint Lead | Rapid ideation | Compressed design sprint facilitation |
 
-### FinOps Analyst
-- **Purpose**: Tracks and optimizes cloud costs
-- **Scope**: Cost tracking, budget alerts, rightsizing, optimization
-- **Inputs**: Infrastructure configs, usage data
-- **Outputs**: Cost reports, optimization recommendations
+### Engineering Team (8 agents)
 
-### Checker (First Gate)
-- **Purpose**: First validation gate — verifies basic quality
-- **Scope**: Compilation, test execution, linting, security scanning, ticket compliance
-- **Inputs**: Completed work from any engineer
-- **Outputs**: Pass/fail report with specific findings
-- **Handoff**: If pass → Reviewer. If fail → back to Maker with findings
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Architect | System design | Module boundaries, API contracts, DB schemas |
+| Backend Engineer | Server-side code | APIs, business logic, database operations (TDD) |
+| Frontend Engineer | Client-side code | Components, pages, state management, Storybook |
+| Data Engineer | Data pipelines | ETL, data models, analytics infrastructure |
+| DevOps Engineer | Infrastructure | CI/CD, IaC, environments, monitoring setup |
+| QA Engineer | Quality validation | Test plans, integration tests, E2E tests |
+| SRE Engineer | Reliability | Monitoring, alerting, SLOs, runbooks |
+| Security Reviewer | Security gate | OWASP, dependency audit, auth review, secret scanning |
 
-### Reviewer (Second Gate)
-- **Purpose**: Deep quality review
-- **Scope**: Code quality, architecture alignment, test coverage, documentation
-- **Inputs**: Checked work (passed Checker)
-- **Outputs**: Review comments, approval or rejection
-- **Handoff**: If pass → Approver. If fail → back to Maker with specific feedback
+### Sales Team (3 agents)
 
-### Approver (Final Gate)
-- **Purpose**: Final authorization before merge/deploy
-- **Scope**: Business requirements validation, governance compliance, merge authorization
-- **Inputs**: Reviewed work (passed Reviewer)
-- **Outputs**: Approval or rejection, merge authorization
-- **Handoff**: If approved → Release Manager or merge
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Sales Strategist | Sales planning | Pricing model, sales funnel design |
+| Demo Builder | Product demos | Demo environment setup, showcase scripts |
+| Proposal Writer | Sales collateral | Pitch decks, proposals, competitive positioning |
 
-### Release Manager
-- **Purpose**: Orchestrates the release process
-- **Scope**: Release branching, changelog, final validation, deployment, rollback
-- **Inputs**: Approved work ready for release
-- **Outputs**: Release notes, deployment execution, rollback plan
+### Marketing Team (3 agents)
 
-### Ralph Controller (Orchestrator)
-- **Purpose**: Master orchestrator — routes work, tracks progress, manages flow
-- **Scope**: Queue management, agent assignment, progress tracking, block detection, recovery triggering
-- **Inputs**: Commands from user, state from all agents, queue state
-- **Outputs**: Agent assignments, status reports, escalations
-- **States**: IDLE → PLANNING → ASSIGNING → MONITORING → RECOVERING → REPORTING → IDLE
-- **Rule**: Ralph NEVER does implementation work — only orchestrates
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Content Strategist | Content planning | Blog posts, landing pages, SEO strategy |
+| Brand Manager | Brand consistency | Messaging, tone, visual identity enforcement |
+| Analytics Lead | Marketing metrics | Campaign tracking, conversion analysis |
 
-### Integration Agent
-- **Purpose**: Manages external system synchronization
-- **Scope**: JIRA ticket sync, Confluence page updates, GitHub PR management
-- **Inputs**: Work items from other agents
-- **Outputs**: Synced external state, conflict reports
+### Governance Team (5 agents)
 
-### Plugin Validator
-- **Purpose**: Validates required plugins and skills are available
-- **Inputs**: Factory requirements from settings.json
-- **Outputs**: Validation report listing available/missing plugins
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Checker | First gate | Compilation, tests, linting, security scan, ticket compliance |
+| Reviewer | Second gate | Code quality, architecture alignment, test coverage |
+| Approver | Final gate | Business validation, governance compliance, merge auth |
+| FinOps Analyst | Cost governance | Cloud cost tracking, budget alerts, rightsizing |
+| Compliance Agent | Regulatory | Policy enforcement, audit trail, regulatory checks |
 
-### Repo Validator
-- **Purpose**: Validates repository structure matches factory template
-- **Inputs**: Repository path
-- **Outputs**: Structural validation report with missing items
+### Operations Team (5 agents)
 
-### Readiness Validator
-- **Purpose**: Validates readiness to enter next stage
-- **Inputs**: Current state, target stage requirements
-- **Outputs**: Readiness report with pass/fail and blockers list
+| Agent | Role | Key Responsibility |
+|---|---|---|
+| Ralph Controller | Orchestrator | Routes work, tracks progress, manages flow. NEVER implements. |
+| Release Manager | Release ops | Release branching, changelog, deployment, rollback |
+| Integration Agent | External sync | JIRA/Confluence/GitHub synchronization |
+| Memory Agent | Knowledge ops | Context loading, learning capture, pattern promotion |
+| Pipeline Agent | Async execution | Pipeline management, background task orchestration |
 
-### Pipeline Agent
-- **Purpose**: Manages async pipeline execution
-- **Inputs**: Pipeline definitions, trigger events
-- **Outputs**: Execution status, pipeline results
+## Agent Execution Model
 
-### Memory Agent
-- **Purpose**: Manages factory memory lifecycle
-- **Scope**: Context loading before actions, learning capture after actions, pattern promotion
-- **Inputs**: Action context from any agent
-- **Outputs**: Relevant memories loaded, new learnings stored
-- **Rule**: All memory writes are structured and tagged
+Agents execute ONLY inside Temporal workflow steps.
 
-## Agent Communication Protocol
+```
+Temporal Workflow
+  └── Step 1: assigned_agent=product-manager
+       ├── Read memory (Temporal activity)
+       ├── Execute task (Temporal activity)
+       ├── Record contribution (Temporal activity)
+       └── Write learning (Temporal activity)
+  └── Step 2: assigned_agent=architect
+       ├── Read memory
+       ├── Execute task
+       ├── Record contribution
+       └── Write learning
+  └── ...
+```
 
-1. Agents receive work from the queue (product repo .claude/delivery/queue/)
-2. Agents report status updates to Ralph Controller
-3. Agents hand off via queue state transitions (active → completed/failed)
-4. Agents escalate blocks to Ralph Controller
-5. All agent actions are logged in product repo .claude/reports/audit-log.md
+Each step:
+1. Agent assigned by workflow definition
+2. Execution tracked in Temporal event history
+3. Contribution recorded in product repo
+4. Step completion triggers next step
 
-## Agent Learning Contract
+No agent runs outside a workflow. No freelancing.
+
+## Agent Communication
+
+Two channels:
+
+1. **Temporal signals** — async. Agent-to-agent messages within workflows. Handoffs, status updates, escalations.
+2. **FastAPI sync** — request/response. UI queries agent state. Dashboard reads. Status checks.
+
+All communication logged. All state in Postgres. Temporal event history is the source of truth.
+
+## Learning Contract
 
 Every agent MUST:
-- Read relevant memory from .claude/memory/ before starting work
-- Write structured learnings to .claude/learning/ after completing work
-- Never self-mutate (change own definition) without approval
-- Promote learnings only through the memory-agent approval process
+
+1. **Before execution**: Read relevant memory from product repo `.claude/memory/`. Temporal activity loads context.
+2. **After completion**: Write structured learnings to product repo `.claude/learning/`. Temporal activity persists.
+3. **Never self-mutate**: No agent changes its own definition without approval.
+4. **Promote through process**: Learnings promoted only via memory-agent approval workflow.
+
+No shortcuts. No skipping. The contract is enforced by Temporal workflow logic.

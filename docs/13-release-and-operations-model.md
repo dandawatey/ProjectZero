@@ -2,217 +2,185 @@
 
 ## Overview
 
-The release and operations model governs how software moves from approved code to production, how it is monitored in production, how incidents are handled, and how support workflows operate. This is the Completion stage of SPARC, extended into ongoing operations.
+Releases are Temporal workflows. Monitoring is a command. Incidents are workflows. Bug fixes are workflows. Everything that moves code from approved to production and keeps it healthy runs through Temporal, with Postgres as the system of record and FastAPI as the API layer.
 
-## Release Process
+## Release Workflows
 
-### Release Gating
+### DeploymentReadinessWorkflow
 
-Before any release can proceed, all gates must pass:
+This Temporal workflow gates deployment. Each step is an activity. If any activity fails, the workflow stops and reports why.
 
-| Gate | Checked By | Criteria |
-|---|---|---|
-| All tests pass | qa-engineer | Unit, integration, E2E: 100% pass rate |
-| Coverage threshold | qa-engineer | Minimum 80% line coverage (configurable) |
-| Security clear | security-reviewer | No critical or high findings |
-| All stories approved | approver | Every story in the release has passed the governance chain |
-| Module gates passed | approver | Every module included has passed its module gate checklist |
-| Performance validated | sre-engineer | NFR benchmarks met (response times, throughput, resource usage) |
-| Release notes drafted | product-manager | User-facing changes documented |
-| Rollback plan documented | release-manager | Steps to roll back if deployment fails |
+```
+build_check -> security_scan -> staging -> smoke_test -> approval -> prod -> health_check
+```
 
-### Release Command
+**Activities in order**:
 
+| Step | Activity | What It Does | Failure Behavior |
+|---|---|---|---|
+| 1 | `build_check` | Compile, lint, run all tests, check coverage threshold | Fail workflow. Fix and retry. |
+| 2 | `security_scan` | Run SAST/DAST, check for critical/high findings | Fail workflow. No deploy with critical findings. |
+| 3 | `staging` | Deploy to staging environment | Retry up to 3 times. Fail if staging unreachable. |
+| 4 | `smoke_test` | Run smoke test suite against staging | Fail workflow. Staging is broken. |
+| 5 | `approval` | Wait for human approval signal via Temporal signal | Blocks until signal received. Timeout configurable. |
+| 6 | `prod` | Deploy to production environment | Retry up to 3 times. Rollback staging if prod fails. |
+| 7 | `health_check` | Verify production health (endpoints, error rate, latency) | Alert on failure. Auto-rollback if critical. |
+
+**Triggering**:
 ```
 /release --version 1.0.0
 ```
 
-This command triggers the release-manager agent to orchestrate:
+This starts `DeploymentReadinessWorkflow` in Temporal. The workflow ID is deterministic: `deploy-{product}-{version}`.
 
-1. **Pre-release validation**: Run all gates above
-2. **Create release branch**: `release/v1.0.0` from the current main
-3. **Tag the release**: `v1.0.0`
-4. **Generate release notes**: From completed stories and their descriptions
-5. **Build artifacts**: Compile, bundle, containerize
-6. **Deploy to staging**: Using the CI/CD pipeline
-7. **Run staging smoke tests**: Verify core functionality
-8. **Deploy to production**: After staging validation
-9. **Run production smoke tests**: Verify core functionality in production
-10. **Activate monitoring**: Confirm dashboards and alerts are live
-11. **Notify stakeholders**: Release announcement via Confluence and JIRA
+### ReleaseGovernanceWorkflow
+
+This Temporal workflow handles the release paperwork and communication. Runs in parallel with or after deployment.
+
+```
+changelog -> version_bump -> validation -> stakeholder_approval -> tag -> notify
+```
+
+**Activities in order**:
+
+| Step | Activity | What It Does |
+|---|---|---|
+| 1 | `changelog` | Generate changelog from completed stories and their JIRA tickets |
+| 2 | `version_bump` | Update version in package.json, pyproject.toml, etc. |
+| 3 | `validation` | Validate all stories in the release are approved, all module gates passed |
+| 4 | `stakeholder_approval` | Wait for stakeholder sign-off via Temporal signal |
+| 5 | `tag` | Create git tag, create GitHub release |
+| 6 | `notify` | Update Confluence release page, notify via configured channels |
 
 ### Release Types
 
-| Type | Branch Pattern | Gating | Use Case |
+| Type | Workflow | Gating | Use Case |
 |---|---|---|---|
-| Standard | `release/v{major}.{minor}.{patch}` | Full gates | Normal releases |
-| Hotfix | `hotfix/v{major}.{minor}.{patch+1}` | Reduced gates (security + tests only) | Critical production fix |
-| Rollback | N/A (revert to previous tag) | No gates (emergency) | Production incident |
+| Standard | Full DeploymentReadinessWorkflow | All 7 steps | Normal releases |
+| Hotfix | DeploymentReadinessWorkflow (reduced) | build_check + security_scan + prod + health_check | Critical production fix |
+| Rollback | RollbackWorkflow | health_check only | Production incident |
 
-### Rollback Procedure
+### Rollback
 
 ```
 /release --rollback v0.9.0
 ```
 
 1. Deploy the previous version tag to production
-2. Run production smoke tests
+2. Run production health check
 3. Verify monitoring shows recovery
-4. Create a post-incident ticket for root cause analysis
+4. Create a post-incident JIRA ticket for root cause analysis
 5. The rolled-back changes remain on their branches for investigation
 
 ## Observability
 
-### Three Pillars
+Observability is configured during integration setup (Phase 0) via `guided-setup.sh` and `/factory-init`. The factory sets up four systems:
 
-The factory establishes observability through logs, metrics, and traces.
+### Prometheus
 
-#### Logs
+Metrics collection. Scrapes FastAPI and application metrics.
 
-**Configuration**: `.claude/operations/observability.md` and `.claude/sre/logging.md`
+**Key metrics**:
 
-**Standards**:
-- Structured JSON logging (no unstructured text logs)
-- Every log entry includes: timestamp, level, service, trace_id, span_id, message, context
-- Log levels: DEBUG, INFO, WARN, ERROR, FATAL
-- Production runs at INFO level by default
-- Sensitive data (passwords, tokens, PII) is never logged
+| Metric | Type | Alert Threshold |
+|---|---|---|
+| `http_request_duration_ms` | Histogram | P95 > 500ms |
+| `http_request_total` | Counter | 5xx rate > 1% |
+| `db_query_duration_ms` | Histogram | P95 > 200ms |
+| `db_connection_pool_usage` | Gauge | > 80% |
+| `temporal_workflow_failures` | Counter | > 0 in 5min window |
+| `error_rate` | Rate | > 10/min |
 
-**Log format**:
-```json
-{
-  "timestamp": "2026-01-22T14:30:00.123Z",
-  "level": "ERROR",
-  "service": "user-management",
-  "trace_id": "abc123def456",
-  "span_id": "span789",
-  "message": "Failed to create user: duplicate email",
-  "context": {
-    "endpoint": "/api/auth/register",
-    "method": "POST",
-    "status_code": 409,
-    "duration_ms": 45,
-    "user_agent": "Mozilla/5.0..."
-  },
-  "error": {
-    "type": "DuplicateEmailError",
-    "message": "Email already registered",
-    "stack": "..."
-  }
-}
-```
+### Grafana
 
-**Integration**: Logs are shipped to the configured observability backend via `OTEL_EXPORTER_OTLP_ENDPOINT` or `SENTRY_DSN` or `DATADOG_API_KEY`.
+Dashboards. Four standard dashboards created by the sre-engineer agent:
 
-#### Metrics
+1. **Service Health**: Request rate, error rate, latency (RED metrics)
+2. **Infrastructure**: CPU, memory, disk, network, Postgres connections
+3. **Business**: Product-specific KPIs from the BMAD
+4. **Deployment**: Recent deployments, rollback history, Temporal workflow status
 
-**Key metrics tracked**:
+### Sentry
 
-| Metric | Type | Description | Alert Threshold |
-|---|---|---|---|
-| `http_request_duration_ms` | Histogram | API response time | P95 > 500ms |
-| `http_request_total` | Counter | Total requests by endpoint and status | 5xx rate > 1% |
-| `db_query_duration_ms` | Histogram | Database query time | P95 > 200ms |
-| `db_connection_pool_usage` | Gauge | Connection pool utilization | > 80% |
-| `queue_depth` | Gauge | Work queue depth | > 100 items |
-| `error_rate` | Rate | Errors per minute | > 10/min |
-| `cpu_usage_percent` | Gauge | CPU utilization | > 80% |
-| `memory_usage_mb` | Gauge | Memory usage | > 80% of limit |
-| `disk_usage_percent` | Gauge | Disk utilization | > 85% |
+Error tracking. Captures exceptions with full stack traces, breadcrumbs, and context.
 
-**Custom business metrics** (defined per product):
-- User registrations per hour
-- Active sessions
-- API calls per customer
-- Revenue-impacting transaction success rate
+**Configuration**:
+- `SENTRY_DSN` in `.env`
+- Source maps uploaded on deploy
+- Release tracking tied to git tags
+- Performance monitoring enabled
 
-#### Traces
+### OpenTelemetry
 
-**Distributed tracing**: All requests get a trace ID that follows them through every service, database call, and external API call.
-
-**Trace format**: OpenTelemetry (OTLP) compatible.
+Distributed tracing. All requests get a trace ID that follows them through every service.
 
 **What is traced**:
 - HTTP requests (inbound and outbound)
 - Database queries
-- Cache operations
-- Queue operations
+- Temporal workflow and activity executions
 - External API calls (JIRA, Confluence, GitHub)
 
-### Dashboards
-
-The sre-engineer agent creates four standard dashboards:
-
-1. **Service Health**: Request rate, error rate, latency (RED metrics)
-2. **Infrastructure**: CPU, memory, disk, network
-3. **Business**: Product-specific KPIs from the BMAD
-4. **Deployment**: Recent deployments, rollback history, deployment duration
+**Configuration**:
+- `OTEL_EXPORTER_OTLP_ENDPOINT` in `.env`
+- Auto-instrumented via FastAPI middleware and Temporal interceptors
 
 ### Alert Configuration
 
-Alerts are defined in `.claude/sre/` and follow a severity model:
+Alerts follow a severity model:
 
 | Severity | Response Time | Notification | Example |
 |---|---|---|---|
 | P1 - Critical | Immediate | PagerDuty + Slack | Service down, data loss |
 | P2 - High | Within 1 hour | Slack + Email | Error rate > 5%, latency > 2s |
 | P3 - Medium | Within 4 hours | Slack | Error rate > 1%, disk > 85% |
-| P4 - Low | Next business day | Email | Warning thresholds, non-critical issues |
+| P4 - Low | Next business day | Email | Warning thresholds, non-critical |
+
+## Monitoring Command
+
+```
+/monitor
+```
+
+The `/monitor` command queries Temporal, Postgres, and the observability stack to produce a health report:
+
+- **Temporal**: Active workflows, failed workflows, task queue depth, worker status
+- **Application**: Error rate, latency percentiles, request throughput
+- **Infrastructure**: CPU, memory, disk, database connections
+- **Integrations**: JIRA, Confluence, GitHub, Temporal connection health
+- **Business**: Product KPIs from monitoring dashboards
 
 ## Incident Handling
 
-### Incident Workflow
+Incidents are Temporal workflows.
+
+### IncidentWorkflow
 
 ```
-Alert fires
-  |
-  v
-Incident created (auto or manual)
-  |
-  v
-Triage: Assign severity (P1-P4)
-  |
-  v
-Respond: Mitigate the impact
-  |
-  v
-Resolve: Fix the root cause
-  |
-  v
-Post-mortem: Document learnings
-  |
-  v
-Follow-up: Implement prevention
+alert_fires -> triage -> mitigate -> resolve -> post_mortem -> follow_up
 ```
 
-### Incident Response Runbooks
+| Step | Activity | What It Does |
+|---|---|---|
+| 1 | `alert_fires` | Alert detected (from Prometheus/Sentry/manual) |
+| 2 | `triage` | Assign severity (P1-P4), create JIRA incident ticket |
+| 3 | `mitigate` | Execute runbook, reduce impact |
+| 4 | `resolve` | Fix root cause (may trigger BugFixWorkflow) |
+| 5 | `post_mortem` | Generate post-mortem document, update Confluence |
+| 6 | `follow_up` | Create prevention tickets, update runbooks, capture learnings |
 
-Stored in `.claude/operations/runbooks/`, one per common failure mode:
+### BugFixWorkflow
 
-```markdown
-# Runbook: Database Connection Pool Exhaustion
+Bug fixes go through the same governance chain as features, but with expedited timelines:
 
-## Symptoms
-- 503 errors on API endpoints
-- `db_connection_pool_usage` > 95%
-- Slow query log shows waiting connections
-
-## Immediate Mitigation
-1. Scale up the connection pool: `ALTER SYSTEM SET max_connections = 200;`
-2. Kill idle connections: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND query_start < now() - interval '5 minutes';`
-3. Restart the API service to reset the pool
-
-## Root Cause Investigation
-1. Check for long-running queries: `SELECT * FROM pg_stat_activity WHERE state = 'active' ORDER BY query_start;`
-2. Check for connection leaks in application code
-3. Review recent deployments for connection handling changes
-
-## Prevention
-- Set connection pool max to `max_connections * 0.8 / num_workers`
-- Add connection timeout (5s)
-- Add circuit breaker for database connections
-- Monitor pool usage with alert at 80%
 ```
+triage -> implement_fix -> test -> check -> review -> approve -> hotfix_deploy
+```
+
+This is a Temporal workflow. The hotfix deploy uses `DeploymentReadinessWorkflow` with reduced gating (build_check + security_scan + prod + health_check).
+
+### Runbooks
+
+Stored in `.claude/operations/runbooks/`, one per common failure mode. Referenced by the `mitigate` activity during incident handling.
 
 ### Post-Mortem Template
 
@@ -220,155 +188,78 @@ Stored in `.claude/operations/runbooks/`, one per common failure mode:
 # Incident Post-Mortem: {INCIDENT-ID}
 
 ## Summary
-{One-line description of what happened}
+{One-line description}
 
 ## Timeline
 | Time | Event |
 |---|---|
-| 14:00 | Alert fired: error rate > 5% |
-| 14:05 | On-call acknowledged |
-| 14:15 | Root cause identified: deployment introduced N+1 query |
-| 14:20 | Rollback initiated |
-| 14:25 | Service restored |
+| HH:MM | Alert fired |
+| HH:MM | Triage complete |
+| HH:MM | Mitigation applied |
+| HH:MM | Root cause fixed |
+| HH:MM | Service restored |
 
 ## Impact
 - Duration: {X} minutes
 - Users affected: {N}
 - Revenue impact: {$X or N/A}
-- SLO budget consumed: {X}%
 
 ## Root Cause
-{Detailed explanation of what went wrong and why}
-
-## What Went Well
-- {Positive observation}
-
-## What Could Be Improved
-- {Improvement opportunity}
+{What went wrong and why}
 
 ## Action Items
-- [ ] {Action} - Owner: {agent/person} - Due: {date}
+- [ ] {Action} - Owner: {agent} - Due: {date}
 
 ## Learnings Captured
 - {Learning promoted to .claude/learning/}
 ```
 
-## Support Workflow
+## Post-Release Business Documents
 
-### Support Ticket Flow
-
-```
-User reports issue
-  |
-  v
-Support ticket created (JIRA Bug type)
-  |
-  v
-Triage: Severity and priority assigned
-  |
-  v
-Investigation: Relevant agent investigates
-  |
-  v
-Resolution: Fix developed through normal governance
-  |
-  v
-Verification: User confirms fix
-  |
-  v
-Close: Ticket closed, learning captured
-```
-
-### Support Integration
-
-The factory creates support-related JIRA tickets with:
-- **Type**: Bug
-- **Priority**: Based on severity (P1 = Blocker, P2 = Critical, P3 = Major, P4 = Minor)
-- **Labels**: `support`, `production`
-- **Links**: Related to the original story that introduced the issue
-
-## Analytics Tracking
-
-### Event Tracking
-
-The factory supports product analytics through structured event tracking:
-
-```json
-{
-  "event": "user_registered",
-  "timestamp": "2026-01-22T14:30:00Z",
-  "properties": {
-    "method": "email",
-    "source": "landing_page",
-    "plan": "free"
-  },
-  "user_id": "usr_abc123",
-  "session_id": "sess_def456"
-}
-```
-
-### Analytics Configuration
-
-Analytics tracking is defined in `.claude/analytics/`:
+After a successful release, generate the business document suite:
 
 ```
-.claude/analytics/
-  events.json             # Event catalog (all tracked events)
-  funnels.json            # Funnel definitions
-  segments.json           # User segment definitions
-  dashboards.json         # Analytics dashboard configurations
+/business-docs --phase planning
 ```
 
-### Event Catalog
+This triggers the `BusinessDocsWorkflow` with phase=planning, which generates:
+- Financial projections (revenue model, unit economics, burn rate)
+- Costing analysis (infrastructure, team, tooling)
+- GTM strategy (go-to-market plan, channels, pricing)
+- Pitch deck (investor-ready presentation)
+- Data room documents
 
-Every trackable event is defined before implementation:
-
-```json
-{
-  "events": [
-    {
-      "name": "user_registered",
-      "description": "User completed registration",
-      "properties": {
-        "method": {"type": "string", "enum": ["email", "google", "github"]},
-        "source": {"type": "string"},
-        "plan": {"type": "string", "enum": ["free", "pro", "enterprise"]}
-      },
-      "triggers": ["registration form submission"],
-      "owner": "user-management module"
-    }
-  ]
-}
-```
-
-### Analytics Governance
-
-- Events must be defined in the event catalog before being implemented
-- Event names follow a consistent naming convention: `{noun}_{verb}` (e.g., `user_registered`, `subscription_created`, `report_viewed`)
-- All events include standard properties (timestamp, user_id, session_id)
-- PII is never included in event properties
-- The checker agent validates that implemented analytics calls match the event catalog
+These are generated based on the actual built product -- real architecture, real infrastructure costs, real feature set.
 
 ## Operations Checklist
 
 ### Pre-Launch
 
-- [ ] All monitoring dashboards created and validated
-- [ ] All alerts configured and tested
+- [ ] All monitoring dashboards created (Grafana)
+- [ ] All alerts configured (Prometheus) and tested
+- [ ] Sentry configured with source maps
+- [ ] OpenTelemetry tracing verified end-to-end
 - [ ] Runbooks written for known failure modes
 - [ ] Rollback procedure documented and tested
-- [ ] On-call rotation established (if applicable)
 - [ ] SLOs defined and baseline established
-- [ ] Analytics events implemented and validated
-- [ ] Error tracking configured (Sentry or equivalent)
-- [ ] Log aggregation configured and validated
-- [ ] Backup and restore procedure documented and tested
+- [ ] Backup and restore procedure tested
 
 ### Post-Launch (First 24 Hours)
 
 - [ ] Error rate within acceptable range (< 1%)
 - [ ] Latency within NFR benchmarks
 - [ ] No critical or high alerts
-- [ ] Analytics events flowing correctly
-- [ ] Logs aggregating correctly
+- [ ] Traces flowing correctly through OpenTelemetry
+- [ ] Sentry capturing errors with correct source maps
 - [ ] Resource utilization within expected range
+
+## 8-Phase Context
+
+Release and operations span Phases 7 and 8 of the factory flow:
+
+| Phase | What Happens | Temporal Workflows |
+|---|---|---|
+| Phase 7: Release | Code deployed, release governed | DeploymentReadinessWorkflow, ReleaseGovernanceWorkflow |
+| Phase 8: Operations | Monitor, optimize, incident response | IncidentWorkflow, BugFixWorkflow, HealthCheckWorkflow |
+
+After Phase 8, the cycle loops back. `/optimize` creates new tickets that feed into `/implement` for the next iteration.
