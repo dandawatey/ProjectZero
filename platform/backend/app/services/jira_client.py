@@ -232,3 +232,97 @@ class JiraClient:
             "todo": todo,
             "completion_pct": round((done / total * 100) if total else 0.0, 1),
         }
+
+    # ---------------- Write operations ----------------
+
+    @staticmethod
+    def _build_adf_paragraph(text: str) -> dict:
+        """Minimal ADF doc wrapping text in a paragraph node."""
+        return {
+            "version": 1,
+            "type": "doc",
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        }
+
+    async def create_issue(
+        self,
+        project_key: str,
+        summary: str,
+        description_adf: dict,
+        issue_type: str = "Story",
+        priority: str = "Medium",
+        story_points: float | None = None,
+        labels: list[str] | None = None,
+        sprint_id: int | None = None,
+    ) -> dict:
+        """Create JIRA issue. Returns {key, id, self}."""
+        fields: dict[str, Any] = {
+            "project": {"key": project_key},
+            "summary": summary,
+            "description": description_adf,
+            "issuetype": {"name": issue_type},
+            "priority": {"name": priority},
+        }
+        if story_points is not None:
+            fields["customfield_10016"] = story_points
+        if labels:
+            fields["labels"] = labels
+        if sprint_id is not None:
+            fields["customfield_10020"] = {"id": sprint_id}
+
+        async with httpx.AsyncClient() as c:
+            r = await c.post(
+                f"{self.base}/rest/api/3/issue",
+                json={"fields": fields},
+                auth=self.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+            data = r.json()
+            return {"key": data["key"], "id": data["id"], "self": data["self"]}
+
+    async def get_transitions(self, issue_key: str) -> list[dict]:
+        """GET /rest/api/3/issue/{key}/transitions — returns [{id, name}]."""
+        async with httpx.AsyncClient() as c:
+            r = await c.get(
+                f"{self.base}/rest/api/3/issue/{issue_key}/transitions",
+                auth=self.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+            data = r.json()
+            return [{"id": t["id"], "name": t["name"]} for t in data.get("transitions", [])]
+
+    async def transition_issue(self, issue_key: str, transition_id: str) -> bool:
+        """POST /rest/api/3/issue/{key}/transitions."""
+        async with httpx.AsyncClient() as c:
+            r = await c.post(
+                f"{self.base}/rest/api/3/issue/{issue_key}/transitions",
+                json={"transition": {"id": transition_id}},
+                auth=self.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+            return True
+
+    async def add_comment(self, issue_key: str, body_adf: dict) -> dict:
+        """POST /rest/api/3/issue/{key}/comment."""
+        async with httpx.AsyncClient() as c:
+            r = await c.post(
+                f"{self.base}/rest/api/3/issue/{issue_key}/comment",
+                json={"body": body_adf},
+                auth=self.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json()
+
+    async def list_transitions_by_name(self, issue_key: str) -> dict[str, str]:
+        """Returns {name: id} mapping for easy transition lookup."""
+        transitions = await self.get_transitions(issue_key)
+        return {t["name"]: t["id"] for t in transitions}
