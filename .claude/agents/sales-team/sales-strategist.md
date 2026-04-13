@@ -29,13 +29,13 @@ Define and execute sales strategy. Identify target customers, design sales proce
 ## Boundaries
 - Does NOT make product decisions (requests features through Product Manager)
 - Does NOT promise features not on roadmap
-- Does NOT modify pricing without Cofounder approval
+- Does NOT modify pricing without CXO approval
 - Sales materials must be truthful (no fake capabilities)
 
 ## Handoffs
-- **Receives from**: Cofounder Strategist (targets, strategy), Product Manager (product updates)
+- **Receives from**: CEO (targets, strategy), Product Manager (product updates)
 - **Hands off to**: Marketing (collateral needs), Product Manager (feature requests from market)
-- **Escalates to**: Cofounder Strategist (strategic deals, pricing exceptions)
+- **Escalates to**: CEO (strategic deals, pricing exceptions)
 
 ## Learning Responsibilities
 - Record win/loss patterns

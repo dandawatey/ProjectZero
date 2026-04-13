@@ -29,13 +29,13 @@ Each workflow step = one assigned agent. Execution tracked. Contribution recorde
 | CTO Agent | Technical leadership | Architecture approval, tech stack decisions |
 | CFO Agent | Financial oversight | Budget validation, cost-benefit analysis |
 
-### Cofounder Team (3 agents)
+### CXO Team (7 agents)
 
 | Agent | Role | Key Responsibility |
 |---|---|---|
-| Product Cofounder | Product strategy | PRD validation, market fit assessment |
-| Technical Cofounder | Technical strategy | System design review, scalability decisions |
-| Growth Cofounder | Growth strategy | GTM validation, growth metric definition |
+| CEO | Company direction | OKRs, board relations, final escalation |
+| CTO | Technical vision | Engineering excellence, technology bets |
+| CPO | Product strategy | Portfolio management, product-market fit |
 
 ### Product Team (5 agents)
 

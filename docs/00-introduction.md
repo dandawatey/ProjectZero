@@ -104,7 +104,7 @@ Factory = reusable OS. Product = separate git repo. Factory provides agents, ski
 | Team | Agents |
 |---|---|
 | CXO | Strategic oversight, portfolio decisions |
-| Cofounder | Product vision, market strategy |
+| CXO | Company strategy, vision, orchestration |
 | Product | Product manager, UX reviewer |
 | Engineering | Architect, backend/frontend/data engineers, QA |
 | Sales | Sales strategy, demo, competitive positioning |

@@ -97,7 +97,7 @@ Phase 1: Vision or market context from user
 Phase 2: Approved PRD + architecture (at minimum PRD)
 
 ## Involved Agents
-- Cofounder Strategist (market analysis, business model)
+- CEO (market analysis, business model)
 - CFO (financial projections, costing)
 - CMO (GTM strategy, messaging)
 - CRO (pricing, sales process)

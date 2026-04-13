@@ -106,7 +106,7 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 
 **Temporal Workflow**: `BusinessDocsWorkflow` (mode=discovery)
 
-**Agents**: Cofounder, product manager, FinOps analyst
+**Agents**: CEO, product manager, FinOps analyst
 
 **What Happens**:
 1. `TamAnalysisActivity` -- TAM/SAM/SOM calculations
@@ -264,7 +264,7 @@ Each stage is a Temporal activity. Failure at any stage blocks progression. Retr
 
 **Temporal Workflow**: `BusinessDocsWorkflow` (mode=planning)
 
-**Agents**: Cofounder, product manager, sales, marketing, FinOps
+**Agents**: CEO, product manager, sales, marketing, FinOps
 
 **What Happens**:
 1. `FinancialModelActivity` -- projections, burn rate, runway, unit economics
