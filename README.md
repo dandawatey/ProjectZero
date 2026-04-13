@@ -64,7 +64,7 @@ code .
 ```
 ProjectZeroFactory/
 ├── .claude/                    ← AI operating system
-│   ├── agents/                 ← 35 agents, 8 teams
+│   ├── agents/                 ← 34 agents, 7 teams
 │   ├── skills/                 ← 17 skill packages
 │   ├── workflows/              ← workflow definitions
 │   ├── commands/               ← 17+ commands
@@ -80,12 +80,11 @@ ProjectZeroFactory/
 └── scripts/                    ← bootstrap + validation
 ```
 
-## Agent Teams (35 agents)
+## Agent Teams (34 agents)
 
 | Team | Agents |
 |------|--------|
-| CXO | CEO, CTO, CPO, CFO, CMO, CRO |
-| Cofounder | Strategist, Technical Cofounder, Ralph Controller |
+| CXO | CEO, CTO, CPO, CFO, CMO, CRO, Ralph Controller |
 | Product | Product Manager, Product Analyst, UX Researcher |
 | Engineering | Architect, Backend, Frontend, Data, DevOps, QA, SRE |
 | Sales | Sales Strategist, Customer Success |

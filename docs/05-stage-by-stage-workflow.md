@@ -82,7 +82,7 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 
 **Temporal Workflow**: `VisionToPrdWorkflow`
 
-**Agents**: Product manager, cofounder, CXO
+**Agents**: Product Manager, CXO
 
 **What Happens**:
 1. `AnalyzeVisionActivity` -- parse vision, identify market, users, value prop

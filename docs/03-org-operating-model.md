@@ -21,7 +21,7 @@ Factory is the engine. Product is the car. You don't fork the engine for each ca
 ```
 .claude/
   core/           # System prompts, orchestration config
-  agents/         # 8 teams of specialized agents
+  agents/         # 7 teams of specialized agents
   commands/       # Slash commands (/factory-init, /spec, /implement, etc.)
   workflows/      # Temporal workflow definitions
   skills/         # Reusable agent capabilities

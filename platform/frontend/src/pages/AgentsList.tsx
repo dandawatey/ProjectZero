@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 const AGENT_TEAMS = [
-  { team: 'CXO', agents: ['ceo', 'cto', 'cpo', 'cfo', 'cmo', 'cro'], color: 'border-purple-500' },
-  { team: 'Cofounder', agents: ['cofounder-strategist', 'technical-cofounder', 'ralph-controller'], color: 'border-indigo-500' },
+  { team: 'CXO', agents: ['ceo', 'cto', 'cpo', 'cfo', 'cmo', 'cro', 'ralph-controller'], color: 'border-purple-500' },
   { team: 'Product', agents: ['product-manager', 'product-analyst', 'ux-researcher'], color: 'border-blue-500' },
   { team: 'Engineering', agents: ['architect', 'backend-engineer', 'frontend-engineer', 'data-engineer', 'devops-engineer', 'qa-engineer', 'sre-engineer'], color: 'border-cyan-500' },
   { team: 'Sales', agents: ['sales-strategist', 'customer-success'], color: 'border-green-500' },
@@ -21,7 +20,7 @@ export default function AgentsList() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-2">Agent Directory</h1>
-      <p className="text-gray-400 text-sm mb-6">35 agents across 8 teams. Click any agent to see their work.</p>
+      <p className="text-gray-400 text-sm mb-6">34 agents across 7 teams. Click any agent to see their work.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {AGENT_TEAMS.map(({ team, agents, color }) => (

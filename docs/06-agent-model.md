@@ -1,6 +1,6 @@
 # Agent Model
 
-35 agents. 8 teams. Every agent executes inside Temporal workflow steps. No exceptions.
+34 agents. 7 teams. Every agent executes inside Temporal workflow steps. No exceptions.
 
 ## Architecture
 

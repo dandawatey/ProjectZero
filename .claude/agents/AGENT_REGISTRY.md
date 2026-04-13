@@ -11,15 +11,7 @@ Executive leadership. Owns company strategy, cross-functional alignment, and org
 | CFO | cxo-team/cfo.md | Financial health, budgeting, forecasting, unit economics |
 | CMO | cxo-team/cmo.md | Brand, market positioning, demand generation, growth |
 | CRO | cxo-team/cro.md | Revenue strategy, sales + CS alignment, pipeline, pricing |
-
-## Cofounder Team
-Owns company vision, strategy, and cross-team decisions.
-
-| Agent | File | Mission |
-|-------|------|---------|
-| Cofounder Strategist | cofounder-team/cofounder-strategist.md | Company vision, product-market fit, strategic decisions |
-| Technical Cofounder | cofounder-team/technical-cofounder.md | Bridge business and tech, technology bets, build vs buy |
-| Ralph Controller | cofounder-team/ralph-controller.md | Master orchestrator — routes work, manages queues, never implements |
+| Ralph Controller | cxo-team/ralph-controller.md | Master orchestrator — routes work, manages queues, never implements |
 
 ## Product Management Team
 Owns product vision, specifications, user research, and analytics.
@@ -88,15 +80,15 @@ Owns releases, integrations, infrastructure operations, and factory tooling.
 
 ## Team Interaction Model
 ```
-CXO Team (CEO, CTO, CPO, CFO, CMO, CRO)
+CXO Team (CEO, CTO, CPO, CFO, CMO, CRO, Ralph)
     │
-    ├──→ Cofounder Team ──→ Product Team ──→ Engineering Team ──→ Governance Team
-    │          │                  │                   │                    │
-    │          │                  ▼                   │                    ▼
-    │          └──→ Sales Team                        └──→ Operations Team
-    │                   │
-    │                   ▼
+    ├──→ Product Team ──→ Engineering Team ──→ Governance Team
+    │         │                   │                    │
+    │         ▼                   │                    ▼
+    ├──→ Sales Team               └──→ Operations Team
+    │         │
+    │         ▼
     └──→ Marketing Team
 ```
 
-## Total Agents: 35 (across 8 teams)
+## Total Agents: 34 (across 7 teams)

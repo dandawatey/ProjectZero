@@ -18,7 +18,7 @@ React (Control Tower) --> FastAPI (API) --> Postgres (State) --> Temporal (Execu
 - **FastAPI**: Backend API. Receives commands, dispatches Temporal workflows, reads/writes state.
 - **Postgres**: Source of truth. Product state, workflow state, governance records, audit trail.
 - **Temporal**: Execution engine. Every feature = workflow. Every governance gate = signal. Every retry = built-in.
-- **Agents**: 8 teams, 22+ specialized agents. Execute within Temporal activities. No freelancing.
+- **Agents**: 7 teams, 22+ specialized agents. Execute within Temporal activities. No freelancing.
 - **Redis**: Caching, rate limiting, session state.
 - **Brain**: Postgres-backed persistent memory (`/api/v1/brain/`). Stores memories, architecture decisions, proven patterns, and conversation history. Scoped at factory, product, and session levels. Agents read brain before acting and write after completing work.
 
@@ -39,7 +39,7 @@ Mode is stored in the Brain conversations table and persists across sessions.
 ProjectZeroFactory/
   .claude/              # Factory OS -- agents, skills, workflows, commands, core
     core/               # System prompts, orchestration, config
-    agents/             # 8 teams of specialized agents
+    agents/             # 7 teams of specialized agents
     commands/           # Slash commands (/factory-init, /implement, /release, etc.)
     workflows/          # Temporal workflow definitions
     skills/             # Reusable agent capabilities
@@ -99,7 +99,7 @@ Factory = reusable OS. Product = separate git repo. Factory provides agents, ski
 
 ## Agent Teams
 
-8 teams. Each agent has a defined scope. No overlap. No freelancing.
+7 teams. Each agent has a defined scope. No overlap. No freelancing.
 
 | Team | Agents |
 |---|---|
