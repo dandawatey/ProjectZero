@@ -28,8 +28,10 @@ from app.api.routes import (
     confluence,
     auth,
     products,
+    commands,
 )
 from app.services.integration_health import validate_on_startup, start_all_monitors
+from app.temporal_integration.worker import start_worker, stop_worker
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,12 @@ async def lifespan(app: FastAPI):
     # Start background health monitors (non-blocking)
     await start_all_monitors(settings)
 
+    # Start Temporal worker (non-blocking — skips gracefully if Temporal not running)
+    await start_worker()
+
     yield
+
+    await stop_worker()
     await engine.dispose()
 
 
@@ -86,6 +93,7 @@ app.include_router(cxo_metrics.router, prefix="/api/v1/cxo", tags=["cxo"])
 app.include_router(confluence.router, prefix="/api/v1/confluence", tags=["confluence"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
+app.include_router(commands.router, prefix="/api/v1/commands", tags=["commands"])
 
 
 @app.get("/health")
