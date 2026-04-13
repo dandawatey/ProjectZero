@@ -1,0 +1,10 @@
+node_modules/
+.venv/
+.git/
+dist/
+build/
+__pycache__/
+*.pyc
+.claude/graphify-out/
+platform/frontend/node_modules/
+platform/backend/.venv/

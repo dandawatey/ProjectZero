@@ -1,8 +1,15 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.database import engine, Base
+from app.core.config import get_settings
+from app.core.middleware import JWTAuthMiddleware
+import app.models.metrics  # noqa: F401 — registers CxoMetricsCache with Base
+import app.models.user     # noqa: F401 — registers User + RefreshToken with Base
+import app.models.product  # noqa: F401 — registers Product with Base
 from app.api.routes import (
     workflows,
     steps,
@@ -17,13 +24,30 @@ from app.api.routes import (
     temporal_status,
     brain,
     dev_monitor,
+    cxo_metrics,
+    confluence,
+    auth,
+    products,
 )
+from app.services.integration_health import validate_on_startup, start_all_monitors
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # DB tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # One-shot startup validation for JIRA + Confluence
+    settings = get_settings()
+    startup_results = await validate_on_startup()
+    logger.info("Integration startup check: %s", startup_results)
+
+    # Start background health monitors (non-blocking)
+    await start_all_monitors(settings)
+
     yield
     await engine.dispose()
 
@@ -34,11 +58,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS must be outermost (added last = runs first in Starlette LIFO order)
+# JWTAuthMiddleware added first = runs after CORS so OPTIONS preflight passes through
+app.add_middleware(JWTAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:3001"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
@@ -54,6 +82,10 @@ app.include_router(activities.router, prefix="/api/v1/activities", tags=["activi
 app.include_router(temporal_status.router, prefix="/api/v1/temporal", tags=["temporal"])
 app.include_router(brain.router, prefix="/api/v1/brain", tags=["brain"])
 app.include_router(dev_monitor.router, prefix="/api/v1/dev", tags=["dev-monitor"])
+app.include_router(cxo_metrics.router, prefix="/api/v1/cxo", tags=["cxo"])
+app.include_router(confluence.router, prefix="/api/v1/confluence", tags=["confluence"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
 
 
 @app.get("/health")
