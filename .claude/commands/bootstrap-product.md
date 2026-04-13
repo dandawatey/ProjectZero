@@ -105,3 +105,17 @@ Readiness-validator must pass before proceeding to /spec.
 
 ## Next Command
 /spec
+
+---
+
+## No PRD? No Problem.
+
+If user says "I don't have a PRD" or "I just have an idea":
+
+1. Run `/vision-to-prd` first
+2. System asks 5-7 structured questions
+3. Generates PRD + BMAD from answers
+4. User reviews and approves
+5. Continue bootstrap with generated docs
+
+Flow: `/bootstrap-product` → detect no PRD → `/vision-to-prd` → resume `/bootstrap-product`

@@ -1,26 +1,143 @@
-# Main Workflow
+# Master Workflow — Complete Phase Sequence
 
-## Complete Factory Flow
+## Architecture
 ```
-/factory-init → /bootstrap-product → /spec → /arch → /implement → /check → /review → /approve → /release → /monitor → /optimize
+React (Control Tower) → FastAPI (Business Truth) → Postgres (State) → Temporal (Execution) → Agents (Work)
 ```
 
-## Stage Map
+## Rule
+ALL work executes as Temporal workflows. No direct implementation. Feature = workflow.
 
-| Stage | Command | Entry Criteria | Exit Criteria |
-|-------|---------|---------------|---------------|
-| Initialize | /factory-init | Cloned repo | Factory validated |
-| Bootstrap | /bootstrap-product | Factory ready | Product configured, BMAD loaded |
-| Specification | /spec | BMAD approved | Specs approved, tickets created |
-| Architecture | /arch | Specs approved | Architecture approved, contracts created |
-| Realization | /implement | Architecture approved | All tickets done, tests passing |
-| Validation | /check, /review | Implementation complete | All checks and reviews pass |
-| Approval | /approve | Reviews complete | Business sign-off |
-| Release | /release | All approvals | Deployed, health checks green |
-| Operations | /monitor | Released | Monitoring active, alerts configured |
-| Optimization | /optimize | Monitoring data | Improvement tickets created |
+## Complete Phase Sequence
 
-## Cross-Cutting Workflows
-- **Recovery**: /resume, /recover-ticket, /recover-workflow — any stage
-- **Design System**: /design-system-init, /component-create, /ui-audit — during Architecture and Realization
-- **Governance**: maker-checker-reviewer-approver — every artifact at every stage
+### Phase 0: Factory Setup (once)
+```
+/factory-init → validate factory repo
+```
+
+### Phase 1: Product Creation
+```
+/bootstrap-product → create product repo → configure integrations
+  └── detect: has PRD?
+       ├── YES → proceed to Phase 2b
+       └── NO  → Phase 2a
+```
+
+### Phase 2a: Vision → PRD (if no PRD)
+```
+/vision-to-prd
+  ├── intake vision (any format)
+  ├── ask 5-7 questions (max 3 follow-ups)
+  ├── generate PRD + BMAD
+  └── user approves
+Temporal: VisionToPRDWorkflow
+```
+
+### Phase 2b: Business Discovery (before build)
+```
+/business-docs --phase discovery
+  ├── TAM-SAM-SOM analysis
+  ├── competitive analysis
+  ├── team composition
+  └── business model canvas
+Temporal: BusinessDocsWorkflow (phase=discovery)
+```
+
+### Phase 3: Specification
+```
+/spec
+  ├── extract features from PRD
+  ├── create epics + stories
+  ├── define acceptance criteria
+  ├── prioritize backlog
+  └── approve spec package
+Temporal: FeatureDevelopmentWorkflow (intake + specification stages)
+```
+
+### Phase 4: Architecture
+```
+/arch
+  ├── system design + module boundaries
+  ├── API contracts + DB schema
+  ├── tech stack selection
+  └── approve architecture
+Temporal: FeatureDevelopmentWorkflow (design + architecture stages)
+```
+
+### Phase 5: Feature Development (per feature, repeat)
+```
+/implement
+  ├── select feature from backlog
+  └── start feature_development_workflow
+      ├── 1. intake
+      ├── 2. specification
+      ├── 3. design
+      ├── 4. architecture
+      ├── 5. implementation (TDD)
+      ├── 6. testing
+      ├── 7. review (MakerCheckerReviewerWorkflow)
+      ├── 8. approval (human signal)
+      ├── 9. release readiness
+      └── 10. completion
+Temporal: FeatureDevelopmentWorkflow
+```
+
+### Phase 6: Quality & Release
+```
+/check   → QAValidationWorkflow
+/review  → code review
+/approve → final authorization
+/release → DeploymentReadinessWorkflow + ReleaseGovernanceWorkflow
+```
+
+### Phase 7: Business Planning (after build)
+```
+/business-docs --phase planning
+  ├── financial projections
+  ├── build & run costing
+  ├── GTM strategy
+  ├── pitch deck
+  └── investor data room
+Temporal: BusinessDocsWorkflow (phase=planning)
+```
+
+### Phase 8: Operations
+```
+/monitor  → health, errors, performance
+/optimize → improvements → new feature workflows
+```
+
+## Workflow Registry
+
+| Workflow | Class | When |
+|----------|-------|------|
+| Vision → PRD | VisionToPRDWorkflow | No PRD, have vision |
+| Business Docs | BusinessDocsWorkflow | Discovery or planning phase |
+| Feature Development | FeatureDevelopmentWorkflow | Per feature |
+| Bug Fix | BugFixWorkflow | Bug found |
+| QA Validation | QAValidationWorkflow | Quality gate |
+| Deployment Readiness | DeploymentReadinessWorkflow | Pre-deploy |
+| Release Governance | ReleaseGovernanceWorkflow | Release |
+| Maker-Checker-Reviewer | MakerCheckerReviewerWorkflow | Any approval (child) |
+
+## Command Registry
+
+| # | Command | Phase | Scope |
+|---|---------|-------|-------|
+| 1 | /factory-init | 0 | Factory |
+| 2 | /bootstrap-product | 1 | Factory |
+| 3 | /vision-to-prd | 2a | Product |
+| 4 | /business-docs | 2b/7 | Product |
+| 5 | /setup | 1 | Product |
+| 6 | /spec | 3 | Product |
+| 7 | /arch | 4 | Product |
+| 8 | /implement | 5 | Product |
+| 9 | /check | 6 | Product |
+| 10 | /review | 6 | Product |
+| 11 | /approve | 6 | Product |
+| 12 | /release | 6 | Product |
+| 13 | /monitor | 8 | Product |
+| 14 | /optimize | 8 | Product |
+| 15 | /resume | Any | Recovery |
+| 16 | /factory-audit | Any | Factory |
+| 17 | /factory-upgrade | Any | Factory |

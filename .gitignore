@@ -106,3 +106,6 @@ temp/
 
 # Storybook
 storybook-static/
+
+# Graphify knowledge graph output
+.claude/graphify-out/

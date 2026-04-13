@@ -1,261 +1,234 @@
-# 01 - How ProjectZeroFactory Works
+# 01 -- How ProjectZeroFactory Works
 
 ## Architecture Overview
 
-ProjectZeroFactory is structured as an operating system that lives inside a `.claude/` directory. The entire system is composed of five layers:
+ProjectZeroFactory is a governed product development system with five components:
 
 ```
-Layer 5: Commands (user-facing entry points)
-Layer 4: Workflows (multi-step orchestrations)
-Layer 3: Agents (specialized roles with defined scopes)
-Layer 2: Skills (reusable capabilities any agent can invoke)
-Layer 1: Core (memory, recovery, governance rules, contracts)
+┌─────────────────────────────────────────────────────────────┐
+│  React UI (Control Tower)                                    │
+│  - Feature dashboard, workflow status, approval gates        │
+│  - Real-time updates via SSE                                 │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ HTTP / SSE
+┌──────────────────────▼──────────────────────────────────────┐
+│  FastAPI API (Business Logic + State Management)             │
+│  - REST endpoints for all operations                         │
+│  - Request validation, auth, audit logging                   │
+│  - Temporal client: starts workflows, sends signals, queries │
+└──────────┬───────────────────────────────┬──────────────────┘
+           │ SQLAlchemy                    │ Temporal Client SDK
+┌──────────▼──────────┐    ┌──────────────▼──────────────────┐
+│  Postgres            │    │  Temporal Server                 │
+│  - Feature state     │    │  - Workflow orchestration         │
+│  - Approval records  │    │  - Activity scheduling            │
+│  - Audit trail       │    │  - Signal routing                 │
+│  - Release history   │    │  - Retry and failure handling     │
+└─────────────────────┘    └──────────────┬──────────────────┘
+                                          │ Task queues
+                           ┌──────────────▼──────────────────┐
+                           │  Temporal Workers                 │
+                           │  - Execute activities             │
+                           │  - Invoke agents (Claude)         │
+                           │  - Sync state back via FastAPI    │
+                           └──────────────────────────────────┘
 ```
+
+## Core Principle: Feature = Workflow
+
+Every feature, bug fix, release, and governance action is a Temporal workflow. There is no work outside workflow context. This means:
+
+- Every action is tracked, retryable, and auditable
+- Every state transition is recorded in Postgres with a correlation_id
+- Every human decision arrives as a Temporal signal
+- Every failure is handled by Temporal's retry and replay mechanisms
+- Workflow state survives crashes, restarts, and network partitions
 
 ## The .claude/ Directory as Operating System
 
-The `.claude/` directory is the kernel of the factory. Here is the complete directory structure and what each part does:
+The `.claude/` directory defines the factory's operating system -- agents, workflows, commands, guardrails, and governance rules:
 
 ```
 .claude/
-  agents/            # Agent definitions (role, scope, inputs, outputs)
-  analytics/         # Usage and performance tracking data
-  checklists/        # Pre-flight and post-flight checklists for stages
-  commands/          # Slash command definitions (the user interface)
-  contracts/         # Inter-agent contracts (what agent A expects from agent B)
-  core/              # Core governance rules, system prompts, configuration
-  data/
-    fixtures/        # Test fixtures and seed data
-    synthetic-data/  # Generated test data for development
-  definition-of-done/  # DoD criteria per artifact type
-  delivery/
-    confluence/      # Confluence sync state and payloads
-      logs/          # Sync operation logs
-      mappings/      # Local-to-Confluence ID mappings
-      pages/         # Cached page content
-      payloads/      # Queued API payloads
-      sync_queue/    # Pending sync operations
-    epics/           # Epic definitions and tracking
-    features/        # Feature definitions and tracking
-    github/          # GitHub sync state
-      branches/      # Branch metadata
-      logs/          # Sync operation logs
-      repos/         # Repository configuration
-      state/         # Current sync state
-    jira/            # JIRA sync state
-      issues/        # Cached issue data
-      logs/          # Sync operation logs
-      mappings/      # Local-to-JIRA ID mappings
-      payloads/      # Queued API payloads
-      state/         # Current sync state
-      sync_queue/    # Pending sync operations
-    queue/           # Work queue (ready, active, completed, failed, blocked)
-    reconciliation/  # Reconciliation logs for integration drift
-  design-system/     # Design tokens, component registry
-  devops/            # Infrastructure and deployment configuration
-  embeddings/        # Vector embeddings for semantic search
-  feature-flags/     # Feature flag definitions per product
-  finops/            # Cost tracking and optimization data
-  guardrails/        # Safety and compliance rules
-  integrations/      # Integration configuration and adapters
-  knowledge/         # Product-specific knowledge base
-  learning/          # Learning entries promoted from sessions
-  memory/            # Persistent memory across sessions
-  memory_store/      # Indexed memory for fast retrieval
-  modules/           # Module definitions (bounded contexts)
-  operations/        # Operational runbooks and incident data
-  pipelines/         # Pipeline definitions for Dagster
-  portfolio/         # Multi-product portfolio tracking
-  recovery/          # Checkpoints and recovery state
-  reports/           # Generated reports (velocity, quality, etc.)
-  runtime/           # Runtime state for workers and orchestration
-  skills/            # Skill definitions (reusable capabilities)
-    code-reviewer/
-    debug-skill/
-    design-sprint/
-    feature-forge/
-    frontend-design/
-    hooked-ux/
-    ios-hig-design/
-    playwright-skill/
-    rag-architect/
-    refactoring-ui/
-    secure-code-guardian/
-    spec-miner/
-    superpowers/
-    the-fool/
-    ui-ux-pro-max/
-    using-git-worktrees/
-    ux-heuristics/
-  sre/               # SRE runbooks and monitoring configuration
-  templates/         # Templates for all artifact types
-  workflows/         # Multi-step workflow definitions
+  agents/           # Agent definitions (role, scope, inputs, outputs)
+  checklists/       # Pre-flight and post-flight validation checklists
+  commands/         # Slash command definitions (user interface)
+  core/             # Build methodology, architecture principles, BMAD
+  devops/           # Environment and health check configuration
+  guardrails/       # Quality, security, and governance rules
+  learning/         # Promoted patterns from product instances
+  memory/           # Org-level persistent memory
+  recovery/         # Recovery and resume protocols
+  runtime/          # Execution graph, state machines, agent protocol
+  skills/           # Reusable capability packages (code-reviewer, etc.)
+  templates/        # Templates for all artifact types
+  workflows/        # Workflow definitions (Temporal-backed)
 ```
 
-## Factory Repo vs. Product Repo
+## The platform/ Directory as Execution Engine
 
-There are two distinct concepts:
+The `platform/` directory contains the running infrastructure:
 
-### Factory Repo (Template)
+```
+platform/
+  backend/          # FastAPI application (API + Postgres state management)
+  frontend/         # React application (Control Tower UI)
+  temporal/         # Python Temporal SDK (workflows, activities, workers)
+```
 
-The **ProjectZeroFactory** repository is the template. It contains:
-- All agent definitions
-- All command definitions
-- All skill definitions
-- All workflow definitions
-- Core governance rules
-- Empty delivery, memory, and recovery directories (ready to be populated)
-- Documentation (this file)
+### Backend (FastAPI + Postgres)
+
+FastAPI is the API layer and single source of business truth for state:
+
+- **REST API**: All operations go through FastAPI endpoints
+- **Postgres**: Persistent state for features, approvals, releases, audit trail
+- **Temporal Client**: Starts workflows, sends signals (approvals), queries workflow state
+- **Sync Layer**: Receives state updates from Temporal workers, writes to Postgres with idempotency
+
+### Frontend (React Control Tower)
+
+React provides the human interface to the factory:
+
+- **Feature Dashboard**: View all features, their current workflow stage, blockers
+- **Approval Queue**: Pending approval requests across all governance gates
+- **Workflow Detail**: Drill into any workflow to see stage history, artifacts, decisions
+- **Release Board**: Release pipeline with sign-off status
+- **Real-time**: Server-Sent Events (SSE) from FastAPI for live status updates
+
+### Temporal (Python SDK)
+
+Temporal is the execution engine:
+
+- **Workflows**: Orchestrate multi-stage processes (feature dev, bug fix, release)
+- **Activities**: Individual units of work executed by agents
+- **Workers**: Python processes that poll task queues and execute activities
+- **Signals**: External inputs (human approvals) that unblock waiting workflows
+- **Queries**: Read workflow state without affecting execution
+
+## How Commands Map to Workflows
+
+Commands are the user interface. Each command maps to a Temporal operation:
+
+| Command | Temporal Action |
+|---------|----------------|
+| `/implement` | Start `feature_development_workflow` |
+| `/spec` | Start `feature_development_workflow` at specification stage |
+| `/arch` | Query current workflow, advance to architecture stage |
+| `/check` | Query `qa_validation_workflow` status |
+| `/review` | Send review signal to running workflow |
+| `/approve` | Send approval signal to running workflow |
+| `/release` | Start `release_governance_workflow` |
+| `/monitor` | Query workflow and deployment status |
+
+## Data Flow: Feature Lifecycle
+
+```
+1. User creates feature in React UI
+   └─> POST /api/features → FastAPI creates record in Postgres
+
+2. FastAPI starts Temporal workflow
+   └─> temporal_client.start_workflow(FeatureDevelopmentWorkflow, ...)
+
+3. Temporal executes intake_activity
+   └─> Worker picks up from task queue → Agent processes → Sync result to FastAPI → Postgres
+
+4. Temporal executes specification_activity
+   └─> Agent writes spec → Starts MCRA child workflow for governance
+
+5. MCRA creates approval request
+   └─> Activity calls FastAPI → Creates approval_request in Postgres → React UI shows pending
+
+6. Human approves in React UI
+   └─> POST /api/approvals/{id} → FastAPI sends signal to Temporal → MCRA advances
+
+7. Workflow continues through design → architecture → implementation → testing
+
+8. Testing stage starts qa_validation_workflow as child
+   └─> Unit tests → Integration tests → E2E tests → Coverage check → Report
+
+9. Review stage starts another MCRA child workflow
+   └─> Checker → Reviewer → Approver gates with signals
+
+10. Release readiness starts deployment_readiness_workflow
+    └─> Environment → Config → Infra → Monitoring → Rollback → Security
+
+11. Release governance collects sign-offs
+    └─> Engineering → Product → Ops sign-offs via signals
+
+12. Completion: deploy, verify, capture learnings
+    └─> Workflow completes → Final state synced to Postgres → UI reflects completion
+```
+
+## Factory Repo vs Product Repo
+
+### Factory Repo (This Repository)
+
+Contains:
+- The `.claude/` OS (agents, workflows, commands, guardrails, core rules)
+- The `platform/` execution infrastructure (backend, frontend, temporal)
+- Documentation (`docs/`)
+- Examples and scripts
 
 The factory repo is maintained by the Center of Excellence. It is versioned. Products track which factory version they were created from.
 
 ### Product Repo (Instance)
 
-When you run `/factory-init` followed by `/bootstrap-product`, the factory creates a **product instance**. This is a new repository that contains:
-- A copy of `.claude/` from the factory (customized for the product)
-- The product's source code (generated through the SPARC workflow)
-- Product-specific memory, learning, and recovery data
-- Product-specific JIRA/Confluence/GitHub configuration
+When you run `/factory-init` followed by `/bootstrap-product`, the factory creates a product instance. This is a separate repository that contains:
+- Product source code
+- Product-specific `.claude/` state (memory, learnings, delivery tracking)
+- Product configuration
 
-The product repo diverges from the factory over time. Factory upgrades can be pulled in selectively.
+The product repo connects to the shared platform for workflow execution. Product isolation is enforced at the data layer via `product_id`.
 
-### Relationship Diagram
+## Workflow Types
 
-```
-ProjectZeroFactory (template)
-  |
-  |-- clone + /factory-init + /bootstrap-product
-  |
-  +-- ProductA/.claude/  (instance, customized)
-  |     +-- source code
-  |     +-- product-specific memory
-  |     +-- product-specific integrations
-  |
-  +-- ProductB/.claude/  (instance, customized)
-  |     +-- source code
-  |     +-- product-specific memory
-  |     +-- product-specific integrations
-  |
-  +-- ProductC/.claude/  (instance, customized)
-        +-- source code
-        +-- product-specific memory
-        +-- product-specific integrations
-```
-
-## How Commands, Agents, Skills, and Workflows Compose
-
-### Commands
-
-Commands are the user interface. They are defined in `.claude/commands/` and invoked with a slash prefix (e.g., `/spec`, `/implement`, `/review`). A command:
-1. Accepts user input (parameters, context)
-2. Activates one or more workflows
-3. Returns results to the user
-
-### Workflows
-
-Workflows are multi-step orchestrations. They are defined in `.claude/workflows/` and are typically triggered by commands. A workflow:
-1. Determines which agents to involve
-2. Sequences the agent invocations
-3. Manages handoffs between agents
-4. Enforces governance gates (checker, reviewer, approver)
-5. Tracks progress and enables recovery
-
-### Agents
-
-Agents are specialized roles. They are defined in `.claude/agents/` and are invoked by workflows. Each agent:
-1. Has a defined role, scope, and expertise
-2. Receives structured inputs (per its contract)
-3. Produces structured outputs (per its contract)
-4. Operates within guardrails
-5. Can invoke skills as needed
-
-### Skills
-
-Skills are reusable capabilities. They are defined in `.claude/skills/` and can be invoked by any agent. A skill:
-1. Provides a specific capability (debugging, code review, UI analysis)
-2. Is stateless -- it takes input and produces output
-3. Can be composed into any workflow through agent invocation
-
-### Composition Example
-
-When a user runs `/implement PROJ-42`:
-
-```
-/implement (command)
-  --> implementation-workflow (workflow)
-    --> product-manager: retrieves spec for PROJ-42
-    --> architect: retrieves architecture decisions
-    --> backend-engineer: implements the feature (invokes feature-forge skill)
-    --> qa-engineer: writes tests (invokes playwright-skill if UI)
-    --> checker: validates against spec
-    --> security-reviewer: scans for vulnerabilities (invokes secure-code-guardian skill)
-    --> reviewer: full quality review (invokes code-reviewer skill)
-    --> approver: final sign-off
-    --> release-manager: prepares PR and release notes
-```
+| Workflow | Purpose |
+|----------|---------|
+| `feature_development_workflow` | End-to-end feature delivery (10 stages) |
+| `bug_fix_workflow` | Bug triage through deployment (7 stages) |
+| `qa_validation_workflow` | Full test pipeline (6 stages) |
+| `deployment_readiness_workflow` | Pre-deploy validation (7 checks) |
+| `release_governance_workflow` | Release approval chain (6 stages) |
+| `maker_checker_reviewer_approver_workflow` | Governance gate (3 sequential gates) |
 
 ## Configuration
 
-Product-level configuration is managed through:
-
-1. **`.env`** - Integration credentials and runtime settings (never committed)
-2. **`.env.example`** - Template showing all available configuration
-3. **`.claude/core/`** - Core governance configuration
-4. **`.claude/integrations/`** - Integration-specific configuration
-5. **`.claude/feature-flags/`** - Feature flags for the factory itself
-
-Key environment variables:
+### Platform Configuration
 
 | Variable | Purpose |
-|---|---|
+|----------|---------|
+| `DATABASE_URL` | Postgres connection string |
+| `TEMPORAL_HOST` | Temporal server address |
+| `TEMPORAL_NAMESPACE` | Temporal namespace |
+| `FASTAPI_URL` | Backend API URL (for sync layer) |
+| `SENTRY_DSN` | Error tracking |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry collector |
+
+### Product Configuration
+
+| Variable | Purpose |
+|----------|---------|
 | `JIRA_BASE_URL` | Atlassian instance URL |
-| `JIRA_PROJECT_KEY` | JIRA project key for this product |
-| `CONFLUENCE_SPACE_KEY` | Confluence space for documentation |
+| `JIRA_PROJECT_KEY` | JIRA project key |
+| `CONFLUENCE_SPACE_KEY` | Confluence documentation space |
 | `GITHUB_ORG` | GitHub organization |
-| `REDIS_URL` | Redis for queue and cache |
-| `DATABASE_URL` | PostgreSQL for persistent storage |
-| `DAGSTER_HOME` | Dagster orchestration home directory |
-| `ENABLE_LOCAL_FALLBACK` | Use local files when integrations unavailable |
-| `ENABLE_MEMORY_PERSISTENCE` | Persist memory between sessions |
+| `PRODUCT_ID` | Unique product identifier in the platform |
 
-## Data Flow
+## Observability
 
-```
-User Input
-  |
-  v
-Command (parse + validate)
-  |
-  v
-Workflow (orchestrate)
-  |
-  v
-Agent(s) (execute)          <--> Skills (capabilities)
-  |                          <--> Memory (context)
-  |                          <--> Integrations (JIRA/Confluence/GitHub)
-  v
-Artifacts (specs, code, tests, PRs)
-  |
-  v
-Governance Chain (check -> review -> approve)
-  |
-  v
-Delivery (queue -> deploy -> monitor)
-  |
-  v
-Recovery Checkpoint (saved state)
-  |
-  v
-Learning (patterns captured and promoted)
-```
+Every component emits telemetry:
+
+- **Prometheus**: Workflow duration, activity success/failure rates, queue depths
+- **Grafana**: Dashboards for workflow pipeline, approval latency, release frequency
+- **Sentry**: Error tracking with Temporal workflow context
+- **OpenTelemetry**: Distributed traces from React -> FastAPI -> Temporal -> Workers
 
 ## Offline Mode
 
-When `ENABLE_LOCAL_FALLBACK=true` (the default), the factory operates without any external integrations:
+When external integrations (JIRA, Confluence, GitHub) are unavailable, the factory operates in offline mode:
+- Tickets stored as JSON in `.claude/delivery/jira/issues/`
+- Pages stored as Markdown in `.claude/delivery/confluence/pages/`
+- Git operations performed on local repository
+- Reconciliation syncs when integrations come back online
 
-- JIRA tickets are represented as JSON files in `.claude/delivery/jira/issues/`
-- Confluence pages are represented as Markdown files in `.claude/delivery/confluence/pages/`
-- GitHub operations are performed directly on the local git repository
-- Queue state is managed in `.claude/delivery/queue/` as JSON files
-
-When integrations become available, the reconciliation system in `.claude/delivery/reconciliation/` syncs local state to external systems.
+The platform itself (FastAPI, Postgres, Temporal) must be running for workflow execution. There is no fully offline workflow execution mode.
