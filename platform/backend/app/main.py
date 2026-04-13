@@ -11,6 +11,7 @@ import app.models.metrics    # noqa: F401 — registers CxoMetricsCache with Bas
 import app.models.user       # noqa: F401 — registers User + RefreshToken with Base
 import app.models.product    # noqa: F401 — registers Product with Base
 import app.models.iso_audit  # noqa: F401 — registers ISO 42001 audit tables with Base
+import app.models.story      # noqa: F401 — registers Story + AcceptanceCriteria with Base
 from app.api.routes import (
     workflows,
     steps,
@@ -31,6 +32,7 @@ from app.api.routes import (
     products,
     commands,
     iso_audit,
+    stories,
 )
 from app.services.integration_health import validate_on_startup, start_all_monitors
 from app.temporal_integration.worker import start_worker, stop_worker
@@ -105,6 +107,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
 app.include_router(commands.router, prefix="/api/v1/commands", tags=["commands"])
 app.include_router(iso_audit.router, prefix="/api/v1/iso-audit", tags=["iso-audit"])
+app.include_router(stories.router, prefix="/api/v1/stories", tags=["stories"])
 
 
 @app.get("/health")
