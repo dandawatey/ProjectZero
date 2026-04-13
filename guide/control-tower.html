@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Tower (React UI) - ProjectZero Guide</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a; --bg-card: #1e293b; --bg-sidebar: #0c1220;
+  --accent: #3b82f6; --accent-hover: #2563eb; --text: #e2e8f0;
+  --text-dim: #94a3b8; --border: #334155; --green: #22c55e;
+  --red: #ef4444; --amber: #f59e0b; --purple: #a78bfa; --cyan: #06b6d4;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; display: flex; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Sidebar */
+.sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 1.5rem 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 10; }
+.sidebar-brand { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar-brand h2 { font-size: 1.1rem; color: var(--accent); letter-spacing: .02em; }
+.sidebar-brand span { font-size: .75rem; color: var(--text-dim); }
+.sidebar nav a { display: block; padding: .55rem 1.5rem; font-size: .9rem; color: var(--text-dim); transition: all .15s; border-left: 3px solid transparent; }
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,.08); border-left-color: var(--accent); text-decoration: none; }
+
+/* Main */
+.main { margin-left: 260px; flex: 1; padding: 2.5rem 3rem 4rem; max-width: 960px; }
+h1 { font-size: 2rem; margin-bottom: .5rem; color: #fff; }
+.subtitle { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 2.5rem; }
+h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+h3 { font-size: 1.15rem; margin: 1.5rem 0 .75rem; color: var(--accent); }
+p { margin-bottom: 1rem; }
+
+/* Mockup frame */
+.mockup-frame { background: #111827; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 1.5rem 0 2.5rem; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+.mockup-titlebar { background: #1e293b; padding: .5rem 1rem; display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid var(--border); }
+.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mockup-dot.r { background: #ef4444; } .mockup-dot.y { background: #f59e0b; } .mockup-dot.g { background: #22c55e; }
+.mockup-label { margin-left: auto; font-size: .75rem; color: var(--text-dim); letter-spacing: .04em; text-transform: uppercase; }
+.mockup-body { padding: 1.5rem; }
+
+/* Stat cards */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; text-align: center; }
+.stat-card .num { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.stat-card .label { font-size: .78rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+.stat-card.active .num { color: var(--accent); }
+.stat-card.completed .num { color: var(--green); }
+.stat-card.failed .num { color: var(--red); }
+.stat-card.blocked .num { color: var(--amber); }
+.stat-card.pending .num { color: var(--purple); }
+
+/* Table */
+.mock-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.mock-table th { text-align: left; padding: .6rem .8rem; color: var(--text-dim); font-weight: 600; border-bottom: 2px solid var(--border); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+.mock-table td { padding: .6rem .8rem; border-bottom: 1px solid var(--border); }
+.mock-table tr:hover td { background: rgba(59,130,246,.04); }
+.badge { display: inline-block; padding: .15rem .55rem; border-radius: 9999px; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+.badge-blue { background: rgba(59,130,246,.15); color: var(--accent); }
+.badge-red { background: rgba(239,68,68,.15); color: var(--red); }
+.badge-amber { background: rgba(245,158,11,.15); color: var(--amber); }
+.badge-gray { background: rgba(148,163,184,.12); color: var(--text-dim); }
+
+/* Pipeline */
+.pipeline { display: flex; align-items: center; gap: 0; margin: 1.5rem 0; flex-wrap: wrap; justify-content: center; }
+.pipeline-stage { display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+.pipeline-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: #fff; }
+.pipeline-circle.done { background: var(--green); }
+.pipeline-circle.active { background: var(--accent); box-shadow: 0 0 12px rgba(59,130,246,.5); }
+.pipeline-circle.pending { background: #374151; color: var(--text-dim); }
+.pipeline-stage-label { font-size: .7rem; color: var(--text-dim); max-width: 80px; text-align: center; }
+.pipeline-line { width: 36px; height: 3px; margin-bottom: 1.2rem; }
+.pipeline-line.done { background: var(--green); }
+.pipeline-line.active { background: linear-gradient(90deg, var(--green), var(--accent)); }
+.pipeline-line.pending { background: #374151; }
+
+/* Approval cards */
+.approval-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: .75rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.approval-info { flex: 1; min-width: 180px; }
+.approval-info .title { font-weight: 600; font-size: .95rem; }
+.approval-info .meta { font-size: .78rem; color: var(--text-dim); }
+.btn { padding: .4rem 1rem; border: none; border-radius: 6px; font-size: .82rem; font-weight: 600; cursor: pointer; }
+.btn-approve { background: var(--green); color: #fff; }
+.btn-reject { background: var(--red); color: #fff; margin-left: .4rem; }
+
+/* URL section */
+.url-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0; }
+.url-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; }
+.url-card .url { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; color: var(--cyan); font-size: .95rem; }
+.url-card .desc { font-size: .82rem; color: var(--text-dim); margin-top: .3rem; }
+
+code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: rgba(59,130,246,.1); padding: .15rem .4rem; border-radius: 4px; font-size: .88em; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 1.5rem; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .pipeline-line { width: 20px; }
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h2>ProjectZero</h2>
+    <span>User Guide</span>
+  </div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html">Agents</a>
+    <a href="commands.html">Commands</a>
+    <a href="business-docs.html">Business Docs</a>
+    <a href="control-tower.html" class="active">Control Tower</a>
+    <a href="governance.html">Governance</a>
+    <a href="recovery.html">Recovery</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <h1>Control Tower (React UI)</h1>
+  <p class="subtitle">The visual command center for monitoring workflows, approving gates, and tracking every build in real time.</p>
+
+  <p>Control Tower is the React-based web dashboard that sits on top of the ProjectZero API and Temporal. It gives you a live view of every workflow, every stage, every approval, and every failure without touching the CLI.</p>
+
+  <!-- =========== DASHBOARD MOCKUP =========== -->
+  <h2>Dashboard Page</h2>
+  <p>The landing page shows aggregate stats and the most recent workflow activity.</p>
+
+  <div class="mockup-frame">
+    <div class="mockup-titlebar">
+      <span class="mockup-dot r"></span>
+      <span class="mockup-dot y"></span>
+      <span class="mockup-dot g"></span>
+      <span class="mockup-label">Dashboard Page &mdash; localhost:3000</span>
+    </div>
+    <div class="mockup-body">
+      <div class="stat-row">
+        <div class="stat-card active">
+          <div class="num">3</div>
+          <div class="label">Active</div>
+        </div>
+        <div class="stat-card completed">
+          <div class="num">12</div>
+          <div class="label">Completed</div>
+        </div>
+        <div class="stat-card failed">
+          <div class="num">1</div>
+          <div class="label">Failed</div>
+        </div>
+        <div class="stat-card blocked">
+          <div class="num">0</div>
+          <div class="label">Blocked</div>
+        </div>
+        <div class="stat-card pending">
+          <div class="num">2</div>
+          <div class="label">Pending Approvals</div>
+        </div>
+      </div>
+
+      <table class="mock-table">
+        <thead>
+          <tr><th>Workflow</th><th>Ticket</th><th>Stage</th><th>Status</th><th>Updated</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>auth-service-build</td>
+            <td><code>PZ-142</code></td>
+            <td>Implementation</td>
+            <td><span class="badge badge-blue">Active</span></td>
+            <td>2 min ago</td>
+          </tr>
+          <tr>
+            <td>dashboard-ui-refactor</td>
+            <td><code>PZ-138</code></td>
+            <td>Testing</td>
+            <td><span class="badge badge-blue">Active</span></td>
+            <td>8 min ago</td>
+          </tr>
+          <tr>
+            <td>api-rate-limiter</td>
+            <td><code>PZ-135</code></td>
+            <td>Review</td>
+            <td><span class="badge badge-amber">Awaiting Approval</span></td>
+            <td>14 min ago</td>
+          </tr>
+          <tr>
+            <td>payment-integration</td>
+            <td><code>PZ-129</code></td>
+            <td>Completion</td>
+            <td><span class="badge badge-green">Completed</span></td>
+            <td>1 hr ago</td>
+          </tr>
+          <tr>
+            <td>email-notification-svc</td>
+            <td><code>PZ-127</code></td>
+            <td>Implementation</td>
+            <td><span class="badge badge-red">Failed</span></td>
+            <td>2 hr ago</td>
+          </tr>
+          <tr>
+            <td>user-profile-cache</td>
+            <td><code>PZ-124</code></td>
+            <td>Completion</td>
+            <td><span class="badge badge-green">Completed</span></td>
+            <td>3 hr ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========== WORKFLOW DETAIL MOCKUP =========== -->
+  <h2>Workflow Detail Page</h2>
+  <p>Click any workflow row to see its full stage pipeline and step-level details. Stages are shown as connected circles: <span style="color:var(--green)">green</span> = done, <span style="color:var(--accent)">blue</span> = active, <span style="color:var(--text-dim)">gray</span> = pending.</p>
+
+  <div class="mockup-frame">
+    <div class="mockup-titlebar">
+      <span class="mockup-dot r"></span>
+      <span class="mockup-dot y"></span>
+      <span class="mockup-dot g"></span>
+      <span class="mockup-label">Workflow Detail &mdash; auth-service-build (PZ-142)</span>
+    </div>
+    <div class="mockup-body">
+      <div class="pipeline">
+        <div class="pipeline-stage">
+          <div class="pipeline-circle done">S</div>
+          <div class="pipeline-stage-label">Specification</div>
+        </div>
+        <div class="pipeline-line done"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-circle done">P</div>
+          <div class="pipeline-stage-label">Pseudocode</div>
+        </div>
+        <div class="pipeline-line done"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-circle done">A</div>
+          <div class="pipeline-stage-label">Architecture</div>
+        </div>
+        <div class="pipeline-line active"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-circle active">R</div>
+          <div class="pipeline-stage-label">Realization</div>
+        </div>
+        <div class="pipeline-line pending"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-circle pending">C</div>
+          <div class="pipeline-stage-label">Completion</div>
+        </div>
+      </div>
+
+      <table class="mock-table" style="margin-top:1rem;">
+        <thead>
+          <tr><th>Step</th><th>Agent</th><th>Status</th><th>Duration</th><th>Output</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Generate spec</td>
+            <td><code>spec-agent</code></td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td>1m 24s</td>
+            <td>spec.md</td>
+          </tr>
+          <tr>
+            <td>Write pseudocode</td>
+            <td><code>pseudo-agent</code></td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td>0m 48s</td>
+            <td>pseudo.md</td>
+          </tr>
+          <tr>
+            <td>Architecture review</td>
+            <td><code>arch-agent</code></td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td>2m 11s</td>
+            <td>arch.md</td>
+          </tr>
+          <tr>
+            <td>Generate tests</td>
+            <td><code>tdd-agent</code></td>
+            <td><span class="badge badge-blue">Running</span></td>
+            <td>0m 37s...</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Implement code</td>
+            <td><code>impl-agent</code></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Coverage check</td>
+            <td><code>quality-agent</code></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Final review</td>
+            <td><code>review-agent</code></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========== APPROVALS MOCKUP =========== -->
+  <h2>Approvals Page</h2>
+  <p>Stage gates that require human sign-off appear here. Each card shows the workflow, the gate, and who requested it.</p>
+
+  <div class="mockup-frame">
+    <div class="mockup-titlebar">
+      <span class="mockup-dot r"></span>
+      <span class="mockup-dot y"></span>
+      <span class="mockup-dot g"></span>
+      <span class="mockup-label">Approvals Page &mdash; 2 Pending</span>
+    </div>
+    <div class="mockup-body">
+      <div class="approval-card">
+        <div class="approval-info">
+          <div class="title">api-rate-limiter &rarr; Production Deploy Gate</div>
+          <div class="meta">Ticket: PZ-135 &middot; Requested by review-agent &middot; 14 min ago</div>
+        </div>
+        <div>
+          <button class="btn btn-approve">Approve</button>
+          <button class="btn btn-reject">Reject</button>
+        </div>
+      </div>
+      <div class="approval-card">
+        <div class="approval-info">
+          <div class="title">dashboard-ui-refactor &rarr; Architecture Sign-off</div>
+          <div class="meta">Ticket: PZ-138 &middot; Requested by arch-agent &middot; 42 min ago</div>
+        </div>
+        <div>
+          <button class="btn btn-approve">Approve</button>
+          <button class="btn btn-reject">Reject</button>
+        </div>
+      </div>
+      <div style="text-align:center; padding:1rem 0; color:var(--text-dim); font-size:.85rem;">No more pending approvals</div>
+    </div>
+  </div>
+
+  <!-- =========== URLs =========== -->
+  <h2>Service URLs</h2>
+  <p>When running locally, these are the default endpoints:</p>
+
+  <div class="url-grid">
+    <div class="url-card">
+      <div class="url">localhost:3000</div>
+      <div class="desc">Control Tower React UI. The dashboard, workflow detail, and approvals pages live here.</div>
+    </div>
+    <div class="url-card">
+      <div class="url">localhost:8000</div>
+      <div class="desc">ProjectZero API. All workflow CRUD, ticket management, and approval endpoints.</div>
+    </div>
+    <div class="url-card">
+      <div class="url">localhost:8233</div>
+      <div class="desc">Temporal Web UI. Low-level workflow execution history, task queues, and namespace management.</div>
+    </div>
+  </div>
+
+  <h3>When to use which</h3>
+  <p><strong>Control Tower (3000)</strong> is your daily driver. Use it to check status, approve gates, and drill into failures. <strong>The API (8000)</strong> is for programmatic access and CLI commands under the hood. <strong>Temporal UI (8233)</strong> is for deep debugging: if a workflow is stuck, you can inspect the raw event history, signal it, or terminate it from there.</p>
+</main>
+</body>
+</html>

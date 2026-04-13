@@ -1,121 +1,136 @@
 # Command: /bootstrap-product
 
 ## Purpose
-Main product creation entry point. Creates or configures a product repository for governed development.
+Create product repo with full integration wiring. Uses validated APIs to create real external resources.
 
-## Trigger
-User runs `/bootstrap-product` after successful `/factory-init`.
+## Prerequisite
+`/factory-init` must pass. All integrations validated.
 
 ## Step-by-Step Process
 
-### Step 1: Confirm Factory Initialized
-Read `.claude/recovery/state.json`. Verify `initialized: true`. If not, direct user to run `/factory-init`.
+### Step 1: Confirm Factory Ready
+Verify integrations validated. If not → block, send to /factory-init.
 
-### Step 2: Product Repository Decision
-Ask user: "Create new product repository or use existing?"
-- **New**: Ask for product name, GitHub org (optional)
-- **Existing**: Ask for path to existing repository
+### Step 2: Product Identity
+Ask user:
+- Product name
+- Product description (1 sentence)
+- GitHub repo name
 
-### Step 3: Create or Validate Product Structure
-**If new:**
-- Create directory: `../<product-name>/`
-- Run `git init`, set main as default branch
-- Copy .claude/ directory from factory to product
-- Create basic structure: src/, tests/, packages/, docs/
+### Step 3: Create GitHub Repo (via API)
+```
+POST https://api.github.com/orgs/{org}/repos
+{
+  "name": "product-name",
+  "description": "...",
+  "private": true,
+  "auto_init": true
+}
+```
+- Clone repo locally
+- Copy .claude/templates/product-skeleton/ into repo
+- Copy relevant factory templates
+- Initial commit + push
 
-**If existing:**
-- Validate git repository
-- Check for existing .claude/ directory
-- Add missing .claude/ files from factory template
+### Step 4: Create JIRA Project (via API)
+```
+POST {JIRA_BASE_URL}/rest/api/3/project
+{
+  "key": "PROD",
+  "name": "Product Name",
+  "projectTypeKey": "software",
+  "leadAccountId": "..."
+}
+```
+- Verify project created
+- Store JIRA_PROJECT_KEY in product .env
 
-### Step 4: Configure Integrations
-Ask for each:
-- **JIRA**: Project key, base URL (or skip)
-- **Confluence**: Space key, base URL (or skip)
-- **GitHub**: Org and repo name (or skip)
-Update `.claude/integrations/config.json` with provided values.
+### Step 5: Create Confluence Space (via API)
+```
+POST {CONFLUENCE_BASE_URL}/rest/api/space
+{
+  "key": "PROD",
+  "name": "Product Name",
+  "description": {"plain": {"value": "..."}},
+  "type": "global"
+}
+```
+- Create project hub page structure from templates:
+  - Overview
+  - BMAD
+  - Architecture
+  - Modules
+  - Delivery Tracker
+  - Risks
+  - Decisions
+  - Release Notes
+  - Operations
 
-### Step 5: Validate Environment
-Check `.env` has integration credentials for enabled integrations. Warn for missing optional values.
+### Step 6: Configure Product .env
+Write to product repo .env:
+```
+PRODUCT_NAME=product-name
+JIRA_PROJECT_KEY=PROD
+CONFLUENCE_SPACE_KEY=PROD
+GITHUB_REPO=org/product-name
+```
+Copy required integration keys from factory .env.
 
-### Step 6: Initialize Product State
-Write product context to:
-- `.claude/memory/org-context.md` (product name, team, constraints)
-- `.claude/recovery/state.json` (product initialized)
+### Step 7: Initialize Temporal
+- Register product task queue
+- Verify worker can connect
 
-### Step 7: Intake BMAD / PRD
-Ask user to provide BMAD or PRD document (paste or file path).
-If no BMAD, guide through BMAD creation using `.claude/core/bmad.md` template.
+### Step 8: Detect PRD
+Ask: "Do you have a PRD or BMAD document?"
+- YES → load it, parse with spec-miner, store in product memory
+- NO → route to /vision-to-prd
 
-### Step 8: Parse BMAD
-Use spec-miner skill to extract structured data:
-- Business model canvas sections
-- Target users and personas
-- Technical constraints
-- MVP scope
-- Success metrics
-Store in `.claude/memory/domain-memory.md`.
+### Step 9: Validate Readiness
+Run readiness-validator:
+- [ ] GitHub repo exists and accessible
+- [ ] JIRA project exists and writable
+- [ ] Confluence space exists with hub pages
+- [ ] Temporal connected
+- [ ] Product .env complete
+- [ ] BMAD/PRD loaded (or /vision-to-prd scheduled)
 
-### Step 9: Create Module Candidates
-From BMAD analysis, identify bounded business capabilities.
-Create module candidates list with: name, purpose, estimated scope.
-Store in `.claude/reports/current-state.md`.
+### Step 10: Report
+```
+Product Bootstrap Complete
+═════════════════════════
+GitHub:     org/product-name ✓
+JIRA:       PROD ✓
+Confluence: PROD ✓
+Temporal:   connected ✓
+PRD:        loaded ✓ (or: pending /vision-to-prd)
 
-### Step 10: Create Tracking Setup
-Initialize queue files:
-- `.claude/delivery/queue/ready.json` (empty)
-- `.claude/delivery/queue/active.json` (empty)
-Set up initial reports in `.claude/reports/`.
+Next: /vision-to-prd (if no PRD) or /spec
+```
 
-### Step 11: Validate Readiness
-Run readiness-validator for specification phase:
-- BMAD parsed? ✓
-- Module candidates identified? ✓
-- Integrations configured (or local fallback)? ✓
-- Environment valid? ✓
-
-### Step 12: Hand Off to /spec
-Report readiness status. Instruct user to run `/spec`.
+## Tracking Guarantee
+After bootstrap, all workflows will:
+- Create JIRA tickets for every work item
+- Update ticket status at every stage transition
+- Write Confluence updates at phase boundaries
+- Sync execution state to Postgres
+- Attach artifacts to tickets and Confluence pages
 
 ## Required Inputs
 - Product name
-- BMAD or PRD document
-- Integration preferences (optional)
-
-## Involved Agents
-- spec-miner skill (BMAD parsing)
-- readiness-validator (readiness check)
-- integration-agent (if integrations configured)
+- PRD/BMAD (or vision text)
 
 ## Outputs
-- Product repository with .claude OS
-- Parsed BMAD in memory
-- Module candidates
-- Tracking infrastructure initialized
-- Readiness report
-
-## Validation
-Readiness-validator must pass before proceeding to /spec.
+- GitHub repo (created via API)
+- JIRA project (created via API)
+- Confluence space with hub (created via API)
+- Product .env configured
+- Temporal task queue registered
 
 ## Failure Handling
-- Checkpoint state after each step
-- If BMAD parsing fails, ask user to provide more detail
-- If integration config fails, fall back to local-only mode
-- Log failures to `.claude/recovery/failure-log.md`
+- GitHub API fail → show error, retry, block
+- JIRA API fail → show error, retry, block
+- Confluence API fail → show error, retry, block
+- All failures logged with correlation_id
 
 ## Next Command
-/spec
-
----
-
-## No PRD? No Problem.
-
-If user says "I don't have a PRD" or "I just have an idea":
-
-1. Run `/vision-to-prd` first
-2. System asks 5-7 structured questions
-3. Generates PRD + BMAD from answers
-4. User reviews and approves
-5. Continue bootstrap with generated docs
-
-Flow: `/bootstrap-product` → detect no PRD → `/vision-to-prd` → resume `/bootstrap-product`
+/vision-to-prd (if no PRD) or /business-docs (discovery) or /spec

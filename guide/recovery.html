@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recovery - ProjectZero Guide</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a; --bg-card: #1e293b; --bg-sidebar: #0c1220;
+  --accent: #3b82f6; --accent-hover: #2563eb; --text: #e2e8f0;
+  --text-dim: #94a3b8; --border: #334155; --green: #22c55e;
+  --red: #ef4444; --amber: #f59e0b; --purple: #a78bfa; --cyan: #06b6d4;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; display: flex; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 1.5rem 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 10; }
+.sidebar-brand { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar-brand h2 { font-size: 1.1rem; color: var(--accent); letter-spacing: .02em; }
+.sidebar-brand span { font-size: .75rem; color: var(--text-dim); }
+.sidebar nav a { display: block; padding: .55rem 1.5rem; font-size: .9rem; color: var(--text-dim); transition: all .15s; border-left: 3px solid transparent; }
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,.08); border-left-color: var(--accent); text-decoration: none; }
+
+.main { margin-left: 260px; flex: 1; padding: 2.5rem 3rem 4rem; max-width: 960px; }
+h1 { font-size: 2rem; margin-bottom: .5rem; color: #fff; }
+.subtitle { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 2.5rem; }
+h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+h3 { font-size: 1.15rem; margin: 1.5rem 0 .75rem; color: var(--accent); }
+p { margin-bottom: 1rem; }
+code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: rgba(59,130,246,.1); padding: .15rem .4rem; border-radius: 4px; font-size: .88em; }
+
+/* Hero callout */
+.hero-callout { background: linear-gradient(135deg, rgba(59,130,246,.12), rgba(34,197,94,.08)); border: 2px solid var(--accent); border-radius: 12px; padding: 2rem 2.5rem; margin: 2rem 0 2.5rem; text-align: center; }
+.hero-callout .icon { font-size: 2.5rem; margin-bottom: .5rem; display: block; }
+.hero-callout .headline { font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+.hero-callout .body { color: var(--text-dim); font-size: 1rem; max-width: 600px; margin: 0 auto; }
+
+/* Scenario cards */
+.scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.scenario-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; position: relative; overflow: hidden; }
+.scenario-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+.scenario-card.ide::before { background: var(--amber); }
+.scenario-card.wf::before { background: var(--red); }
+.scenario-card.ctx::before { background: var(--purple); }
+.scenario-tag { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .2rem .6rem; border-radius: 4px; margin-bottom: .75rem; }
+.scenario-card.ide .scenario-tag { background: rgba(245,158,11,.15); color: var(--amber); }
+.scenario-card.wf .scenario-tag { background: rgba(239,68,68,.15); color: var(--red); }
+.scenario-card.ctx .scenario-tag { background: rgba(167,139,250,.15); color: var(--purple); }
+.scenario-card h3 { color: #fff; margin: 0 0 .6rem; font-size: 1.1rem; }
+.scenario-card p { font-size: .88rem; color: var(--text-dim); margin-bottom: .5rem; }
+.scenario-flow { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin-top: .75rem; }
+.flow-step { background: #0f172a; border: 1px solid var(--border); border-radius: 6px; padding: .3rem .65rem; font-size: .78rem; font-weight: 600; color: var(--text); }
+.flow-arrow { color: var(--text-dim); font-size: .85rem; }
+
+/* Retry table */
+.retry-table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: .88rem; }
+.retry-table th { text-align: left; padding: .65rem .8rem; color: var(--text-dim); font-weight: 600; border-bottom: 2px solid var(--border); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+.retry-table td { padding: .65rem .8rem; border-bottom: 1px solid var(--border); }
+.retry-table tr:hover td { background: rgba(59,130,246,.04); }
+
+/* Command cards */
+.cmd-grid { display: grid; gap: 1rem; margin: 1.5rem 0; }
+.cmd-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.4rem; display: flex; gap: 1rem; align-items: flex-start; }
+.cmd-name { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 1rem; font-weight: 700; color: var(--cyan); white-space: nowrap; min-width: 160px; }
+.cmd-desc { font-size: .9rem; color: var(--text-dim); }
+.cmd-desc strong { color: var(--text); }
+
+/* Temporal explanation */
+.temporal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+.temporal-box h3 { margin-top: 0; }
+.temporal-steps { display: flex; flex-direction: column; gap: .6rem; margin-top: 1rem; }
+.temporal-step { display: flex; align-items: flex-start; gap: .75rem; }
+.temporal-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+.temporal-text { font-size: .88rem; color: var(--text-dim); }
+.temporal-text strong { color: var(--text); }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 1.5rem; }
+  .cmd-card { flex-direction: column; }
+  .cmd-name { min-width: auto; }
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h2>ProjectZero</h2>
+    <span>User Guide</span>
+  </div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html">Agents</a>
+    <a href="commands.html">Commands</a>
+    <a href="business-docs.html">Business Docs</a>
+    <a href="control-tower.html">Control Tower</a>
+    <a href="governance.html">Governance</a>
+    <a href="recovery.html" class="active">Recovery</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <h1>Recovery Guide</h1>
+  <p class="subtitle">How ProjectZero handles crashes, failures, and interruptions without losing a single step.</p>
+
+  <!-- Hero callout -->
+  <div class="hero-callout">
+    <span class="icon">&#x1F6E1;&#xFE0F;</span>
+    <div class="headline">Temporal Never Loses State</div>
+    <div class="body">Every workflow step, every variable, every decision point is persisted in Temporal's event history. Your IDE can crash, your machine can reboot, your network can drop. When you come back, <code>/resume</code> picks up exactly where you left off.</div>
+  </div>
+
+  <!-- Failure Scenarios -->
+  <h2>Failure Scenarios</h2>
+  <div class="scenario-grid">
+    <div class="scenario-card ide">
+      <span class="scenario-tag">Scenario 1</span>
+      <h3>IDE / Session Crash</h3>
+      <p>Your editor crashes, terminal closes, or machine reboots mid-workflow. The agent session is gone, but the workflow state is safe in Temporal.</p>
+      <div class="scenario-flow">
+        <span class="flow-step">Crash detected</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">/resume reads checkpoint</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Continue from last step</span>
+      </div>
+    </div>
+
+    <div class="scenario-card wf">
+      <span class="scenario-tag">Scenario 2</span>
+      <h3>Workflow Failed</h3>
+      <p>An agent step throws an error (test failure, API timeout, invalid output). The retry policy kicks in automatically.</p>
+      <div class="scenario-flow">
+        <span class="flow-step">Step fails</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Auto-retry (max 3)</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Escalate to human</span>
+      </div>
+    </div>
+
+    <div class="scenario-card ctx">
+      <span class="scenario-tag">Scenario 3</span>
+      <h3>Context Overflow</h3>
+      <p>The agent's context window fills up during a long implementation. The system checkpoints state, starts a fresh session, and resumes.</p>
+      <div class="scenario-flow">
+        <span class="flow-step">Context limit hit</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Checkpoint saved</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">New session</span>
+        <span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">/resume</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temporal State Preservation -->
+  <h2>How Temporal Preserves State</h2>
+  <div class="temporal-box">
+    <h3>Event Sourcing Under the Hood</h3>
+    <p style="font-size:.9rem; color:var(--text-dim);">Temporal does not store "current state" as a snapshot. Instead, it stores every event that ever happened in the workflow. To reconstruct state, it replays the event history. This makes it impossible to lose data.</p>
+    <div class="temporal-steps">
+      <div class="temporal-step">
+        <div class="temporal-num">1</div>
+        <div class="temporal-text"><strong>Activity starts</strong> &mdash; Temporal records a <code>ActivityTaskScheduled</code> event.</div>
+      </div>
+      <div class="temporal-step">
+        <div class="temporal-num">2</div>
+        <div class="temporal-text"><strong>Activity completes</strong> &mdash; Result is stored as <code>ActivityTaskCompleted</code> with the full output payload.</div>
+      </div>
+      <div class="temporal-step">
+        <div class="temporal-num">3</div>
+        <div class="temporal-text"><strong>Crash happens</strong> &mdash; The workflow is paused but the event history is intact on the Temporal server.</div>
+      </div>
+      <div class="temporal-step">
+        <div class="temporal-num">4</div>
+        <div class="temporal-text"><strong>Worker reconnects</strong> &mdash; Temporal replays all events to rebuild state, then resumes from the exact point of interruption.</div>
+      </div>
+      <div class="temporal-step">
+        <div class="temporal-num">5</div>
+        <div class="temporal-text"><strong>No duplicate work</strong> &mdash; Completed activities are not re-executed. Only pending activities resume.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Retry Policy Table -->
+  <h2>Retry Policy</h2>
+  <p>Each failure class has its own retry behavior configured in the workflow definition:</p>
+
+  <table class="retry-table">
+    <thead>
+      <tr>
+        <th>Failure Class</th>
+        <th>Max Retries</th>
+        <th>Backoff</th>
+        <th>Escalation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Test failure</td>
+        <td>3</td>
+        <td>Immediate</td>
+        <td>Block workflow, notify human</td>
+      </tr>
+      <tr>
+        <td>API timeout</td>
+        <td>3</td>
+        <td>Exponential (1s, 2s, 4s)</td>
+        <td>Mark step as failed, continue next</td>
+      </tr>
+      <tr>
+        <td>Agent error (invalid output)</td>
+        <td>2</td>
+        <td>10s fixed</td>
+        <td>Escalate to human review</td>
+      </tr>
+      <tr>
+        <td>Coverage below threshold</td>
+        <td>2</td>
+        <td>Immediate</td>
+        <td>Block at quality gate</td>
+      </tr>
+      <tr>
+        <td>Linter failure</td>
+        <td>3</td>
+        <td>Immediate</td>
+        <td>Auto-fix attempt, then escalate</td>
+      </tr>
+      <tr>
+        <td>Infrastructure (DB, network)</td>
+        <td>5</td>
+        <td>Exponential (2s, 4s, 8s, 16s, 32s)</td>
+        <td>Alert ops team</td>
+      </tr>
+      <tr>
+        <td>Context overflow</td>
+        <td>1</td>
+        <td>N/A</td>
+        <td>Checkpoint + new session</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Recovery Commands -->
+  <h2>Recovery Commands</h2>
+  <div class="cmd-grid">
+    <div class="cmd-card">
+      <div class="cmd-name">/resume</div>
+      <div class="cmd-desc"><strong>Resume the current workflow from its last checkpoint.</strong> Reads the Temporal event history, identifies the last completed step, and continues from there. This is the command you will use most often after any interruption.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-name">/recover-ticket</div>
+      <div class="cmd-desc"><strong>Recover a specific ticket's workflow by ticket ID.</strong> Use when you know the ticket number (e.g., <code>PZ-142</code>) but not the workflow ID. It looks up the associated workflow and resumes it.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-name">/recover-workflow</div>
+      <div class="cmd-desc"><strong>Recover a workflow by its Temporal workflow ID.</strong> Use for direct workflow recovery when you have the workflow ID from the Temporal UI or logs. Supports force-restart of stuck activities.</div>
+    </div>
+  </div>
+
+  <h3>When to use which</h3>
+  <p>After an IDE crash or context overflow, start with <code>/resume</code>. It auto-detects the active workflow. If you have multiple workflows and need to target a specific one, use <code>/recover-ticket</code> with the ticket ID or <code>/recover-workflow</code> with the workflow ID from the Temporal UI at <code>localhost:8233</code>.</p>
+</main>
+</body>
+</html>

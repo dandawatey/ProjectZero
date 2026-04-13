@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phases — ProjectZero</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-code: #1e293b;
+  --accent: #3b82f6;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --sidebar-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, monospace;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --orange: #f97316;
+  --pink: #f472b6;
+  --red: #ef4444;
+  --lime: #84cc16;
+}
+html { font-size: 16px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh; display: flex; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w); background: #0b1120; border-right: 1px solid var(--border);
+  padding: 2rem 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+}
+.sidebar-brand { padding: 0 1.5rem 1.5rem; font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar-brand a { color: inherit; text-decoration: none; }
+.sidebar nav a {
+  display: block; padding: 0.5rem 1.5rem; color: var(--text-muted); text-decoration: none;
+  font-size: 0.9rem; transition: color 0.15s, background 0.15s; border-left: 3px solid transparent;
+}
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,0.08); border-left-color: var(--accent); }
+.sidebar nav a.active { font-weight: 600; }
+.menu-toggle {
+  display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
+  font-size: 1.3rem; align-items: center; justify-content: center;
+}
+
+.main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.content { max-width: 880px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+
+h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+h2 { font-size: 1.5rem; font-weight: 700; margin: 2.5rem 0 1rem; letter-spacing: -0.02em; }
+p { margin-bottom: 1rem; }
+.lead { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 2rem; }
+code { font-family: var(--mono); font-size: 0.85rem; }
+p code, li code, .phase-cmd code { background: rgba(59,130,246,0.12); color: var(--accent); padding: 0.15rem 0.5rem; border-radius: 4px; }
+
+/* ---- Timeline ---- */
+.timeline { position: relative; margin: 2rem 0 3rem; padding-left: 2rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 15px; top: 0; bottom: 0;
+  width: 3px; background: linear-gradient(to bottom, var(--accent), var(--purple), var(--green));
+  border-radius: 2px;
+}
+
+.phase {
+  position: relative; margin-bottom: 1.75rem; padding-left: 2.5rem;
+}
+.phase::before {
+  content: ''; position: absolute; left: -2rem; top: 0.35rem;
+  width: 16px; height: 16px; border-radius: 50%; border: 3px solid;
+  background: var(--bg); z-index: 1;
+}
+/* phase colors */
+.phase.p0::before { border-color: var(--text-muted); }
+.phase.p1::before { border-color: var(--accent); }
+.phase.p2a::before { border-color: var(--cyan); }
+.phase.p2b::before { border-color: var(--cyan); }
+.phase.p3::before { border-color: var(--green); }
+.phase.p4::before { border-color: var(--purple); }
+.phase.p5::before { border-color: var(--orange); }
+.phase.p6::before { border-color: var(--yellow); }
+.phase.p7::before { border-color: var(--pink); }
+.phase.p8::before { border-color: var(--lime); }
+
+.phase-header {
+  display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;
+}
+.phase-number {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 0.2rem 0.6rem; border-radius: 6px; white-space: nowrap;
+}
+.p0 .phase-number { background: rgba(148,163,184,0.15); color: var(--text-muted); }
+.p1 .phase-number { background: rgba(59,130,246,0.15); color: var(--accent); }
+.p2a .phase-number, .p2b .phase-number { background: rgba(34,211,238,0.15); color: var(--cyan); }
+.p3 .phase-number { background: rgba(34,197,94,0.15); color: var(--green); }
+.p4 .phase-number { background: rgba(167,139,250,0.15); color: var(--purple); }
+.p5 .phase-number { background: rgba(249,115,22,0.15); color: var(--orange); }
+.p6 .phase-number { background: rgba(234,179,8,0.15); color: var(--yellow); }
+.p7 .phase-number { background: rgba(244,114,182,0.15); color: var(--pink); }
+.p8 .phase-number { background: rgba(132,204,22,0.15); color: var(--lime); }
+
+.phase-title { font-size: 1.15rem; font-weight: 700; }
+
+.phase-body {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.25rem 1.5rem; margin-top: 0.75rem;
+}
+.phase-body p { margin-bottom: 0.5rem; font-size: 0.92rem; color: var(--text-muted); }
+.phase-body p:last-child { margin-bottom: 0; }
+.phase-meta {
+  display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--border); font-size: 0.82rem;
+}
+.phase-meta dt { color: var(--text-muted); font-weight: 400; }
+.phase-meta dd { color: var(--text); font-weight: 600; margin: 0; }
+.phase-cmd { margin: 0; }
+.phase-workflow { font-family: var(--mono); font-size: 0.82rem; color: var(--purple); }
+
+/* ---- Legend ---- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0 2rem;
+  padding: 1rem 1.25rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+}
+.legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .menu-toggle { display: flex; }
+  .main { margin-left: 0; }
+  h1 { font-size: 1.75rem; }
+  .content { padding: 4rem 1.25rem 3rem; }
+  .phase-header { flex-direction: column; gap: 0.25rem; }
+  .phase-meta { flex-direction: column; gap: 0.75rem; }
+}
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle navigation">&#9776;</button>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><a href="index.html">ProjectZero</a></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="phases.html" class="active">Phases</a>
+    <a href="#">Workflows</a>
+    <a href="#">Agents</a>
+    <a href="#">Commands</a>
+    <a href="#">Business Docs</a>
+    <a href="#">Control Tower</a>
+    <a href="#">Governance</a>
+    <a href="#">Recovery</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="content">
+
+    <h1>Phase Lifecycle</h1>
+    <p class="lead">Every product in ProjectZero progresses through a governed, sequential pipeline of phases. Each phase is backed by a Temporal workflow that orchestrates agent work, produces artifacts, and gates on human approval before advancing.</p>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div> Setup</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Creation</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> Discovery</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Specification</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> Architecture</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> Implementation</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> Quality</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div> Business</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--lime)"></div> Operations</div>
+    </div>
+
+    <h2>Complete Phase Flow</h2>
+
+    <div class="timeline">
+
+      <!-- Phase 0 -->
+      <div class="phase p0">
+        <div class="phase-header">
+          <span class="phase-number">Phase 0</span>
+          <span class="phase-title">Factory Setup</span>
+        </div>
+        <div class="phase-body">
+          <p>One-time initialization of the ProjectZero platform. Stands up infrastructure (Postgres, Temporal), runs migrations, validates environment, and creates the <code>.factory/</code> configuration directory.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/factory-init</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Docker containers start, DB schema created, config validated</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">FactoryInitWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="phase p1">
+        <div class="phase-header">
+          <span class="phase-number">Phase 1</span>
+          <span class="phase-title">Product Creation</span>
+        </div>
+        <div class="phase-body">
+          <p>Creates a new product workspace. Registers the product in Postgres, scaffolds the directory structure, and initializes the phase pipeline. The product is now ready for discovery.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/bootstrap-product</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Product record created, workspace scaffolded, pipeline initialized</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">BootstrapProductWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2a -->
+      <div class="phase p2a">
+        <div class="phase-header">
+          <span class="phase-number">Phase 2a</span>
+          <span class="phase-title">Vision-to-PRD</span>
+        </div>
+        <div class="phase-body">
+          <p>Transforms a high-level product vision into a structured PRD. The agent conducts a discovery interview, researches the market, analyzes competitors, identifies target users, and drafts a comprehensive product requirements document.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/vision-to-prd</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Discovery interview, market research, competitor analysis, PRD generation</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">VisionToPRDWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2b -->
+      <div class="phase p2b">
+        <div class="phase-header">
+          <span class="phase-number">Phase 2b</span>
+          <span class="phase-title">Business Discovery</span>
+        </div>
+        <div class="phase-body">
+          <p>Deep business analysis that runs alongside or after Vision-to-PRD. Produces business model canvas, revenue projections, go-to-market strategy, competitive moat analysis, and risk assessment documents.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/business-docs</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Business model, revenue model, GTM strategy, risk analysis generated</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">BusinessDiscoveryWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase p3">
+        <div class="phase-header">
+          <span class="phase-number">Phase 3</span>
+          <span class="phase-title">Specification</span>
+        </div>
+        <div class="phase-body">
+          <p>Decomposes the approved PRD into a detailed technical specification. Generates user stories with acceptance criteria, defines API contracts, data models, and creates a dependency graph for implementation ordering.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/spec</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Stories created, API contracts defined, data models specified, dependency graph built</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">SpecificationWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="phase p4">
+        <div class="phase-header">
+          <span class="phase-number">Phase 4</span>
+          <span class="phase-title">Architecture</span>
+        </div>
+        <div class="phase-body">
+          <p>Designs the system architecture based on the specification. Selects technology stack, defines service boundaries, designs database schema, plans infrastructure, and produces architecture decision records (ADRs).</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/arch</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Tech stack selected, services designed, DB schema planned, ADRs written</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">ArchitectureWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 5 -->
+      <div class="phase p5">
+        <div class="phase-header">
+          <span class="phase-number">Phase 5</span>
+          <span class="phase-title">Implementation</span>
+        </div>
+        <div class="phase-body">
+          <p>Executes the implementation plan story by story. Agents generate code, write tests, create components, and wire up integrations. Each story goes through its own create-validate-approve cycle before the next begins.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/implement</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Code generation, test writing, component creation, story-by-story delivery</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">ImplementationWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 6 -->
+      <div class="phase p6">
+        <div class="phase-header">
+          <span class="phase-number">Phase 6</span>
+          <span class="phase-title">Quality + Release</span>
+        </div>
+        <div class="phase-body">
+          <p>Comprehensive quality assurance and release preparation. Runs integration tests, performs security audits, checks accessibility compliance, optimizes performance, and prepares release artifacts including changelogs and deployment configs.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/release</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Integration tests, security audit, a11y check, performance optimization, release prep</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">QualityReleaseWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 7 -->
+      <div class="phase p7">
+        <div class="phase-header">
+          <span class="phase-number">Phase 7</span>
+          <span class="phase-title">Business Planning</span>
+        </div>
+        <div class="phase-body">
+          <p>Post-build business documentation. Generates launch plan, pricing strategy, marketing copy, investor pitch materials, and operational runbooks. Synthesizes all business docs into a cohesive go-to-market package.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/business-docs</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Launch plan, pricing, marketing copy, pitch deck, runbooks generated</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">BusinessPlanningWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 8 -->
+      <div class="phase p8">
+        <div class="phase-header">
+          <span class="phase-number">Phase 8</span>
+          <span class="phase-title">Operations</span>
+        </div>
+        <div class="phase-body">
+          <p>Ongoing operational monitoring and maintenance. Sets up health checks, alerting, log aggregation, and automated incident response. The product enters a steady-state where agents monitor and respond to issues.</p>
+          <div class="phase-meta">
+            <dl>
+              <dt>Command</dt>
+              <dd class="phase-cmd"><code>/monitor</code></dd>
+            </dl>
+            <dl>
+              <dt>What happens</dt>
+              <dd>Health checks configured, alerts set, monitoring dashboards created</dd>
+            </dl>
+            <dl>
+              <dt>Workflow</dt>
+              <dd class="phase-workflow">OperationsWorkflow</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <h2>Phase Transitions</h2>
+    <p>Every phase transition follows the same governance pattern:</p>
+    <ol style="margin: 0 0 1.5rem 1.5rem; color: var(--text-muted);">
+      <li style="margin-bottom:0.5rem"><strong style="color:var(--text)">Workflow completes</strong> &mdash; all activities in the phase finish and artifacts are produced</li>
+      <li style="margin-bottom:0.5rem"><strong style="color:var(--text)">Artifacts persisted</strong> &mdash; sync_state() writes results to Postgres</li>
+      <li style="margin-bottom:0.5rem"><strong style="color:var(--text)">Approval gate</strong> &mdash; workflow pauses on a Temporal signal-wait</li>
+      <li style="margin-bottom:0.5rem"><strong style="color:var(--text)">Human review</strong> &mdash; user reviews artifacts in Control Tower or CLI</li>
+      <li style="margin-bottom:0.5rem"><strong style="color:var(--text)">Approval signal</strong> &mdash; <code>/approve</code> sends the signal, workflow resumes</li>
+      <li><strong style="color:var(--text)">Next phase starts</strong> &mdash; the subsequent workflow is automatically triggered</li>
+    </ol>
+
+    <p>If a phase needs to be re-run (e.g., after feedback), use <code>/recover-workflow</code> to reset and restart it. The previous artifacts are preserved in version history.</p>
+
+  </div>
+</div>
+
+</body>
+</html>

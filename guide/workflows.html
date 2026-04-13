@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflows - ProjectZero User Guide</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--accent:#3b82f6;--accent2:#2563eb;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#a855f7;--orange:#f97316;--cyan:#06b6d4;--radius:8px;--shadow:0 4px 6px -1px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;display:flex;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+/* Sidebar */
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--bg3);padding:1.5rem 0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.sidebar h2{padding:0 1.5rem 1rem;font-size:1.1rem;color:var(--accent);border-bottom:1px solid var(--bg3);margin-bottom:.5rem}
+.sidebar a{display:block;padding:.55rem 1.5rem;color:var(--text2);font-size:.9rem;transition:background .15s,color .15s}
+.sidebar a:hover,.sidebar a.active{background:var(--bg3);color:var(--text);text-decoration:none}
+.sidebar a.active{border-right:3px solid var(--accent)}
+
+/* Main */
+.main{margin-left:260px;flex:1;padding:2.5rem 3rem;max-width:1100px}
+.main h1{font-size:2rem;margin-bottom:.5rem}
+.main .subtitle{color:var(--text2);margin-bottom:2rem;font-size:1.05rem}
+
+/* Workflow Cards */
+.wf-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;box-shadow:var(--shadow)}
+.wf-card h2{font-size:1.25rem;margin-bottom:.25rem;display:flex;align-items:center;gap:.5rem}
+.wf-card h2 .badge{font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--accent2);color:#fff;font-weight:600}
+.wf-card .desc{color:var(--text2);font-size:.92rem;margin-bottom:1rem}
+.wf-card .meta{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.1rem;font-size:.85rem;color:var(--text3)}
+.wf-card .meta span{display:flex;align-items:center;gap:.3rem}
+
+/* Pipeline dots */
+.pipeline{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-bottom:1rem;overflow-x:auto;padding:.25rem 0}
+.stage{display:flex;align-items:center}
+.dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;flex-shrink:0;position:relative;cursor:default}
+.dot.done{background:var(--green)}
+.dot.active{background:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.35)}
+.dot.pending{background:var(--bg3);color:var(--text3)}
+.connector{width:28px;height:2px;background:var(--bg3);flex-shrink:0}
+.stage:last-child .connector{display:none}
+.dot-label{position:absolute;top:36px;font-size:.6rem;color:var(--text2);white-space:nowrap;text-align:center;pointer-events:none}
+
+/* Tags */
+.tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem}
+.tag{font-size:.75rem;padding:2px 10px;border-radius:99px;border:1px solid var(--bg3);color:var(--text2)}
+.tag.agent{border-color:var(--purple);color:var(--purple)}
+.tag.trigger{border-color:var(--cyan);color:var(--cyan)}
+
+/* Responsive */
+@media(max-width:860px){
+  .sidebar{position:fixed;transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:1.5rem 1.2rem}
+  .ham{display:block}
+}
+.ham{display:none;position:fixed;top:1rem;left:1rem;z-index:200;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:.4rem .6rem;cursor:pointer;color:var(--text);font-size:1.3rem}
+@media(max-width:860px){.ham{display:block}}
+</style>
+</head>
+<body>
+
+<button class="ham" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+
+<nav class="sidebar">
+  <h2>ProjectZero Guide</h2>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="phases.html">Phases</a>
+  <a href="workflows.html" class="active">Workflows</a>
+  <a href="agents.html">Agents</a>
+  <a href="commands.html">Commands</a>
+  <a href="business-docs.html">Business Docs</a>
+  <a href="control-tower.html">Control Tower</a>
+  <a href="governance.html">Governance</a>
+  <a href="recovery.html">Recovery</a>
+</nav>
+
+<main class="main">
+  <h1>Workflow Catalog</h1>
+  <p class="subtitle">Temporal-powered workflows that orchestrate every stage of product development&mdash;from idea intake to production release.</p>
+
+  <!-- FeatureDevelopmentWorkflow -->
+  <div class="wf-card">
+    <h2>FeatureDevelopmentWorkflow <span class="badge">10 stages</span></h2>
+    <p class="desc">End-to-end feature lifecycle from intake to completion. The primary workflow for building product features.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>Command / Ticket</strong></span>
+      <span>&#128337; Avg: 2&ndash;5 days</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Intake</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Spec</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Design</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Arch</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Implement</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Test</span>6</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Review</span>7</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Approve</span>8</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Release</span>9</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Complete</span>10</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ implement</span>
+      <span class="tag trigger">ticket event</span>
+      <span class="tag agent">ProductManager</span>
+      <span class="tag agent">Architect</span>
+      <span class="tag agent">Developer</span>
+      <span class="tag agent">QAEngineer</span>
+      <span class="tag agent">CodeReviewer</span>
+      <span class="tag agent">ReleaseManager</span>
+    </div>
+  </div>
+
+  <!-- VisionToPRDWorkflow -->
+  <div class="wf-card">
+    <h2>VisionToPRDWorkflow <span class="badge">7 stages</span></h2>
+    <p class="desc">Transforms a product vision into a detailed Product Requirements Document with stakeholder validation.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>/ vision-to-prd</strong></span>
+      <span>&#128337; Avg: 1&ndash;2 days</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Vision<br>Capture</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Market<br>Analysis</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">User<br>Personas</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Feature<br>Scoping</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">PRD<br>Draft</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Stakeholder<br>Review</span>6</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">PRD<br>Finalize</span>7</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ vision-to-prd</span>
+      <span class="tag agent">CEO</span>
+      <span class="tag agent">ProductManager</span>
+      <span class="tag agent">MarketAnalyst</span>
+      <span class="tag agent">UXDesigner</span>
+    </div>
+  </div>
+
+  <!-- BusinessDocsWorkflow - Discovery -->
+  <div class="wf-card">
+    <h2>BusinessDocsWorkflow <span class="badge">Discovery: 4 stages</span> <span class="badge" style="background:var(--purple)">Planning: 5 stages</span></h2>
+    <p class="desc">Generates business documents in two modes: Discovery (pre-build analysis) or Planning (post-build strategy).</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>/ business-docs</strong></span>
+      <span>&#128337; Varies by doc type</span>
+    </div>
+    <p style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;font-weight:600">DISCOVERY MODE</p>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Research</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Analysis</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Draft</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Finalize</span>4</div></div>
+    </div>
+    <p style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;margin-top:.75rem;font-weight:600">PLANNING MODE</p>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Data<br>Gather</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Model</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Strategy</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Review</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Publish</span>5</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ business-docs</span>
+      <span class="tag agent">CFO</span>
+      <span class="tag agent">MarketAnalyst</span>
+      <span class="tag agent">BizDevManager</span>
+      <span class="tag agent">SalesDirector</span>
+    </div>
+  </div>
+
+  <!-- BugFixWorkflow -->
+  <div class="wf-card">
+    <h2>BugFixWorkflow <span class="badge">7 stages</span></h2>
+    <p class="desc">Structured bug resolution from triage through verification and release of the fix.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>Bug ticket / / check</strong></span>
+      <span>&#128337; Avg: hours&ndash;1 day</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Triage</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Reproduce</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Root<br>Cause</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Fix</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Test</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Review</span>6</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Verify</span>7</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">bug ticket</span>
+      <span class="tag trigger">/ check</span>
+      <span class="tag agent">QAEngineer</span>
+      <span class="tag agent">Developer</span>
+      <span class="tag agent">CodeReviewer</span>
+    </div>
+  </div>
+
+  <!-- QAValidationWorkflow -->
+  <div class="wf-card">
+    <h2>QAValidationWorkflow <span class="badge">6 stages</span></h2>
+    <p class="desc">Comprehensive quality assurance validation including test planning, execution, and sign-off.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>/ check / Feature complete</strong></span>
+      <span>&#128337; Avg: 1&ndash;2 days</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Test<br>Plan</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Unit<br>Tests</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Integration<br>Tests</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">E2E<br>Tests</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Report</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Sign-off</span>6</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ check</span>
+      <span class="tag trigger">feature complete</span>
+      <span class="tag agent">QAEngineer</span>
+      <span class="tag agent">QALead</span>
+      <span class="tag agent">SecurityAuditor</span>
+    </div>
+  </div>
+
+  <!-- DeploymentReadinessWorkflow -->
+  <div class="wf-card">
+    <h2>DeploymentReadinessWorkflow <span class="badge">7 stages</span></h2>
+    <p class="desc">Pre-deployment checklist ensuring infrastructure, security, and rollback readiness before going live.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>/ release / QA pass</strong></span>
+      <span>&#128337; Avg: 4&ndash;8 hours</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Env<br>Check</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Infra<br>Validate</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Security<br>Scan</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Perf<br>Test</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Rollback<br>Plan</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Approval</span>6</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Deploy</span>7</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ release</span>
+      <span class="tag trigger">QA pass</span>
+      <span class="tag agent">DevOpsEngineer</span>
+      <span class="tag agent">SecurityAuditor</span>
+      <span class="tag agent">ReleaseManager</span>
+      <span class="tag agent">InfraSpecialist</span>
+    </div>
+  </div>
+
+  <!-- ReleaseGovernanceWorkflow -->
+  <div class="wf-card">
+    <h2>ReleaseGovernanceWorkflow <span class="badge">6 stages</span></h2>
+    <p class="desc">Governance and compliance checks for production releases, including audit trails and approval gates.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>/ approve / release</strong></span>
+      <span>&#128337; Avg: 2&ndash;4 hours</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage"><div class="dot done"><span class="dot-label">Compliance<br>Check</span>1</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot done"><span class="dot-label">Audit<br>Trail</span>2</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot active"><span class="dot-label">Gate<br>Review</span>3</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Stakeholder<br>Sign-off</span>4</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Release<br>Notes</span>5</div><div class="connector"></div></div>
+      <div class="stage"><div class="dot pending"><span class="dot-label">Publish</span>6</div></div>
+    </div>
+    <div class="tags">
+      <span class="tag trigger">/ approve</span>
+      <span class="tag trigger">/ release</span>
+      <span class="tag agent">ComplianceOfficer</span>
+      <span class="tag agent">QualityGatekeeper</span>
+      <span class="tag agent">CTO</span>
+      <span class="tag agent">ReleaseManager</span>
+    </div>
+  </div>
+
+  <!-- MakerCheckerReviewerWorkflow -->
+  <div class="wf-card" style="border-color:var(--purple)">
+    <h2>MakerCheckerReviewerWorkflow <span class="badge" style="background:var(--purple)">3 gates &middot; child</span></h2>
+    <p class="desc">Embedded child workflow enforcing the maker-checker-reviewer pattern. Used as a sub-workflow within other workflows to ensure no single agent can both create and approve work.</p>
+    <div class="meta">
+      <span>&#9889; Trigger: <strong>Parent workflow (child)</strong></span>
+      <span>&#128337; Per gate: minutes</span>
+    </div>
+    <div class="pipeline">
+      <div class="stage">
+        <div class="dot done" style="width:64px;border-radius:var(--radius);font-size:.65rem;padding:4px"><span class="dot-label" style="top:42px">Maker</span>MAKE</div>
+        <div class="connector" style="width:40px;background:var(--purple)"></div>
+      </div>
+      <div class="stage">
+        <div class="dot active" style="width:64px;border-radius:var(--radius);font-size:.65rem;padding:4px;background:var(--yellow);color:#000"><span class="dot-label" style="top:42px">Checker</span>CHECK</div>
+        <div class="connector" style="width:40px;background:var(--purple)"></div>
+      </div>
+      <div class="stage">
+        <div class="dot pending" style="width:64px;border-radius:var(--radius);font-size:.65rem;padding:4px"><span class="dot-label" style="top:42px">Reviewer</span>REVIEW</div>
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--text3);margin-top:1rem">Three distinct agents must participate&mdash;no agent can hold more than one role per gate pass. Rejection returns to Maker.</p>
+    <div class="tags">
+      <span class="tag trigger">child workflow</span>
+      <span class="tag agent">Any Maker agent</span>
+      <span class="tag agent">Any Checker agent</span>
+      <span class="tag agent">Any Reviewer agent</span>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>

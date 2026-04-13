@@ -1,67 +1,74 @@
 # Command: /factory-init
 
 ## Purpose
-Validate that the ProjectZeroFactory repository is correctly structured and ready to create products.
+Validate factory repo structure AND all integrations. Gate to all execution.
+
+## Rule
+NO INTEGRATION → NO EXECUTION. All required systems must validate before proceeding.
 
 ## Trigger
-User runs `/factory-init` after cloning the factory repo.
+User runs `/factory-init` after cloning factory. First command always.
 
 ## Step-by-Step Process
 
-### Step 1: Validate Directory Structure
-Check these directories exist under .claude/:
-- core/, modules/, agents/, skills/, workflows/, guardrails/, commands/
-- templates/, checklists/, memory/, learning/, recovery/
-- delivery/, reports/, integrations/, runtime/
-- design-system/, devops/, operations/, contracts/
+### Step 1: Detect .env
+- Check .env exists
+- If missing → run `./scripts/guided-setup.sh` (interactive)
+- If exists → proceed to validation
 
-### Step 2: Validate Core Files
-Check these files exist and are non-empty:
-- .claude/CLAUDE.md
-- .claude/settings.json
-- README.md, .gitignore, .env.example
+### Step 2: Validate Integrations (MANDATORY)
+Run `./scripts/validate-integrations.sh`. Checks:
 
-### Step 3: Validate Agent Files
-Check all 22 agent files exist in .claude/agents/:
-product-manager, architect, backend-engineer, frontend-engineer, data-engineer, devops-engineer, qa-engineer, security-reviewer, ux-reviewer, sre-engineer, finops-analyst, checker, reviewer, approver, release-manager, ralph-controller, integration-agent, plugin-validator, repo-validator, readiness-validator, pipeline-agent, memory-agent
+| Integration | Validation Method | Blocks If Failed? |
+|-------------|------------------|-------------------|
+| GitHub | API call to /user | YES |
+| JIRA | API call to /myself | YES |
+| Confluence | API call to /space | YES |
+| Temporal | TCP connect or SDK list | YES |
+| Postgres | psql SELECT 1 or TCP | YES |
+| Redis | PING or TCP | YES |
+| Anthropic | API call to /messages | YES |
+| Sentry | Check DSN format | NO (optional) |
+| PostHog | Check key format | NO (optional) |
 
-### Step 4: Validate Skill Folders
-Check all 17 skill folders exist in .claude/skills/ with SKILL.md, usage.md, triggers.md, checklist.md:
-debug-skill, feature-forge, code-reviewer, playwright-skill, spec-miner, using-git-worktrees, secure-code-guardian, rag-architect, the-fool, refactoring-ui, ux-heuristics, hooked-ux, frontend-design, ios-hig-design, ui-ux-pro-max, design-sprint, superpowers
+**ALL required integrations must pass. ANY failure → BLOCK.**
 
-### Step 5: Validate Workflow Files
-Check all workflow files exist in .claude/workflows/
+### Step 3: Validate Factory Structure
+Check directories: agents/, skills/, workflows/, commands/, templates/, guardrails/
+Check files: CLAUDE.md, settings.json, AGENT_REGISTRY.md
 
-### Step 6: Validate Command Files
-Check all command files exist in .claude/commands/
+### Step 4: Validate Completeness
+- 35 agent files across 8 team folders
+- 17 skill folders with 4 files each
+- All workflow definitions present
+- All command definitions present
+- Product skeleton template exists
 
-### Step 7: Validate Environment
-Check .env exists. Validate required keys are present (can be empty for optional integrations).
-
-### Step 8: Register Factory Status
-Write to .claude/recovery/state.json:
-```json
-{"initialized": true, "lastCheckpoint": "<timestamp>", "activeStage": "ready"}
+### Step 5: Register Status
+Write to console:
+```
+Factory Status: READY
+Integrations: 7/7 required validated
+Optional: X/4 configured
+Ready for: /bootstrap-product
 ```
 
 ## Required Inputs
-- None (reads current repo)
+- .env file with credentials (or interactive setup)
 
 ## Involved Agents
-- repo-validator (structure check)
-- plugin-validator (skill check)
+- repo-validator (structure)
+- plugin-validator (skills)
 
 ## Outputs
-- Validation report with pass/fail per check
-- Updated state.json
-
-## Validation
-All checks must pass. Missing items listed with paths.
+- Validation report (pass/fail per integration)
+- Factory readiness status
 
 ## Failure Handling
-- List all missing items clearly
-- Do not mark as initialized if anything missing
-- User must fix and re-run
+- Missing .env → launch guided-setup.sh
+- Invalid key → show which key, show how to get it, block
+- Unreachable service → show connection details, suggest fix, block
+- Never proceed with failed required integrations
 
 ## Next Command
-/bootstrap-product
+/bootstrap-product (only if ALL required integrations pass)

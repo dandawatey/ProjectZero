@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commands - ProjectZero User Guide</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--accent:#3b82f6;--accent2:#2563eb;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#a855f7;--orange:#f97316;--cyan:#06b6d4;--radius:8px;--shadow:0 4px 6px -1px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;display:flex;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--bg3);padding:1.5rem 0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.sidebar h2{padding:0 1.5rem 1rem;font-size:1.1rem;color:var(--accent);border-bottom:1px solid var(--bg3);margin-bottom:.5rem}
+.sidebar a{display:block;padding:.55rem 1.5rem;color:var(--text2);font-size:.9rem;transition:background .15s,color .15s}
+.sidebar a:hover,.sidebar a.active{background:var(--bg3);color:var(--text);text-decoration:none}
+.sidebar a.active{border-right:3px solid var(--accent)}
+
+.main{margin-left:260px;flex:1;padding:2.5rem 3rem;max-width:1200px}
+.main h1{font-size:2rem;margin-bottom:.5rem}
+.main .subtitle{color:var(--text2);margin-bottom:2rem;font-size:1.05rem}
+
+.group-title{font-size:1.2rem;margin:2rem 0 .75rem;padding-bottom:.5rem;border-bottom:2px solid var(--bg3);display:flex;align-items:center;gap:.5rem}
+.group-title .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+
+.cmd-table{width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:.88rem}
+.cmd-table thead th{background:var(--bg2);padding:.7rem .75rem;text-align:left;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);border-bottom:2px solid var(--bg3);position:sticky;top:0}
+.cmd-table tbody td{padding:.65rem .75rem;border-bottom:1px solid var(--bg3);vertical-align:top}
+.cmd-table tbody tr:hover{background:var(--bg2)}
+.cmd-table code{background:var(--bg3);padding:2px 7px;border-radius:4px;font-size:.82rem;color:var(--green);white-space:nowrap}
+.scope{font-size:.7rem;padding:2px 8px;border-radius:99px;font-weight:600;display:inline-block}
+.scope.factory{background:rgba(168,85,247,.15);color:var(--purple)}
+.scope.product{background:rgba(59,130,246,.15);color:var(--accent)}
+.scope.recovery{background:rgba(239,68,68,.15);color:var(--red)}
+.scope.ui{background:rgba(6,182,212,.15);color:var(--cyan)}
+
+@media(max-width:860px){
+  .sidebar{position:fixed;transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:1.5rem 1rem}
+  .cmd-table{font-size:.78rem}
+  .cmd-table thead th,.cmd-table tbody td{padding:.5rem .4rem}
+}
+.ham{display:none;position:fixed;top:1rem;left:1rem;z-index:200;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:.4rem .6rem;cursor:pointer;color:var(--text);font-size:1.3rem}
+@media(max-width:860px){.ham{display:block}}
+</style>
+</head>
+<body>
+
+<button class="ham" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+
+<nav class="sidebar">
+  <h2>ProjectZero Guide</h2>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="phases.html">Phases</a>
+  <a href="workflows.html">Workflows</a>
+  <a href="agents.html">Agents</a>
+  <a href="commands.html" class="active">Commands</a>
+  <a href="business-docs.html">Business Docs</a>
+  <a href="control-tower.html">Control Tower</a>
+  <a href="governance.html">Governance</a>
+  <a href="recovery.html">Recovery</a>
+</nav>
+
+<main class="main">
+  <h1>Command Reference</h1>
+  <p class="subtitle">All slash commands available in ProjectZero, organized by scope. Each command maps to a Temporal workflow.</p>
+
+  <!-- Factory Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--purple)"></span> Factory Commands</h2>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Temporal Workflow</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/factory-init</code></td>
+        <td>Setup</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Initialize a new ProjectZero factory instance with core configuration, agent registry, and workflow templates.</td>
+        <td>FactoryInitWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/bootstrap-product</code></td>
+        <td>Setup</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Bootstrap a new product within the factory&mdash;creates repo, ticket board, environments, and initial configuration.</td>
+        <td>BootstrapProductWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/factory-audit</code></td>
+        <td>Any</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Audit factory health: agent availability, workflow status, configuration integrity, and resource usage.</td>
+        <td>FactoryAuditWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/factory-upgrade</code></td>
+        <td>Any</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Upgrade factory components: agent definitions, workflow templates, governance rules, and platform dependencies.</td>
+        <td>FactoryUpgradeWorkflow</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Product Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--accent)"></span> Product Commands</h2>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Temporal Workflow</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/vision-to-prd</code></td>
+        <td>Vision</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Transform a product vision statement into a detailed Product Requirements Document with market analysis.</td>
+        <td>VisionToPRDWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/business-docs</code></td>
+        <td>Vision / Planning</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Generate business documents: TAM-SAM-SOM, competitive analysis, financials, GTM strategy, pitch deck.</td>
+        <td>BusinessDocsWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/setup</code></td>
+        <td>Setup</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Configure product development environment: tech stack, repo structure, CI/CD, and development tooling.</td>
+        <td>SetupWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/spec</code></td>
+        <td>Specification</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Create detailed technical specification from PRD requirements, including acceptance criteria and edge cases.</td>
+        <td>FeatureDevelopmentWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/arch</code></td>
+        <td>Architecture</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Design system architecture: component diagram, data models, API contracts, technology decisions.</td>
+        <td>FeatureDevelopmentWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/implement</code></td>
+        <td>Implementation</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Execute implementation of a feature or ticket according to spec and architecture. Creates code and tests.</td>
+        <td>FeatureDevelopmentWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/check</code></td>
+        <td>Testing</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Run QA validation: execute test suites, check coverage thresholds, validate against acceptance criteria.</td>
+        <td>QAValidationWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/review</code></td>
+        <td>Review</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Trigger code review with maker-checker-reviewer pattern. Reviews code quality, security, and standards.</td>
+        <td>MakerCheckerReviewerWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/approve</code></td>
+        <td>Approval</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Submit for stakeholder approval. Validates all quality gates are passed before allowing progression.</td>
+        <td>ReleaseGovernanceWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/release</code></td>
+        <td>Release</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Execute release pipeline: deployment readiness checks, staging deployment, production promotion.</td>
+        <td>DeploymentReadinessWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/monitor</code></td>
+        <td>Post-Release</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Monitor production deployment: health checks, error rates, performance metrics, and rollback triggers.</td>
+        <td>MonitoringWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/optimize</code></td>
+        <td>Post-Release</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Analyze performance data and suggest optimizations for code, infrastructure, and user experience.</td>
+        <td>OptimizationWorkflow</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Recovery Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--red)"></span> Recovery Commands</h2>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Temporal Workflow</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/resume</code></td>
+        <td>Any</td>
+        <td><span class="scope recovery">Recovery</span></td>
+        <td>Resume a paused or interrupted workflow from its last checkpoint. Restores full workflow context.</td>
+        <td>ResumeWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/recover-ticket</code></td>
+        <td>Any</td>
+        <td><span class="scope recovery">Recovery</span></td>
+        <td>Recover a stuck ticket: diagnose failure point, restore state, and re-queue for processing.</td>
+        <td>TicketRecoveryWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/recover-workflow</code></td>
+        <td>Any</td>
+        <td><span class="scope recovery">Recovery</span></td>
+        <td>Recover a failed Temporal workflow: inspect history, identify failure, attempt repair or restart.</td>
+        <td>WorkflowRecoveryWorkflow</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- UI Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--cyan)"></span> UI Commands</h2>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Temporal Workflow</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/design-system-init</code></td>
+        <td>Setup</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Initialize the product design system: tokens, color palette, typography, spacing, and base components.</td>
+        <td>DesignSystemWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/component-create</code></td>
+        <td>Implementation</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Create a new UI component with props, variants, accessibility, tests, and Storybook documentation.</td>
+        <td>ComponentWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/component-review</code></td>
+        <td>Review</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Review a UI component for design system compliance, accessibility, responsiveness, and visual quality.</td>
+        <td>ComponentReviewWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/story-create</code></td>
+        <td>Implementation</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Create Storybook stories for a component: default state, variants, edge cases, and interactive demos.</td>
+        <td>StoryWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/story-validate</code></td>
+        <td>Testing</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Validate Storybook stories: visual regression checks, interaction tests, and accessibility audit.</td>
+        <td>StoryValidationWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>/ui-audit</code></td>
+        <td>Any</td>
+        <td><span class="scope ui">UI</span></td>
+        <td>Audit the full UI layer: design system adherence, component usage, accessibility compliance, and consistency.</td>
+        <td>UIAuditWorkflow</td>
+      </tr>
+    </tbody>
+  </table>
+
+</main>
+</body>
+</html>

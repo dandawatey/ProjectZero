@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — ProjectZero</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-code: #1e293b;
+  --accent: #3b82f6;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --sidebar-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, monospace;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --orange: #f97316;
+  --pink: #f472b6;
+}
+html { font-size: 16px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh; display: flex; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w); background: #0b1120; border-right: 1px solid var(--border);
+  padding: 2rem 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+}
+.sidebar-brand { padding: 0 1.5rem 1.5rem; font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar-brand a { color: inherit; text-decoration: none; }
+.sidebar nav a {
+  display: block; padding: 0.5rem 1.5rem; color: var(--text-muted); text-decoration: none;
+  font-size: 0.9rem; transition: color 0.15s, background 0.15s; border-left: 3px solid transparent;
+}
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,0.08); border-left-color: var(--accent); }
+.sidebar nav a.active { font-weight: 600; }
+.menu-toggle {
+  display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
+  font-size: 1.3rem; align-items: center; justify-content: center;
+}
+
+.main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.content { max-width: 880px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+
+h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+h2 { font-size: 1.5rem; font-weight: 700; margin: 2.5rem 0 1rem; letter-spacing: -0.02em; }
+h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; }
+p { margin-bottom: 1rem; }
+.lead { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+pre {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1rem 0 1.5rem;
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.8; color: var(--text);
+}
+code { font-family: var(--mono); font-size: 0.88rem; }
+p code, li code { background: rgba(59,130,246,0.12); color: var(--accent); padding: 0.15rem 0.5rem; border-radius: 4px; }
+
+/* ---- Diagram ---- */
+.diagram {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: 14px;
+  padding: 2rem; margin: 1.5rem 0 2rem; overflow-x: auto;
+}
+.diagram-row {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0;
+}
+.diagram-box {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+  border: 2px solid; min-width: 140px; text-align: center;
+}
+.diagram-box.react { border-color: var(--cyan); color: var(--cyan); }
+.diagram-box.fastapi { border-color: var(--green); color: var(--green); }
+.diagram-box.postgres { border-color: var(--accent); color: var(--accent); }
+.diagram-box.temporal { border-color: var(--purple); color: var(--purple); }
+.diagram-box.agents { border-color: var(--orange); color: var(--orange); }
+.diagram-box.claude { border-color: var(--pink); color: var(--pink); }
+.diagram-arrow {
+  color: var(--text-muted); font-size: 1.5rem; line-height: 1; padding: 0 0.25rem;
+}
+.diagram-arrow.down {
+  display: flex; justify-content: center; font-size: 1.5rem; color: var(--text-muted);
+}
+.diagram-label {
+  font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: -0.25rem;
+}
+
+/* ---- Component Cards ---- */
+.comp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; margin: 1.5rem 0; }
+.comp-card {
+  background: var(--bg-card); border-radius: 12px; padding: 1.5rem;
+  border-left: 4px solid var(--accent);
+}
+.comp-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+.comp-card p { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
+.comp-card.react { border-left-color: var(--cyan); }
+.comp-card.react h4 { color: var(--cyan); }
+.comp-card.fastapi { border-left-color: var(--green); }
+.comp-card.fastapi h4 { color: var(--green); }
+.comp-card.postgres { border-left-color: var(--accent); }
+.comp-card.postgres h4 { color: var(--accent); }
+.comp-card.temporal { border-left-color: var(--purple); }
+.comp-card.temporal h4 { color: var(--purple); }
+.comp-card.agents { border-left-color: var(--orange); }
+.comp-card.agents h4 { color: var(--orange); }
+.comp-card.claude { border-left-color: var(--pink); }
+.comp-card.claude h4 { color: var(--pink); }
+
+/* ---- Data Flow ---- */
+.flow-list { list-style: none; padding: 0; margin: 1rem 0; }
+.flow-list li {
+  position: relative; padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border-left: 2px solid var(--border); margin-left: 0.75rem;
+}
+.flow-list li::before {
+  content: ''; position: absolute; left: -6px; top: 1.1rem;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+}
+.flow-list li:last-child { border-left-color: transparent; }
+.flow-list li strong { color: var(--text); }
+
+/* ---- Callout ---- */
+.callout {
+  border-left: 4px solid var(--accent); background: rgba(59,130,246,0.06);
+  border-radius: 0 10px 10px 0; padding: 1rem 1.25rem; margin: 1.5rem 0;
+}
+.callout .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; color: var(--accent); }
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .menu-toggle { display: flex; }
+  .main { margin-left: 0; }
+  h1 { font-size: 1.75rem; }
+  .content { padding: 4rem 1.25rem 3rem; }
+  .diagram-row { flex-direction: column; }
+  .diagram-arrow { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle navigation">&#9776;</button>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><a href="index.html">ProjectZero</a></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html" class="active">Architecture</a>
+    <a href="phases.html">Phases</a>
+    <a href="#">Workflows</a>
+    <a href="#">Agents</a>
+    <a href="#">Commands</a>
+    <a href="#">Business Docs</a>
+    <a href="#">Control Tower</a>
+    <a href="#">Governance</a>
+    <a href="#">Recovery</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="content">
+
+    <h1>System Architecture</h1>
+    <p class="lead">ProjectZero is a layered platform where a React dashboard observes activity orchestrated by Temporal workflows, mediated through a FastAPI backend, and persisted in Postgres.</p>
+
+    <h2>High-Level Diagram</h2>
+    <div class="diagram">
+      <div class="diagram-row">
+        <div class="diagram-box react">React Control Tower</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">REST / WebSocket</div>
+      <div class="diagram-row">
+        <div class="diagram-box fastapi">FastAPI Backend</div>
+      </div>
+      <div class="diagram-row" style="margin-top:0.5rem">
+        <span class="diagram-arrow">&#8595;</span>
+        <span style="width:3rem"></span>
+        <span class="diagram-arrow">&#8595;</span>
+      </div>
+      <div class="diagram-row">
+        <div class="diagram-box postgres">PostgreSQL</div>
+        <span style="width:1.5rem"></span>
+        <div class="diagram-box temporal">Temporal Server</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">Task Queues</div>
+      <div class="diagram-row">
+        <div class="diagram-box agents">Agent Workers</div>
+        <span class="diagram-arrow">&#8596;</span>
+        <div class="diagram-box claude">Claude Code CLI</div>
+      </div>
+    </div>
+
+    <h2>Components</h2>
+    <div class="comp-cards">
+      <div class="comp-card react">
+        <h4>React Control Tower</h4>
+        <p>Real-time dashboard for monitoring workflows, agent activity, approval queues, and product status. Connects to the backend via REST and WebSocket for live updates.</p>
+      </div>
+      <div class="comp-card fastapi">
+        <h4>FastAPI Backend</h4>
+        <p>Central API layer. Handles product CRUD, phase transitions, approval gates, workflow triggers, and serves the Control Tower. Runs async with uvicorn.</p>
+      </div>
+      <div class="comp-card postgres">
+        <h4>PostgreSQL</h4>
+        <p>Source of truth for all product state: phases, approvals, audit logs, business documents, stories, and configuration. Schema-managed via Alembic migrations.</p>
+      </div>
+      <div class="comp-card temporal">
+        <h4>Temporal Server</h4>
+        <p>Durable workflow orchestration. Every phase is a Temporal workflow with retry policies, timeouts, and human-signal activities. Guarantees exactly-once execution.</p>
+      </div>
+      <div class="comp-card agents">
+        <h4>Agent Workers</h4>
+        <p>Temporal workers that execute activities. Each worker hosts specialized agent logic: research, spec writing, architecture design, code generation, quality checks.</p>
+      </div>
+      <div class="comp-card claude">
+        <h4>Claude Code CLI</h4>
+        <p>The developer interface. Slash commands trigger workflows, pass context, and relay approvals. Agents run as Claude Code sessions with tool access and file I/O.</p>
+      </div>
+    </div>
+
+    <h2>Data Flow</h2>
+    <p>Here is the typical path of a request through the system:</p>
+    <ul class="flow-list">
+      <li><strong>User runs a command</strong> &mdash; e.g., <code>/vision-to-prd</code> in Claude Code CLI</li>
+      <li><strong>CLI calls FastAPI</strong> &mdash; POST to <code>/api/products/{id}/workflows/vision-to-prd</code></li>
+      <li><strong>FastAPI starts a Temporal workflow</strong> &mdash; <code>VisionToPRDWorkflow</code> is registered and dispatched</li>
+      <li><strong>Temporal schedules activities</strong> &mdash; Market research, competitor analysis, PRD drafting are queued as activities</li>
+      <li><strong>Agent workers execute</strong> &mdash; Claude-powered agents run each activity, producing artifacts</li>
+      <li><strong>Artifacts written to Postgres</strong> &mdash; PRD, research data, and metadata are persisted via FastAPI</li>
+      <li><strong>Workflow hits approval gate</strong> &mdash; Temporal sends a signal-wait, pausing until human approval</li>
+      <li><strong>Control Tower shows pending approval</strong> &mdash; React dashboard polls and displays the gate</li>
+      <li><strong>User approves</strong> &mdash; <code>/approve</code> sends a signal to Temporal, workflow resumes</li>
+    </ul>
+
+    <h2>State Synchronization Pattern</h2>
+    <div class="callout">
+      <div class="callout-title">Key Pattern</div>
+      <p style="margin:0">Temporal is the orchestration authority. Postgres is the persistence authority. They stay in sync through a deliberate sync pattern.</p>
+    </div>
+
+    <p>The sync flow works as follows:</p>
+    <pre><code>Temporal Workflow (executes phase)
+    |
+    |-- Activity: do_work()
+    |       |-- Agent performs task
+    |       |-- Returns result
+    |
+    |-- Activity: sync_state()
+    |       |-- POST /api/internal/sync
+    |       |-- FastAPI writes to Postgres
+    |       |-- Phase status, artifacts, timestamps updated
+    |
+    |-- Activity: wait_for_approval()
+    |       |-- Temporal signal-wait
+    |       |-- FastAPI relays /approve as signal
+    |
+    |-- Activity: sync_state()  (after approval)
+            |-- Final state persisted
+            |-- Next phase unlocked</code></pre>
+
+    <p>This pattern ensures that even if the FastAPI server restarts, Temporal retains the full execution state and can resume. And even if Temporal restarts, Postgres has the last-known state for the Control Tower to display.</p>
+
+    <h3>Why Not Just Use Postgres?</h3>
+    <p>Postgres alone cannot orchestrate long-running workflows with retries, timeouts, and human-in-the-loop signals. Temporal provides durable execution guarantees that a database and background job queue cannot match. The combination gives you both reliable orchestration (Temporal) and queryable state (Postgres).</p>
+
+  </div>
+</div>
+
+</body>
+</html>

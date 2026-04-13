@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Governance - ProjectZero Guide</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a; --bg-card: #1e293b; --bg-sidebar: #0c1220;
+  --accent: #3b82f6; --accent-hover: #2563eb; --text: #e2e8f0;
+  --text-dim: #94a3b8; --border: #334155; --green: #22c55e;
+  --red: #ef4444; --amber: #f59e0b; --purple: #a78bfa; --cyan: #06b6d4;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; display: flex; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 1.5rem 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 10; }
+.sidebar-brand { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar-brand h2 { font-size: 1.1rem; color: var(--accent); letter-spacing: .02em; }
+.sidebar-brand span { font-size: .75rem; color: var(--text-dim); }
+.sidebar nav a { display: block; padding: .55rem 1.5rem; font-size: .9rem; color: var(--text-dim); transition: all .15s; border-left: 3px solid transparent; }
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,.08); border-left-color: var(--accent); text-decoration: none; }
+
+.main { margin-left: 260px; flex: 1; padding: 2.5rem 3rem 4rem; max-width: 960px; }
+h1 { font-size: 2rem; margin-bottom: .5rem; color: #fff; }
+.subtitle { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 2.5rem; }
+h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+h3 { font-size: 1.15rem; margin: 1.5rem 0 .75rem; color: var(--accent); }
+p { margin-bottom: 1rem; }
+code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: rgba(59,130,246,.1); padding: .15rem .4rem; border-radius: 4px; font-size: .88em; }
+
+/* Rule cards */
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.rule-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.4rem; transition: border-color .2s; }
+.rule-card:hover { border-color: var(--accent); }
+.rule-icon { font-size: 2rem; margin-bottom: .6rem; display: block; }
+.rule-title { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: .4rem; }
+.rule-desc { font-size: .88rem; color: var(--text-dim); line-height: 1.55; }
+
+/* Pipeline */
+.pipeline-row { display: flex; align-items: center; gap: 0; margin: 1.5rem 0 2rem; flex-wrap: wrap; justify-content: center; }
+.pipeline-step { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.pipeline-box { padding: .55rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: .85rem; color: #fff; text-align: center; min-width: 90px; }
+.pipeline-box.s1 { background: #6366f1; }
+.pipeline-box.s2 { background: #8b5cf6; }
+.pipeline-box.s3 { background: var(--accent); }
+.pipeline-box.s4 { background: var(--green); }
+.pipeline-arrow { font-size: 1.3rem; color: var(--text-dim); margin: 0 .2rem; padding-bottom: 1rem; }
+.pipeline-label { font-size: .7rem; color: var(--text-dim); }
+
+/* Done vs not done */
+.done-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1rem 0; }
+.done-col { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; }
+.done-col h4 { font-size: .9rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .6rem; }
+.done-col.yes h4 { color: var(--green); }
+.done-col.no h4 { color: var(--red); }
+.done-col ul { list-style: none; padding: 0; }
+.done-col ul li { padding: .3rem 0; font-size: .88rem; color: var(--text-dim); }
+.done-col.yes ul li::before { content: "\2713 "; color: var(--green); font-weight: 700; }
+.done-col.no ul li::before { content: "\2717 "; color: var(--red); font-weight: 700; }
+
+/* SPARC steps */
+.sparc-steps { display: flex; align-items: center; gap: 0; margin: 1.5rem 0; flex-wrap: wrap; justify-content: center; }
+.sparc-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; text-align: center; min-width: 110px; }
+.sparc-step .letter { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+.sparc-step .word { font-size: .75rem; color: var(--text-dim); }
+.sparc-arrow { font-size: 1.2rem; color: var(--text-dim); margin: 0 .15rem; }
+
+/* Stage gate */
+.gate-list { margin: 1rem 0; }
+.gate-item { display: flex; align-items: flex-start; gap: .8rem; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+.gate-item:last-child { border-bottom: none; }
+.gate-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+.gate-text { font-size: .9rem; }
+.gate-text strong { color: #fff; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 1.5rem; }
+  .done-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h2>ProjectZero</h2>
+    <span>User Guide</span>
+  </div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html">Agents</a>
+    <a href="commands.html">Commands</a>
+    <a href="business-docs.html">Business Docs</a>
+    <a href="control-tower.html">Control Tower</a>
+    <a href="governance.html" class="active">Governance</a>
+    <a href="recovery.html">Recovery</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <h1>Governance Rules</h1>
+  <p class="subtitle">Non-negotiable rules that keep every build honest, auditable, and production-safe.</p>
+
+  <h2>Core Rules</h2>
+  <div class="rules-grid">
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F6D1;</span>
+      <div class="rule-title">No Workflow &rarr; No Build</div>
+      <div class="rule-desc">Every piece of work must be tracked in a Temporal workflow. If there is no workflow ID, nothing gets built. No side-channel hacking.</div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F3AB;</span>
+      <div class="rule-title">No Ticket &rarr; No Work</div>
+      <div class="rule-desc">Every workflow is linked to a ticket. No orphan work. If it does not have a ticket number, it does not exist.</div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F9EA;</span>
+      <div class="rule-title">TDD Mandatory</div>
+      <div class="rule-desc">Tests are written before implementation. The test file must exist and fail before any production code is generated.</div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F4CA;</span>
+      <div class="rule-title">80% Coverage Minimum</div>
+      <div class="rule-desc">Code coverage must hit at least 80% across lines, branches, and functions. Below that, the quality gate blocks the workflow.</div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F50D;</span>
+      <div class="rule-title">Everything Auditable</div>
+      <div class="rule-desc">Every decision, approval, rejection, and retry is logged in the workflow history. Full traceability from ticket to deploy.</div>
+    </div>
+    <div class="rule-card">
+      <span class="rule-icon">&#x1F504;</span>
+      <div class="rule-title">Everything Resumable</div>
+      <div class="rule-desc">Any workflow can be paused, crashed, or interrupted and resumed from its last checkpoint. No work is ever lost.</div>
+    </div>
+  </div>
+
+  <!-- Maker Checker Pipeline -->
+  <h2>Maker &rarr; Checker &rarr; Reviewer &rarr; Approver</h2>
+  <p>Every deliverable passes through a four-step quality pipeline before it is considered done:</p>
+
+  <div class="pipeline-row">
+    <div class="pipeline-step">
+      <div class="pipeline-box s1">Maker</div>
+      <div class="pipeline-label">Agent creates the artifact</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box s2">Checker</div>
+      <div class="pipeline-label">Automated validation</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box s3">Reviewer</div>
+      <div class="pipeline-label">Peer agent review</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="pipeline-box s4">Approver</div>
+      <div class="pipeline-label">Human sign-off</div>
+    </div>
+  </div>
+
+  <p>The Maker generates code or documentation. The Checker runs linting, tests, and coverage. The Reviewer (another agent) audits for correctness. The Approver (a human) gives final sign-off at stage gates.</p>
+
+  <!-- No Fake Completion -->
+  <h2>No Fake Completion</h2>
+  <p>A workflow is only "done" when every exit criterion is objectively met. Here is what counts and what does not:</p>
+
+  <div class="done-grid">
+    <div class="done-col yes">
+      <h4>"Done" means</h4>
+      <ul>
+        <li>All tests pass (zero failures)</li>
+        <li>Coverage at or above 80%</li>
+        <li>Linter reports zero errors</li>
+        <li>All stage gates approved</li>
+        <li>Artifacts committed to the repo</li>
+        <li>Workflow status is COMPLETED in Temporal</li>
+      </ul>
+    </div>
+    <div class="done-col no">
+      <h4>"Done" does NOT mean</h4>
+      <ul>
+        <li>Agent said "I'm done"</li>
+        <li>Code compiles but tests are skipped</li>
+        <li>Coverage is "close enough" at 78%</li>
+        <li>PR is open but not merged</li>
+        <li>Manual workaround applied</li>
+        <li>Workflow terminated manually</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BMAD -->
+  <h2>BMAD Methodology</h2>
+  <p>BMAD (Business-Minded AI Development) is the guiding methodology. It ensures that every technical decision traces back to a business objective. Business docs (PRD, BRD, market analysis) are generated first. Only then do technical workflows begin. This prevents building the wrong thing well.</p>
+
+  <h3>BMAD Principles</h3>
+  <ul style="margin:0 0 1.5rem 1.2rem; color:var(--text-dim);">
+    <li style="padding:.25rem 0;">Business value drives every ticket</li>
+    <li style="padding:.25rem 0;">Stakeholder personas are defined before specifications</li>
+    <li style="padding:.25rem 0;">Acceptance criteria are measurable, not subjective</li>
+    <li style="padding:.25rem 0;">Every deliverable maps to a PRD requirement</li>
+  </ul>
+
+  <!-- SPARC -->
+  <h2>SPARC Framework</h2>
+  <p>SPARC defines the five stages every build workflow moves through:</p>
+
+  <div class="sparc-steps">
+    <div class="sparc-step">
+      <div class="letter">S</div>
+      <div class="word">Specification</div>
+    </div>
+    <span class="sparc-arrow">&rarr;</span>
+    <div class="sparc-step">
+      <div class="letter">P</div>
+      <div class="word">Pseudocode</div>
+    </div>
+    <span class="sparc-arrow">&rarr;</span>
+    <div class="sparc-step">
+      <div class="letter">A</div>
+      <div class="word">Architecture</div>
+    </div>
+    <span class="sparc-arrow">&rarr;</span>
+    <div class="sparc-step">
+      <div class="letter">R</div>
+      <div class="word">Realization</div>
+    </div>
+    <span class="sparc-arrow">&rarr;</span>
+    <div class="sparc-step">
+      <div class="letter">C</div>
+      <div class="word">Completion</div>
+    </div>
+  </div>
+
+  <p>Each stage produces artifacts that become inputs to the next. No stage can begin until the previous stage's gate is passed. This is enforced by Temporal workflow logic, not by convention.</p>
+
+  <!-- Stage Gates -->
+  <h2>Stage Gates</h2>
+  <p>A stage gate is a checkpoint between SPARC stages. The workflow pauses and waits for approval before proceeding.</p>
+
+  <div class="gate-list">
+    <div class="gate-item">
+      <div class="gate-num">1</div>
+      <div class="gate-text"><strong>Spec Gate</strong> &mdash; Specification reviewed and approved. Requirements are locked.</div>
+    </div>
+    <div class="gate-item">
+      <div class="gate-num">2</div>
+      <div class="gate-text"><strong>Design Gate</strong> &mdash; Pseudocode and architecture signed off. Implementation plan is concrete.</div>
+    </div>
+    <div class="gate-item">
+      <div class="gate-num">3</div>
+      <div class="gate-text"><strong>Quality Gate</strong> &mdash; All tests pass, coverage met, linter clean. Code is review-ready.</div>
+    </div>
+    <div class="gate-item">
+      <div class="gate-num">4</div>
+      <div class="gate-text"><strong>Release Gate</strong> &mdash; Final human approval before the workflow is marked COMPLETED and artifacts are released.</div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

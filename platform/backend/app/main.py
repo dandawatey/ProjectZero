@@ -12,6 +12,7 @@ from app.api.routes import (
     audit,
     dashboard,
     triggers,
+    integrations,
 )
 
 
@@ -44,6 +45,7 @@ app.include_router(artifacts.router, prefix="/api/v1/artifacts", tags=["artifact
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(triggers.router, prefix="/api/v1/triggers", tags=["triggers"])
+app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
 
 
 @app.get("/health")

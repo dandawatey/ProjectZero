@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Docs - ProjectZero User Guide</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--accent:#3b82f6;--accent2:#2563eb;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#a855f7;--orange:#f97316;--cyan:#06b6d4;--radius:8px;--shadow:0 4px 6px -1px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;display:flex;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--bg3);padding:1.5rem 0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.sidebar h2{padding:0 1.5rem 1rem;font-size:1.1rem;color:var(--accent);border-bottom:1px solid var(--bg3);margin-bottom:.5rem}
+.sidebar a{display:block;padding:.55rem 1.5rem;color:var(--text2);font-size:.9rem;transition:background .15s,color .15s}
+.sidebar a:hover,.sidebar a.active{background:var(--bg3);color:var(--text);text-decoration:none}
+.sidebar a.active{border-right:3px solid var(--accent)}
+
+.main{margin-left:260px;flex:1;padding:2.5rem 3rem;max-width:1200px}
+.main h1{font-size:2rem;margin-bottom:.5rem}
+.main .subtitle{color:var(--text2);margin-bottom:2rem;font-size:1.05rem}
+
+/* Flow Layout */
+.flow-container{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin-bottom:2.5rem;align-items:stretch}
+.flow-col{display:flex;flex-direction:column;gap:1rem}
+.flow-col h2{font-size:1.1rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;padding-bottom:.5rem;border-bottom:2px solid var(--bg3)}
+.flow-col.discovery h2{color:var(--cyan)}
+.flow-col.planning h2{color:var(--orange)}
+
+.flow-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 1.5rem;min-width:120px}
+.arrow-line{width:2px;flex:1;background:linear-gradient(to bottom,var(--cyan),var(--accent),var(--orange))}
+.arrow-label{background:var(--accent);color:#fff;font-weight:700;font-size:.75rem;padding:.5rem 1rem;border-radius:var(--radius);text-align:center;letter-spacing:1px;white-space:nowrap;margin:.75rem 0;box-shadow:0 0 20px rgba(59,130,246,.3)}
+.arrow-chevron{color:var(--orange);font-size:1.5rem;margin-top:.25rem}
+
+/* Doc Cards */
+.doc-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.15rem 1.25rem;box-shadow:var(--shadow)}
+.doc-card h3{font-size:1rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem}
+.doc-card .what{color:var(--text2);font-size:.85rem;margin-bottom:.6rem}
+.doc-card .io{display:flex;gap:1rem;font-size:.78rem}
+.doc-card .io > div{flex:1}
+.doc-card .io-label{font-weight:600;color:var(--text3);text-transform:uppercase;font-size:.65rem;letter-spacing:.5px;margin-bottom:.2rem}
+.doc-card .io-list{color:var(--text2);line-height:1.5}
+
+.doc-card.discovery{border-left:3px solid var(--cyan)}
+.doc-card.planning{border-left:3px solid var(--orange)}
+
+/* Legend */
+.legend{display:flex;gap:2rem;margin-bottom:2rem;font-size:.85rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:.4rem}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+
+@media(max-width:960px){
+  .flow-container{grid-template-columns:1fr;gap:1.5rem}
+  .flow-arrow{flex-direction:row;padding:.5rem 0;min-width:auto}
+  .arrow-line{width:auto;height:2px;flex:1}
+  .arrow-chevron{transform:rotate(90deg)}
+}
+@media(max-width:860px){
+  .sidebar{position:fixed;transform:translateX(-100%);transition:transform .2s}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:1.5rem 1.2rem}
+}
+.ham{display:none;position:fixed;top:1rem;left:1rem;z-index:200;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:.4rem .6rem;cursor:pointer;color:var(--text);font-size:1.3rem}
+@media(max-width:860px){.ham{display:block}}
+</style>
+</head>
+<body>
+
+<button class="ham" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+
+<nav class="sidebar">
+  <h2>ProjectZero Guide</h2>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="phases.html">Phases</a>
+  <a href="workflows.html">Workflows</a>
+  <a href="agents.html">Agents</a>
+  <a href="commands.html">Commands</a>
+  <a href="business-docs.html" class="active">Business Docs</a>
+  <a href="control-tower.html">Control Tower</a>
+  <a href="governance.html">Governance</a>
+  <a href="recovery.html">Recovery</a>
+</nav>
+
+<main class="main">
+  <h1>Business Documents Guide</h1>
+  <p class="subtitle">ProjectZero generates business documents in two phases: Discovery (before building the product) and Planning (after building). The <code>/business-docs</code> command drives both modes.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> Discovery (Before Build)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div> Planning (After Build)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Build Phase</div>
+  </div>
+
+  <div class="flow-container">
+
+    <!-- LEFT: Discovery -->
+    <div class="flow-col discovery">
+      <h2>Before Build &mdash; Discovery</h2>
+
+      <div class="doc-card discovery">
+        <h3>TAM-SAM-SOM Analysis</h3>
+        <div class="what">Market sizing analysis that quantifies the Total Addressable Market, Serviceable Addressable Market, and Serviceable Obtainable Market for the product.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Product vision, target industry, geographic scope, pricing assumptions</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Market size figures, growth projections, segment breakdown, addressable market rationale</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card discovery">
+        <h3>Competitive Analysis</h3>
+        <div class="what">Comprehensive evaluation of the competitive landscape including direct competitors, indirect alternatives, and market positioning opportunities.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Product category, target market, known competitors, feature priorities</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Competitor matrix, feature comparison, SWOT analysis, differentiation strategy</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card discovery">
+        <h3>Team Composition</h3>
+        <div class="what">Defines the optimal team structure needed to build and launch the product, with roles, seniority levels, and hiring timeline.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Product scope, tech stack, timeline, budget constraints</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Org chart, role descriptions, hiring plan, team cost estimates</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card discovery">
+        <h3>Business Model</h3>
+        <div class="what">Defines how the product creates, delivers, and captures value. Covers revenue streams, pricing strategy, and unit economics.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Product vision, target users, market analysis, competitive positioning</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Business model canvas, revenue model, pricing tiers, unit economics, CAC/LTV analysis</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Arrow -->
+    <div class="flow-arrow">
+      <div class="arrow-line"></div>
+      <div class="arrow-label">BUILD<br>PRODUCT</div>
+      <div class="arrow-line"></div>
+      <div class="arrow-chevron">&#9660;</div>
+    </div>
+
+    <!-- RIGHT: Planning -->
+    <div class="flow-col planning">
+      <h2>After Build &mdash; Planning</h2>
+
+      <div class="doc-card planning">
+        <h3>Financial Projections</h3>
+        <div class="what">3&ndash;5 year financial model including revenue forecasts, expense projections, cash flow analysis, and key financial metrics.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Business model, pricing, market size, team costs, infrastructure costs</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">P&amp;L projection, cash flow statement, break-even analysis, key metrics dashboard</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card planning">
+        <h3>Costing</h3>
+        <div class="what">Detailed cost breakdown for building, launching, and operating the product across all categories&mdash;development, infrastructure, team, and operations.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Architecture decisions, team composition, tech stack, infrastructure plan</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Cost breakdown by category, monthly burn rate, runway calculation, cost optimization recommendations</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card planning">
+        <h3>GTM Strategy</h3>
+        <div class="what">Go-to-market plan covering launch strategy, customer acquisition channels, partnerships, and growth milestones.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">Product features, target personas, competitive analysis, business model, budget</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Launch plan, channel strategy, marketing calendar, partnership targets, growth metrics</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card planning">
+        <h3>Pitch Deck</h3>
+        <div class="what">Investor-ready presentation covering problem, solution, market, traction, business model, team, financials, and the ask.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">All discovery docs, financial projections, product demo/screenshots, team bios</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">12&ndash;15 slide deck structure, narrative arc, key data points, appendix materials</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-card planning">
+        <h3>Investor Data Room</h3>
+        <div class="what">Organized collection of all documents an investor needs during due diligence&mdash;financials, legal, product, and team documentation.</div>
+        <div class="io">
+          <div>
+            <div class="io-label">Needs</div>
+            <div class="io-list">All business docs, legal documents, product metrics, team information</div>
+          </div>
+          <div>
+            <div class="io-label">Produces</div>
+            <div class="io-list">Structured data room index, document checklist, access-controlled folder structure, summary memo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Process Overview -->
+  <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem;margin-top:1rem">
+    <h2 style="font-size:1.1rem;margin-bottom:1rem">How It Works</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;font-size:.88rem">
+      <div>
+        <div style="color:var(--cyan);font-weight:600;margin-bottom:.3rem">1. Choose Mode</div>
+        <div style="color:var(--text2)">Run <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:.82rem">/business-docs</code> and select Discovery or Planning mode based on your current phase.</div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.3rem">2. Select Documents</div>
+        <div style="color:var(--text2)">Pick which documents to generate. You can generate all at once or one at a time as inputs become available.</div>
+      </div>
+      <div>
+        <div style="color:var(--orange);font-weight:600;margin-bottom:.3rem">3. Provide Context</div>
+        <div style="color:var(--text2)">The workflow prompts for required inputs. Previously generated documents are automatically used as context for new ones.</div>
+      </div>
+      <div>
+        <div style="color:var(--green);font-weight:600;margin-bottom:.3rem">4. Review &amp; Finalize</div>
+        <div style="color:var(--text2)">Each document goes through a review stage. Approved documents are saved to the product's <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:.82rem">docs/business/</code> directory.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>
