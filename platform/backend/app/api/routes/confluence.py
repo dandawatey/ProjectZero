@@ -342,3 +342,13 @@ async def publish_temporal_guide():
     if result.get("status") == "error":
         raise HTTPException(status_code=503, detail=result["detail"])
     return result
+
+
+@router.post("/publish-uml-diagrams")
+async def publish_uml_diagrams():
+    """Publish all 7 UML architecture diagrams from guide/ HTML to Confluence (PRJ0-85)."""
+    from app.services.uml_diagram_publisher import publish_uml_diagrams as _publish
+    result = await _publish()
+    if result.get("status") == "error":
+        raise HTTPException(status_code=503, detail=result.get("reason", "publish failed"))
+    return result
