@@ -139,13 +139,33 @@ Produce the full specification document for this feature."""
         )
         rel = f".claude/specs/{inp.feature_id}-spec.md"
         path = _write_artifact(inp.repo_path, rel, output)
-        activity.heartbeat("Spec Agent: artifact written")
+        activity.heartbeat("Spec Agent: spec artifact written")
+
+        # TDD enforcement (PRJ0-36): generate test outline from spec
+        activity.heartbeat("Spec Agent: generating TDD test outline")
+        test_outline_prompt = f"""Based on this specification, produce a concise Given/When/Then test outline.
+List every acceptance criterion as a test case. Use Given/When/Then format.
+Do not write code — write test descriptions only.
+
+Specification:
+{output[:3000]}"""
+        test_outline = _call_claude(
+            system="You are a TDD test designer. Produce Given/When/Then test outlines from specifications.",
+            user=test_outline_prompt,
+        )
+        test_rel = f".claude/impl/{inp.feature_id}-tests.md"
+        test_path = _write_artifact(inp.repo_path, test_rel, test_outline)
+        activity.heartbeat("Spec Agent: test outline written")
+
         return AgentOutput(
             agent_type="spec",
             stage=inp.stage,
             status="completed",
             artifact_path=path,
-            summary=f"Spec written for {inp.feature_id} — {len(output)} chars",
+            summary=(
+                f"Spec written for {inp.feature_id} — {len(output)} chars | "
+                f"test_artifact_path={test_path}"
+            ),
         )
     except Exception as exc:
         logger.error("spec_activity failed: %s", exc)
@@ -234,6 +254,28 @@ Brain context:
 {brain_ctx}
 
 Implement this feature following TDD. Output tests first, then implementation."""
+
+    # TDD enforcement (PRJ0-36): test outline must exist before implementation
+    test_outline_path = Path(inp.repo_path) / f".claude/impl/{inp.feature_id}-tests.md"
+    if not test_outline_path.exists():
+        return AgentOutput(
+            agent_type="impl", stage=inp.stage, status="blocked",
+            artifact_path="",
+            summary="",
+            error=(
+                f"TDD violation: test outline missing at {test_outline_path}. "
+                f"Run spec_activity first."
+            ),
+        )
+    activity.heartbeat("Impl Agent: TDD check passed — test outline exists")
+
+    # Include test outline in prompt
+    test_outline = test_outline_path.read_text(encoding="utf-8")[:2000]
+
+    user_prompt = f"""{user_prompt}
+
+Test outline (write these tests FIRST, then implement):
+{test_outline}"""
 
     activity.heartbeat("Impl Agent: calling Claude")
     try:
