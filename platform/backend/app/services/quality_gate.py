@@ -34,6 +34,8 @@ def _run(cmd: list[str], cwd: str) -> tuple[int, str]:
         return -1, f"command not found: {cmd[0]}"
     except subprocess.TimeoutExpired:
         return -1, f"timeout: {' '.join(cmd)}"
+    except OSError as exc:
+        return -1, f"invalid path: {exc}"
 
 
 def _coverage_gate(repo_path: str) -> tuple[GateResult, float]:

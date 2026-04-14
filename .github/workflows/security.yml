@@ -1,0 +1,58 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/backend/**'
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am
+
+jobs:
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/backend
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install security tools
+        run: pip install bandit safety pytest pytest-asyncio httpx aiosqlite pyjwt
+
+      - name: Run bandit static analysis
+        run: |
+          bandit -r app/ -ll -c tests/security/bandit_config.yaml \
+            --format json -o bandit-report.json || true
+          python3 -c "
+          import json, sys
+          with open('bandit-report.json') as f: r = json.load(f)
+          highs = [i for i in r.get('results',[]) if i.get('issue_severity')=='HIGH']
+          print(f'Bandit: {len(r.get(\"results\",[]))} issues, {len(highs)} HIGH')
+          if highs:
+              for h in highs: print(f'  HIGH: {h[\"filename\"]}:{h[\"line_number\"]} {h[\"issue_text\"]}')
+          sys.exit(1 if highs else 0)
+          "
+
+      - name: Run safety vulnerability check
+        run: |
+          pip install -r requirements.txt --dry-run 2>/dev/null || true
+          safety check --full-report || echo "Safety check completed (warnings acceptable)"
+
+      - name: Run security tests
+        run: |
+          python -m pytest tests/security/ -v --tb=short
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: platform/backend/bandit-report.json

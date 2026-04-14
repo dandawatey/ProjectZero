@@ -1,0 +1,6 @@
+# Bandit static analysis config — PRJ0-69
+skips:
+  - B101  # assert statements — acceptable in tests
+  - B311  # random — used for non-security purposes
+  - B603  # subprocess — required for git/quality gate operations (controlled input)
+  - B607  # partial path for subprocess — same reason
