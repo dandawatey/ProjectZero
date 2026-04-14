@@ -1,0 +1,71 @@
+[
+  {
+    "_comment": "Ticket status update — sent from Claude hook or Temporal activity",
+    "event_type": "ticket_status",
+    "ticket_id": "PRJ0-49",
+    "epic_key": "EPIC-AGENT",
+    "feature_id": "feature:agents",
+    "workflow_run_id": "wf-prj0-49-001",
+    "workflow_name": "FeatureDevelopmentWorkflow",
+    "step": "impl_activity",
+    "agent": "impl-agent",
+    "status": "RUNNING",
+    "pct": 67.5,
+    "elapsed_ms": 45000,
+    "retry_count": 0,
+    "jira_url": "https://isourceinnovation.atlassian.net/browse/PRJ0-49",
+    "temporal_url": "http://localhost:8233/namespaces/default/workflows/wf-prj0-49-001"
+  },
+  {
+    "_comment": "Step started inside a workflow",
+    "event_type": "step_start",
+    "ticket_id": "PRJ0-50",
+    "epic_key": "EPIC-AGENT",
+    "feature_id": "feature:agents",
+    "workflow_run_id": "wf-prj0-50-001",
+    "workflow_name": "FeatureDevelopmentWorkflow",
+    "step": "spec_activity",
+    "agent": "spec-agent",
+    "status": "RUNNING",
+    "pct": 10.0
+  },
+  {
+    "_comment": "Ticket completed successfully",
+    "event_type": "ticket_status",
+    "ticket_id": "PRJ0-34",
+    "epic_key": "EPIC-GOV",
+    "feature_id": "feature:governance",
+    "workflow_run_id": "wf-prj0-34-001",
+    "workflow_name": "MakerCheckerReviewerWorkflow",
+    "step": "review_activity",
+    "agent": "review-agent",
+    "status": "SUCCESS",
+    "pct": 100.0,
+    "elapsed_ms": 180000
+  },
+  {
+    "_comment": "Ticket failed — will appear in FAILED ITEMS panel",
+    "event_type": "ticket_status",
+    "ticket_id": "PRJ0-37",
+    "epic_key": "EPIC-GOV",
+    "feature_id": "feature:governance",
+    "workflow_run_id": "wf-prj0-37-001",
+    "workflow_name": "FeatureDevelopmentWorkflow",
+    "step": "impl_activity",
+    "agent": "impl-agent",
+    "status": "FAILED",
+    "pct": 72.0,
+    "elapsed_ms": 90000,
+    "retry_count": 2,
+    "error": "Claude API timeout after 3 retries"
+  },
+  {
+    "_comment": "Tool use event from Claude Code hook (CLAUDE_CURRENT_TICKET=PRJ0-49)",
+    "event_type": "tool_use",
+    "ticket_id": "PRJ0-49",
+    "step": "Write",
+    "agent": "impl-agent",
+    "status": "RUNNING",
+    "pct": 55.0
+  }
+]
