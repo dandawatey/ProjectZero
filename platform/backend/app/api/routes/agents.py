@@ -1,14 +1,16 @@
-"""Agent routes — contributions, status, per-agent work history."""
+"""Agent routes — PRJ0-49 catalog + contributions, status, per-agent work history."""
 
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.workflow import AgentContribution, WorkflowStep, WorkflowRun
+from app.models.agent import Agent
+from app.schemas.agent import AgentRead, AgentCreate, AgentUpdate
 
 router = APIRouter()
 
@@ -109,3 +111,71 @@ async def agent_work(agent_type: str, db: AsyncSession = Depends(get_db)):
         "pending": pending,
         "completed": completed,
     }
+
+
+# ---------------------------------------------------------------------------
+# PRJ0-49 — Agent Catalog CRUD
+# ---------------------------------------------------------------------------
+
+SKILL_CATALOG = [
+    {"id": "spec", "name": "Specification", "description": "Parse PRDs, generate user stories, acceptance criteria"},
+    {"id": "arch", "name": "Architecture", "description": "Design systems, write ADRs, define API contracts"},
+    {"id": "implement", "name": "Implementation", "description": "TDD cycles, write code, run quality gates"},
+    {"id": "review", "name": "Review", "description": "Code review, quality-gate enforcement, PR analysis"},
+    {"id": "deploy", "name": "Deploy", "description": "Release tagging, changelog generation, stakeholder notification"},
+]
+
+
+def _agent_to_read(a: Agent) -> AgentRead:
+    return AgentRead(
+        id=str(a.id),
+        agent_id=a.agent_id,
+        name=a.name,
+        skills=a.skills or [],
+        model=a.model,
+        status=a.status,
+        prompt_template_key=a.prompt_template_key,
+        last_used_at=a.last_used_at.isoformat() if a.last_used_at else None,
+        created_at=a.created_at.isoformat(),
+    )
+
+
+@router.get("", response_model=list[AgentRead])
+async def list_agents(db: AsyncSession = Depends(get_db)):
+    """List all registered agents."""
+    result = await db.execute(select(Agent).order_by(Agent.created_at))
+    return [_agent_to_read(a) for a in result.scalars().all()]
+
+
+@router.get("/skills")
+async def list_skills():
+    """Return static skill catalog."""
+    return SKILL_CATALOG
+
+
+@router.post("", response_model=AgentRead, status_code=201)
+async def create_agent(payload: AgentCreate, db: AsyncSession = Depends(get_db)):
+    """Register a new agent."""
+    existing = await db.execute(select(Agent).where(Agent.agent_id == payload.agent_id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail=f"Agent '{payload.agent_id}' already exists")
+    agent = Agent(**payload.model_dump())
+    db.add(agent)
+    await db.commit()
+    await db.refresh(agent)
+    return _agent_to_read(agent)
+
+
+@router.patch("/{agent_id}", response_model=AgentRead)
+async def update_agent(agent_id: str, payload: AgentUpdate, db: AsyncSession = Depends(get_db)):
+    """Update agent status and/or model."""
+    result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    updates = payload.model_dump(exclude_none=True)
+    for field, value in updates.items():
+        setattr(agent, field, value)
+    await db.commit()
+    await db.refresh(agent)
+    return _agent_to_read(agent)

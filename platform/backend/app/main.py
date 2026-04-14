@@ -11,6 +11,7 @@ import app.models.metrics    # noqa: F401 — registers CxoMetricsCache with Bas
 import app.models.user       # noqa: F401 — registers User + RefreshToken with Base
 import app.models.product    # noqa: F401 — registers Product with Base
 import app.models.story      # noqa: F401 — registers Story + AcceptanceCriteria with Base
+import app.models.agent      # noqa: F401 — registers Agent with Base (PRJ0-49)
 from app.api.routes import (
     workflows,
     steps,
@@ -36,6 +37,7 @@ from app.api.routes import (
     factory_floor,
 )
 from app.services.integration_health import validate_on_startup, start_all_monitors
+from app.services.agent_seeder import seed_agents
 from app.temporal_integration.worker import start_worker, stop_worker
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,11 @@ async def lifespan(app: FastAPI):
     # DB tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed core agent catalog (idempotent) — PRJ0-49
+    from app.core.database import async_session
+    async with async_session() as db:
+        await seed_agents(db)
 
     # One-shot startup validation for JIRA + Confluence
     settings = get_settings()
