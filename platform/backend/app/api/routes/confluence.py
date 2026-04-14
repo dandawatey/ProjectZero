@@ -291,6 +291,49 @@ async def publish_iso():
     return result
 
 
+@router.get("/jira-hierarchy")
+async def get_jira_hierarchy():
+    """Fetch JIRA Feature/Epic/Story hierarchy (PRJ0-55)."""
+    from app.services.jira_hierarchy_publisher import fetch_hierarchy
+    project = os.getenv("JIRA_PROJECT_KEY", "PRJ0")
+    features = await fetch_hierarchy(project)
+    return [
+        {
+            "name": f.name,
+            "done": f.done_count,
+            "total": f.total_count,
+            "epics": [
+                {
+                    "key": e.key,
+                    "summary": e.summary,
+                    "stories": [
+                        {
+                            "key": s.key,
+                            "summary": s.summary,
+                            "status": s.status,
+                            "status_cat": s.status_cat,
+                        }
+                        for s in e.stories
+                    ],
+                }
+                for e in f.epics
+            ],
+        }
+        for f in features
+    ]
+
+
+@router.post("/publish-jira-hierarchy")
+async def publish_jira_hierarchy():
+    """Publish JIRA Feature/Epic/Story hierarchy to Confluence (PRJ0-55)."""
+    from app.services.jira_hierarchy_publisher import publish_hierarchy_to_confluence
+    result = await publish_hierarchy_to_confluence(
+        project_key=os.getenv("JIRA_PROJECT_KEY", "PRJ0"),
+        space_key=os.getenv("CONFLUENCE_SPACE_KEY", "PR"),
+    )
+    return result
+
+
 @router.post("/publish/temporal-guide")
 async def publish_temporal_guide():
     """Publish the Temporal knowledge page to Confluence (full-width, auto-generated)."""
