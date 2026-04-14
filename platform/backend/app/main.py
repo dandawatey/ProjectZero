@@ -12,6 +12,7 @@ import app.models.user       # noqa: F401 — registers User + RefreshToken with
 import app.models.product    # noqa: F401 — registers Product with Base
 import app.models.story      # noqa: F401 — registers Story + AcceptanceCriteria with Base
 import app.models.agent      # noqa: F401 — registers Agent with Base (PRJ0-49)
+import app.models.agent_execution  # noqa: F401 — registers AgentExecution with Base (PRJ0-53)
 from app.api.routes import (
     workflows,
     steps,

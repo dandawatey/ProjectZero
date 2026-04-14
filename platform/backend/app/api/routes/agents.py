@@ -166,6 +166,44 @@ async def create_agent(payload: AgentCreate, db: AsyncSession = Depends(get_db))
     return _agent_to_read(agent)
 
 
+@router.get("/executions")
+async def list_executions(
+    agent_id: str | None = None,
+    skill_id: str | None = None,
+    ticket_id: str | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    """List agent execution logs — PRJ0-53."""
+    from app.models.agent_execution import AgentExecution
+    q = select(AgentExecution).order_by(AgentExecution.started_at.desc()).limit(min(limit, 200))
+    if agent_id:
+        q = q.where(AgentExecution.agent_id == agent_id)
+    if skill_id:
+        q = q.where(AgentExecution.skill_id == skill_id)
+    if ticket_id:
+        q = q.where(AgentExecution.ticket_id == ticket_id)
+    result = await db.execute(q)
+    rows = result.scalars().all()
+    return [
+        {
+            "id": str(r.id),
+            "agent_id": r.agent_id,
+            "skill_id": r.skill_id,
+            "ticket_id": r.ticket_id,
+            "workflow_run_id": r.workflow_run_id,
+            "started_at": r.started_at.isoformat() if r.started_at else None,
+            "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            "duration_ms": r.duration_ms,
+            "status": r.status,
+            "quality_gate_passed": r.quality_gate_passed,
+            "brain_written": r.brain_written,
+            "error_message": r.error_message,
+        }
+        for r in rows
+    ]
+
+
 @router.patch("/{agent_id}", response_model=AgentRead)
 async def update_agent(agent_id: str, payload: AgentUpdate, db: AsyncSession = Depends(get_db)):
     """Update agent status and/or model."""

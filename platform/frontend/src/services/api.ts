@@ -119,6 +119,7 @@ export const api = {
   agentRegistry: {
     list: () => get<Record<string, unknown>[]>('/agents'),
     skills: () => get<Record<string, unknown>[]>('/agents/skills'),
+    executions: (limit = 50) => get<Record<string, unknown>[]>(`/agents/executions?limit=${limit}`),
     patch: (agent_id: string, body: Record<string, unknown>) =>
       patch<Record<string, unknown>>(`/agents/${agent_id}`, body),
   },

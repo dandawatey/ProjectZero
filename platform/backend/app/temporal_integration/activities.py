@@ -134,6 +134,8 @@ Produce the full specification document for this feature."""
             feature_id=inp.feature_id,
             context_str=user_prompt,
             repo_path=inp.repo_path,
+            ticket_id=inp.feature_id,
+            workflow_run_id=inp.workflow_run_id,
         )
         rel = f".claude/specs/{inp.feature_id}-spec.md"
         path = _write_artifact(inp.repo_path, rel, output)
@@ -190,6 +192,8 @@ Produce the architecture document."""
             feature_id=inp.feature_id,
             context_str=user_prompt,
             repo_path=inp.repo_path,
+            ticket_id=inp.feature_id,
+            workflow_run_id=inp.workflow_run_id,
         )
         rel = f"docs/adr/{inp.feature_id}-adr.md"
         path = _write_artifact(inp.repo_path, rel, output)
@@ -241,6 +245,8 @@ Implement this feature following TDD. Output tests first, then implementation.""
             feature_id=inp.feature_id,
             context_str=user_prompt,
             repo_path=inp.repo_path,
+            ticket_id=inp.feature_id,
+            workflow_run_id=inp.workflow_run_id,
         )
         rel = f".claude/impl/{inp.feature_id}-impl.md"
         path = _write_artifact(inp.repo_path, rel, output)
@@ -287,6 +293,8 @@ Perform thorough code review."""
             feature_id=inp.feature_id,
             context_str=user_prompt,
             repo_path=inp.repo_path,
+            ticket_id=inp.feature_id,
+            workflow_run_id=inp.workflow_run_id,
         )
         rel = f".claude/reviews/{inp.feature_id}-review.md"
         path = _write_artifact(inp.repo_path, rel, output)
@@ -335,6 +343,8 @@ Prepare release artifacts."""
             feature_id=inp.feature_id,
             context_str=user_prompt,
             repo_path=inp.repo_path,
+            ticket_id=inp.feature_id,
+            workflow_run_id=inp.workflow_run_id,
         )
         rel = f".claude/releases/{inp.feature_id}-release.md"
         path = _write_artifact(inp.repo_path, rel, output)
