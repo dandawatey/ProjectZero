@@ -574,3 +574,136 @@ execution_console/
 ```
 /console   ← launch from Claude Code (wired in .claude/skills/)
 ```
+
+---
+
+## Persistent Memory (claude-mem)
+
+claude-mem adds cross-session memory to the console. Agents remember past decisions, searches, and tool outputs without re-reading files.
+
+Token savings: ~10x (retrieve compressed memories instead of re-scanning codebase).
+
+### What it adds
+
+| Layer | Where |
+|---|---|
+| Session memory (SQLite) | `~/.claude-mem/memories.db` |
+| Semantic search (ChromaDB) | local vector index |
+| Permanent memory (Postgres) | Brain API `/api/v1/brain/memories` |
+
+### The 5 Hooks
+
+| Hook Event | Script | Action |
+|---|---|---|
+| `SessionStart` | `claude_mem_session_start.sh` | Health check + auto-start worker on port 37777 |
+| `PostToolUse` (Write/Edit/Bash/Read) | inline observe | Save tool result as observation to claude-mem |
+| `PostToolUse` (Bash — graphify) | inline | Refresh knowledge graph in background |
+| `Stop` | `claude_mem_stop.sh` | POST /sync + /compress (persist and compress memories) |
+| `SessionEnd` | `claude_mem_session_end.sh` | POST /finalize → MemBridge promotes to Brain |
+
+All 5 hooks wired in `.claude/settings.json`. No manual config needed.
+
+### ClaudeMemClient (Python)
+
+```python
+from execution_console.app.integrations.claude.mem_client import ClaudeMemClient
+
+client = ClaudeMemClient(port=37777)
+
+# Health check
+status = client.health()  # {"status": "ok", "port": 37777}
+
+# Save an observation
+client.observe("PRJ0-75: sync bridge uses content hash dedup")
+
+# Search memories
+results = client.search("temporal workflow decisions", limit=10)
+
+# Sync to Brain (Postgres)
+client.sync()
+
+# Compress session memories
+client.compress()
+
+# Finalize session
+client.finalize()
+```
+
+### mem-search Skill
+
+From within a Claude Code session:
+
+```
+/mem-search 'temporal workflow decisions'
+/mem-search 'PRJ0-75 sync bridge'
+/mem-search 'postgres brain promotion' --timeline
+```
+
+Three layers of progressive disclosure:
+
+```
+Layer 1: summary titles only (default, fast)
+Layer 2: full observation text --full
+Layer 3: timeline ordered by session --timeline
+```
+
+Implementation: `execution_console/app/integrations/claude/mem_search.py`
+
+### Brain Sync
+
+Memories scoring >= threshold (default 0.7) are promoted to Brain (Postgres) at session end.
+Deduplication uses content hash — no duplicate memories across sessions.
+
+Manual sync via CLI:
+
+```bash
+# Dry run (see what would sync)
+python execution_console/scripts/sync_to_brain.py --dry-run
+
+# Sync with custom threshold
+python execution_console/scripts/sync_to_brain.py --threshold 0.8
+
+# Force sync all
+python execution_console/scripts/sync_to_brain.py --threshold 0.0
+```
+
+Via API:
+
+```bash
+curl -X POST http://localhost:8001/mem/sync
+```
+
+### New API Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/mem/search` | GET | Search memories. Params: `q`, `limit`, `timeline_only` |
+| `/mem/health` | GET | Worker health — status, port, db path |
+| `/mem/sync` | POST | Trigger Brain sync (threshold-gated, deduped) |
+
+### Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `CLAUDE_MEM_PORT` | `37777` | Worker HTTP port |
+| `CLAUDE_MEM_DB_PATH` | `~/.claude-mem/memories.db` | SQLite database path |
+| `CLAUDE_MEM_BRAIN_THRESHOLD` | `0.7` | Min score for Brain promotion |
+| `CLAUDE_MEM_PRIVATE_ENABLED` | `true` | Respect `<private>` tags in prompts |
+| `CLAUDE_MEM_ENABLED` | `true` | Master on/off switch for all hooks |
+| `BRAIN_API_URL` | `http://localhost:8000` | Brain (Postgres) API base URL |
+
+### Privacy
+
+Wrap sensitive content — never stored or searched:
+
+```
+<private>
+  API_KEY=secret-value
+</private>
+```
+
+### Confluence
+
+Full implementation docs: [claude-mem Integration — Confluence](https://isourceinnovation.atlassian.net/wiki/spaces/PR/pages/5668865/claude-mem+Persistent+Memory+Compression+Integration)
+
+JIRA Epic: [PRJ0-71](https://isourceinnovation.atlassian.net/browse/PRJ0-71)
