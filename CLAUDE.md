@@ -46,6 +46,10 @@ ProjectZero has a Postgres-backed brain at `/api/v1/brain/`:
 
 Agents MUST read brain before action, write after action.
 
+## Persistent Memory (claude-mem)
+Agents use claude-mem for cross-session memory. Run `/mem-search` before any ticket.
+Worker: port 37777. Brain sync: automatic at session end. See `.claude/CLAUDE.md` for full rules.
+
 ## Interaction Modes
 
 Every workflow step supports 4 modes:

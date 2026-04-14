@@ -326,6 +326,29 @@ The Brain is a Postgres-backed persistent memory system exposed at `/api/v1/brai
 
 ---
 
+## claude-mem (Persistent Memory Compression)
+
+claude-mem provides cross-session memory for all agents. Worker runs on port 37777.
+Source: https://github.com/thedotmack/claude-mem
+
+### Agent Rules — claude-mem
+- **Before starting any ticket**: run `/mem-search <ticket summary>` to recall past context
+- **After completing a ticket**: observations are auto-saved by PostToolUse hook
+- **Citation format**: reference past observations as `[obs:abc123]`
+- **Privacy**: wrap secrets/credentials in `<private>...</private>` tags in prompts
+- **Progressive disclosure**:
+  - Layer 1: /mem-search <query> (cheap, ~50 tokens) — always start here
+  - Layer 2: /mem-search timeline <id> (context window)
+  - Layer 3: /mem-search fetch <id1> <id2> (full content, selected IDs only)
+- **Never** fetch all memories at once — defeats purpose, wastes tokens
+- **Brain sync**: high-value memories (score >= 0.7) auto-promoted to Postgres Brain at session end
+
+### Worker Health
+If /mem-search returns "worker not running": `npx claude-mem start`
+Default port: 37777 (override via CLAUDE_MEM_PORT env var)
+
+---
+
 ## Interaction Modes
 
 Every workflow step supports four interaction modes. The active mode determines how the agent and user collaborate.
