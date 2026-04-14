@@ -17,12 +17,9 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from datetime import timedelta
 from pathlib import Path
 
 from temporalio import activity
-
-from app.services.skill_registry import get_skill
 
 logger = logging.getLogger(__name__)
 
@@ -128,9 +125,16 @@ Additional context: {json.dumps(inp.context)}
 Produce the full specification document for this feature."""
 
     activity.heartbeat("Spec Agent: calling Claude")
-    skill = get_skill("spec")
     try:
-        output = _call_claude(skill.system_prompt, user_prompt)
+        from app.services.agent_dispatcher import AgentDispatcher
+        dispatcher = AgentDispatcher()
+        output = dispatcher.run(
+            skill_id="spec",
+            product_id=inp.product_id,
+            feature_id=inp.feature_id,
+            context_str=user_prompt,
+            repo_path=inp.repo_path,
+        )
         rel = f".claude/specs/{inp.feature_id}-spec.md"
         path = _write_artifact(inp.repo_path, rel, output)
         activity.heartbeat("Spec Agent: artifact written")
@@ -177,9 +181,16 @@ Brain context:
 Produce the architecture document."""
 
     activity.heartbeat("Arch Agent: calling Claude")
-    skill = get_skill("arch")
     try:
-        output = _call_claude(skill.system_prompt, user_prompt)
+        from app.services.agent_dispatcher import AgentDispatcher
+        dispatcher = AgentDispatcher()
+        output = dispatcher.run(
+            skill_id="arch",
+            product_id=inp.product_id,
+            feature_id=inp.feature_id,
+            context_str=user_prompt,
+            repo_path=inp.repo_path,
+        )
         rel = f"docs/adr/{inp.feature_id}-adr.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
@@ -221,9 +232,16 @@ Brain context:
 Implement this feature following TDD. Output tests first, then implementation."""
 
     activity.heartbeat("Impl Agent: calling Claude")
-    skill = get_skill("implement")
     try:
-        output = _call_claude(skill.system_prompt, user_prompt)
+        from app.services.agent_dispatcher import AgentDispatcher
+        dispatcher = AgentDispatcher()
+        output = dispatcher.run(
+            skill_id="implement",
+            product_id=inp.product_id,
+            feature_id=inp.feature_id,
+            context_str=user_prompt,
+            repo_path=inp.repo_path,
+        )
         rel = f".claude/impl/{inp.feature_id}-impl.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
@@ -260,9 +278,16 @@ Implementation artifact:
 Perform thorough code review."""
 
     activity.heartbeat("Review Agent: calling Claude")
-    skill = get_skill("review")
     try:
-        output = _call_claude(skill.system_prompt, user_prompt)
+        from app.services.agent_dispatcher import AgentDispatcher
+        dispatcher = AgentDispatcher()
+        output = dispatcher.run(
+            skill_id="review",
+            product_id=inp.product_id,
+            feature_id=inp.feature_id,
+            context_str=user_prompt,
+            repo_path=inp.repo_path,
+        )
         rel = f".claude/reviews/{inp.feature_id}-review.md"
         path = _write_artifact(inp.repo_path, rel, output)
         verdict = "APPROVED" if "APPROVED" in output[:500] else "CHANGES_REQUIRED"
@@ -301,9 +326,16 @@ Review summary:
 Prepare release artifacts."""
 
     activity.heartbeat("Deploy Agent: calling Claude")
-    skill = get_skill("deploy")
     try:
-        output = _call_claude(skill.system_prompt, user_prompt)
+        from app.services.agent_dispatcher import AgentDispatcher
+        dispatcher = AgentDispatcher()
+        output = dispatcher.run(
+            skill_id="deploy",
+            product_id=inp.product_id,
+            feature_id=inp.feature_id,
+            context_str=user_prompt,
+            repo_path=inp.repo_path,
+        )
         rel = f".claude/releases/{inp.feature_id}-release.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
