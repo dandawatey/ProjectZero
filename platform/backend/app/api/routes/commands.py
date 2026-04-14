@@ -279,6 +279,144 @@ async def run_check(body: CheckRequest):
 
 
 # ---------------------------------------------------------------------------
+# /sprint — active sprint burn summary (PRJ0-47)
+# ---------------------------------------------------------------------------
+
+@router.get("/sprint")
+async def get_sprint():
+    """Active sprint burn summary from JIRA."""
+    try:
+        import os
+        import httpx
+        from app.services.jira_client import JiraClient
+        client = JiraClient()
+        board_id = int(os.getenv("JIRA_BOARD_ID", "67"))
+        async with httpx.AsyncClient() as c:
+            sprints = await client.board_sprints(c, board_id, state="active")
+            if not sprints:
+                return {"sprint": None, "message": "No active sprint"}
+            sprint = sprints[0]
+            issues = await client.sprint_issues(c, sprint["id"])
+        total = len(issues)
+        done = sum(1 for i in issues if client._is_done(i))
+        blocked = sum(
+            1 for i in issues
+            if i["fields"].get("status", {}).get("name", "").lower() == "blocked"
+        )
+        pct = round((done / total * 100) if total else 0, 1)
+        return {
+            "sprint": sprint.get("name"),
+            "total": total,
+            "done": done,
+            "blocked": blocked,
+            "pct_done": pct,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# /sprint-plan — 3-sprint planning view (PRJ0-47)
+# ---------------------------------------------------------------------------
+
+@router.get("/sprint-plan")
+async def get_sprint_plan():
+    """3-sprint view: last closed, active, next future."""
+    try:
+        import os
+        import httpx
+        from app.services.jira_client import JiraClient
+        client = JiraClient()
+        board_id = int(os.getenv("JIRA_BOARD_ID", "67"))
+        async with httpx.AsyncClient() as c:
+            active = await client.board_sprints(c, board_id, state="active")
+            closed = await client.board_sprints(c, board_id, state="closed")
+            future = await client.board_sprints(c, board_id, state="future")
+        sprints = (
+            (closed[-1:] if closed else [])
+            + active[:1]
+            + (future[:1] if future else [])
+        )
+        return {
+            "sprints": [
+                {
+                    "name": s.get("name"),
+                    "state": s.get("state"),
+                    "start": (s.get("startDate") or "")[:10],
+                    "end": (s.get("endDate") or "")[:10],
+                }
+                for s in sprints
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# /sprint-goal — set active sprint goal (PRJ0-47)
+# ---------------------------------------------------------------------------
+
+class SprintGoalRequest(BaseModel):
+    goal: str
+    board_id: int = 67
+
+
+@router.post("/sprint-goal")
+async def set_sprint_goal(body: SprintGoalRequest):
+    """Set the goal on the active sprint."""
+    try:
+        import httpx
+        from app.services.jira_client import JiraClient
+        client = JiraClient()
+        async with httpx.AsyncClient() as c:
+            sprints = await client.board_sprints(c, body.board_id, state="active")
+            if not sprints:
+                return {"error": "No active sprint"}
+            sprint_id = sprints[0]["id"]
+            r = await c.put(
+                f"{client.base}/rest/agile/1.0/sprint/{sprint_id}",
+                json={"goal": body.goal},
+                auth=client.auth,
+                timeout=30,
+            )
+            r.raise_for_status()
+        return {"sprint": sprints[0].get("name"), "goal": body.goal, "updated": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# /status/{product_id} — product workflow status (PRJ0-47)
+# ---------------------------------------------------------------------------
+
+@router.get("/status/{product_id}")
+async def get_product_status(product_id: str, db: AsyncSession = Depends(get_db)):
+    """Latest workflow status for a product."""
+    from sqlalchemy import desc
+    result = await db.execute(
+        select(WorkflowRun)
+        .where(WorkflowRun.product_id == product_id)
+        .order_by(desc(WorkflowRun.updated_at))
+        .limit(5)
+    )
+    runs = result.scalars().all()
+    if not runs:
+        return {"product_id": product_id, "message": "No workflow runs found"}
+    latest = runs[0]
+    return {
+        "product_id": product_id,
+        "stage": latest.current_stage,
+        "status": latest.status,
+        "last_run_id": str(latest.id),
+        "updated_at": latest.updated_at.isoformat() if latest.updated_at else None,
+        "recent_runs": [
+            {"id": str(r.id), "status": r.status, "stage": r.current_stage}
+            for r in runs
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
 # /agent-map — expose STAGE_AGENT_MAP as JSON (PRJ0-39)
 # ---------------------------------------------------------------------------
 
