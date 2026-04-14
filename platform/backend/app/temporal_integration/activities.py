@@ -103,12 +103,76 @@ def _brain_context(product_id: str, stage: str) -> str:
     return "(no prior memories)"
 
 
+def _jira_transition(ticket_id: str, target_name: str) -> bool:
+    """Transition a JIRA ticket to target_name status (sync, safe — never raises).
+
+    target_name examples: "In Progress", "Done"
+    Looks up transition ID by name so it works across any JIRA board config.
+    """
+    import httpx  # type: ignore[import-untyped]
+
+    base = os.getenv("JIRA_BASE_URL", "").rstrip("/")
+    email = os.getenv("JIRA_USER_EMAIL", "")
+    token = os.getenv("JIRA_API_TOKEN", "")
+    if not (base and email and token):
+        logger.warning("JIRA not configured — skipping transition %s → %s", ticket_id, target_name)
+        return False
+
+    auth = (email, token)
+    try:
+        r = httpx.get(
+            f"{base}/rest/api/3/issue/{ticket_id}/transitions",
+            auth=auth,
+            timeout=15,
+        )
+        if r.status_code != 200:
+            logger.warning("JIRA transitions fetch failed %s: %s", ticket_id, r.status_code)
+            return False
+
+        transitions = r.json().get("transitions", [])
+        tid = next(
+            (t["id"] for t in transitions if t["name"].lower() == target_name.lower()),
+            None,
+        )
+        if not tid:
+            # Fallback: partial match (e.g. "in progress" matches "In Progress")
+            tid = next(
+                (t["id"] for t in transitions if target_name.lower() in t["name"].lower()),
+                None,
+            )
+        if not tid:
+            logger.warning(
+                "No transition named '%s' found for %s. Available: %s",
+                target_name, ticket_id, [t["name"] for t in transitions],
+            )
+            return False
+
+        r2 = httpx.post(
+            f"{base}/rest/api/3/issue/{ticket_id}/transitions",
+            json={"transition": {"id": tid}},
+            auth=auth,
+            timeout=15,
+        )
+        if r2.status_code in (200, 204):
+            logger.info("JIRA %s → '%s' (tid=%s)", ticket_id, target_name, tid)
+            return True
+        logger.warning("JIRA transition failed %s: %s %s", ticket_id, r2.status_code, r2.text[:200])
+        return False
+    except Exception as exc:
+        logger.warning("_jira_transition exception for %s: %s", ticket_id, exc)
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Activity: Spec Agent
 # ---------------------------------------------------------------------------
 
 @activity.defn(name="spec_activity")
 async def spec_activity(inp: AgentInput) -> AgentOutput:
+    # Move ticket to In Progress so it shows on the board immediately
+    activity.heartbeat("Spec Agent: transitioning JIRA ticket → In Progress")
+    _jira_transition(inp.feature_id, "In Progress")
+
     activity.heartbeat("Spec Agent: reading Brain memories")
     brain_ctx = _brain_context(inp.product_id, inp.stage)
 
@@ -437,6 +501,11 @@ Prepare release artifacts."""
         )
 
         pr_note = f" | PR: {pr_url}" if pr_url else ""
+
+        # Ticket fully delivered — move to Done on the board
+        activity.heartbeat("Deploy Agent: transitioning JIRA ticket → Done")
+        _jira_transition(inp.feature_id, "Done")
+
         return AgentOutput(
             agent_type="deploy", stage=inp.stage, status="completed",
             artifact_path=path,
