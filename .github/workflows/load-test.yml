@@ -1,0 +1,39 @@
+name: Load Test (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      users:
+        description: 'Number of concurrent users'
+        default: '20'
+      duration:
+        description: 'Test duration'
+        default: '30s'
+      host:
+        description: 'Target host'
+        default: 'http://localhost:8000'
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locust
+        run: pip install locust
+      - name: Run load test
+        run: |
+          locust -f load_tests/locustfile.py \
+            --headless \
+            -u ${{ github.event.inputs.users }} \
+            -r 5 \
+            --run-time ${{ github.event.inputs.duration }} \
+            --host ${{ github.event.inputs.host }} \
+            --html load-test-report.html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-report
+          path: load-test-report.html
