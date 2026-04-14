@@ -166,6 +166,7 @@ p code, li code { background: rgba(59,130,246,0.12); color: var(--accent); paddi
     <a href="recovery.html">Recovery</a>
     <a href="memory.html">Memory</a>
     <a href="diagrams.html">Diagrams</a>
+    <a href="uml-sequences.html">UML Sequences</a>
   </nav>
 </aside>
 
@@ -339,8 +340,99 @@ p code, li code { background: rgba(59,130,246,0.12); color: var(--accent); paddi
                                    |
                                    └──&gt; POST /api/v1/brain/memories (Postgres Brain)</code></pre>
 
+    <h2>UML Diagrams</h2>
+    <p class="lead">C4-style context and component diagrams rendered with Mermaid.js.</p>
+
+    <h3>System Context Diagram</h3>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1rem">ProjectZeroFactory at center — external actors and systems surrounding it.</p>
+    <div class="diagram">
+      <div class="mermaid">
+flowchart LR
+    User(["👤 User / Developer\nCLI + React UI"])
+    JIRA["☁️ JIRA Cloud\nTickets · Sprints · Transitions"]
+    Confluence["☁️ Confluence Cloud\nPage Publishing · CXO Reports"]
+    GitHub["🐙 GitHub\nPR Creation · Branch Push"]
+    Claude["🤖 Anthropic Claude API\nAI Model — all 5 agents"]
+    Temporal["⚙️ Temporal Cloud / Local\nWorkflow Orchestration"]
+    Postgres[("🗄️ PostgreSQL\nState + Brain")]
+
+    PZF["🏭 ProjectZeroFactory\n─────────────────\nFastAPI · React · Agents\nTemporal Workers · claude-mem"]
+
+    User -->|"commands / UI actions"| PZF
+    PZF -->|"REST / WS"| User
+    PZF -->|"create tickets\ntransition sprints"| JIRA
+    PZF -->|"publish pages\nhierarchy + CXO"| Confluence
+    PZF -->|"push branches\ncreate PRs"| GitHub
+    PZF -->|"LLM completions\nall agent calls"| Claude
+    PZF -->|"start workflows\nsignals · queries"| Temporal
+    Temporal -->|"activity results\nstate sync"| PZF
+    PZF -->|"SQLAlchemy async\nread / write"| Postgres
+      </div>
+    </div>
+
+    <h3>Component Diagram</h3>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1rem">Internal components and their relationships top-to-bottom.</p>
+    <div class="diagram">
+      <div class="mermaid">
+flowchart TB
+    ReactUI["⚛️ React Control Tower\nDashboard · Approval Queue · Live Feed"]
+    FastAPI["🚀 FastAPI Backend\nREST + WebSocket · SQLAlchemy async"]
+    Postgres[("🗄️ PostgreSQL\nState + Brain")]
+    TemporalWorker["⚙️ Temporal Worker\nWorkflow + Activity host"]
+    SpecAgent["🔍 Spec Agent"]
+    ArchAgent["🏗️ Arch Agent"]
+    ImplAgent["💻 Impl Agent"]
+    ReviewAgent["🔎 Review Agent"]
+    DeployAgent["🚀 Deploy Agent"]
+    AnthropicAPI["🤖 Anthropic Claude API"]
+    JIRAClient["📋 JIRA Client\nticket transitions"]
+    ConfluenceClient["📄 Confluence Client\npage publishing"]
+    ClaudeCodeCLI["💻 Claude Code CLI\nslash commands · hooks"]
+    ClaudeMem["🧠 claude-mem Worker :37777\nSQLite local store"]
+    BrainSync["🔄 Brain Sync\nscore ≥ 0.7 → promote"]
+
+    ReactUI -->|"REST / WebSocket"| FastAPI
+    FastAPI -->|"SQLAlchemy async"| Postgres
+    FastAPI -->|"start workflows · signals"| TemporalWorker
+    FastAPI -->|"publish pages"| ConfluenceClient
+    TemporalWorker --> SpecAgent
+    TemporalWorker --> ArchAgent
+    TemporalWorker --> ImplAgent
+    TemporalWorker --> ReviewAgent
+    TemporalWorker --> DeployAgent
+    SpecAgent -->|"LLM calls"| AnthropicAPI
+    ArchAgent -->|"LLM calls"| AnthropicAPI
+    ImplAgent -->|"LLM calls"| AnthropicAPI
+    ReviewAgent -->|"LLM calls"| AnthropicAPI
+    DeployAgent -->|"LLM calls"| AnthropicAPI
+    TemporalWorker -->|"transition tickets"| JIRAClient
+    ClaudeCodeCLI -->|"PostToolUse hook\n/observe"| ClaudeMem
+    ClaudeMem -->|"Stop hook\nflush + compress"| BrainSync
+    BrainSync -->|"POST /api/v1/brain/memories"| Postgres
+      </div>
+    </div>
+
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      background: '#1e293b',
+      primaryColor: '#3b82f6',
+      primaryTextColor: '#e2e8f0',
+      lineColor: '#94a3b8',
+      edgeLabelBackground: '#1e293b',
+      nodeBorder: '#334155',
+      clusterBkg: '#0f172a',
+      titleColor: '#e2e8f0',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }
+  });
+</script>
 
 </body>
 </html>

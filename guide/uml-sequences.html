@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UML Sequence Diagrams — ProjectZero</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6; --green: #22c55e; --red: #ef4444; --yellow: #eab308; --cyan: #06b6d4; --purple: #a855f7; --orange: #f97316; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+  aside { width: 260px; background: #0b1120; border-right: 1px solid var(--border); padding: 1.5rem 0; flex-shrink: 0; position: fixed; height: 100vh; overflow-y: auto; }
+  aside .brand { padding: 0 1.5rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+  aside .brand h1 { color: #fff; font-size: 1.1rem; }
+  aside .brand p { color: var(--muted); font-size: 0.7rem; }
+  aside a { display: block; padding: 0.5rem 1.5rem; color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: all 0.15s; }
+  aside a:hover { color: #fff; background: rgba(255,255,255,0.05); }
+  aside a.active { color: #fff; background: rgba(59,130,246,0.15); border-right: 2px solid var(--accent); }
+  main { margin-left: 260px; flex: 1; padding: 2rem 3rem; max-width: 1200px; }
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  h2 { font-size: 1.3rem; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+  .diagram { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin: 1.5rem 0; overflow-x: auto; }
+  .diagram-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 1.5rem; }
+
+  .mermaid { min-width: 900px; }
+
+  @media (max-width: 768px) {
+    aside { display: none; }
+    main { margin-left: 0; padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><h1>ProjectZero</h1><p>UML Sequence Diagrams</p></div>
+  <a href="index.html">Home</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="phases.html">Phases</a>
+  <a href="workflows.html">Workflows</a>
+  <a href="agents.html">Agents</a>
+  <a href="commands.html">Commands</a>
+  <a href="business-docs.html">Business Docs</a>
+  <a href="control-tower.html">Control Tower</a>
+  <a href="governance.html">Governance</a>
+  <a href="recovery.html">Recovery</a>
+  <a href="memory.html">Memory</a>
+  <a href="diagrams.html">Diagrams</a>
+  <a class="active" href="uml-sequences.html">UML Sequences</a>
+</aside>
+
+<main>
+
+<h1>UML <span>Sequence Diagrams</span></h1>
+<p class="subtitle">End-to-end message flows for FeatureDevelopmentWorkflow and MCRA 4-Eye Approval</p>
+
+<h2>Diagram 1 — FeatureDevelopmentWorkflow</h2>
+
+<div class="diagram">
+  <div class="diagram-title">FeatureDevelopmentWorkflow — Full Agent Pipeline Sequence</div>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant JIRA as JIRA
+    participant Tmp as Temporal
+    participant SA as SpecAgent
+    participant AA as ArchAgent
+    participant IA as ImplAgent
+    participant RA as ReviewAgent
+    participant DA as DeployAgent
+    participant Br as Brain
+    participant GH as GitHub
+
+    Dev->>JIRA: POST /tickets/submit
+    JIRA->>Tmp: start FeatureDevelopmentWorkflow
+    Tmp->>JIRA: transition "In Progress"
+
+    Tmp->>SA: spec_activity(AgentInput)
+    SA->>Br: GET /brain/memories
+    Br-->>SA: prior context
+    SA->>SA: call Claude API → generate spec
+    SA->>SA: call Claude API → generate TDD test outline
+    SA-->>Tmp: AgentOutput(spec_path, test_path)
+
+    Note over Tmp: approval gate 1 — spec review<br/>wait_condition up to 72h
+    Dev->>Tmp: signal: approve spec
+
+    Tmp->>AA: arch_activity(spec_path)
+    AA->>Br: GET /brain/memories
+    Br-->>AA: prior context
+    AA->>AA: call Claude API → generate ADR
+    AA-->>Tmp: AgentOutput(adr_path)
+
+    Note over Tmp: approval gate 2 — arch review<br/>wait_condition up to 72h
+    Dev->>Tmp: signal: approve arch
+
+    Tmp->>IA: impl_activity(arch_path)
+    IA->>IA: check TDD test outline exists (block if missing)
+    IA->>IA: create git branch feature/{ticket_id}
+    IA->>IA: call Claude API → TDD impl plan
+    IA->>GH: commit artifact
+
+    Tmp->>RA: review_activity(impl_path)
+    RA->>RA: call Claude API → code review
+    RA-->>Tmp: AgentOutput(review_path)
+
+    Tmp->>DA: deploy_activity(review_path)
+    DA->>GH: push branch + create PR
+    DA->>JIRA: transition "Done"
+    DA->>Br: POST /brain/memories — write release memory
+    DA-->>Tmp: AgentOutput(release_path, pr_url)
+  </div>
+</div>
+
+<h2>Diagram 2 — MCRA 4-Eye Approval</h2>
+
+<div class="diagram">
+  <div class="diagram-title">MCRA 4-Eye Approval — Maker → Checker → Reviewer → Approver</div>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Dev as Developer
+    participant Tmp as Temporal
+    participant Ch as Checker
+    participant Rev as Reviewer
+    participant Ap as Approver
+    participant JIRA as JIRA
+    participant Br as Brain
+
+    Dev->>Tmp: POST /tickets/{id}/approve — submit for MCRA review
+
+    Tmp->>Ch: mcra_checker_activity
+    Note over Ch: run quality gates<br/>pytest · ruff · pyright
+    Ch-->>Tmp: GateResult(passed/failed, details)
+
+    alt quality gates failed
+        Tmp->>JIRA: add comment "Checker FAILED: {details}"
+        Tmp-->>Dev: MCRAResult(status=failed)
+    end
+
+    Tmp->>Rev: mcra_reviewer_activity
+    Rev->>Br: GET /brain/patterns + /brain/decisions
+    Br-->>Rev: prior patterns + decisions
+    Rev->>Rev: call Claude API → review artifact
+    Rev->>JIRA: add comment "Reviewer: {verdict}"
+    Rev-->>Tmp: verdict(approved / changes_required)
+
+    alt reviewer requests changes
+        Tmp-->>Dev: MCRAResult(status=changes_required)
+    end
+
+    Note over Tmp: wait for human APPROVER signal<br/>72h timeout
+    Tmp->>JIRA: add comment "Awaiting APPROVER"
+
+    Dev->>Tmp: signal: mcra_approve(approved=true, comment)
+    Tmp->>JIRA: add comment "APPROVED by {approver}"
+    Tmp->>Br: POST /brain/decisions — write decision memory
+    Tmp-->>Dev: MCRAResult(status=approved, pr_url)
+  </div>
+</div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      background: '#1e293b',
+      primaryColor: '#1e3a5f',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#3b82f6',
+      lineColor: '#94a3b8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#0b1120',
+      noteBkgColor: '#1e293b',
+      noteTextColor: '#e2e8f0',
+      noteBorderColor: '#334155',
+      activationBkgColor: '#1e3a5f',
+      activationBorderColor: '#3b82f6',
+      actorBkg: '#1e293b',
+      actorBorder: '#3b82f6',
+      actorTextColor: '#e2e8f0',
+      actorLineColor: '#334155',
+      signalColor: '#94a3b8',
+      signalTextColor: '#e2e8f0',
+      labelBoxBkgColor: '#0b1120',
+      labelBoxBorderColor: '#334155',
+      labelTextColor: '#e2e8f0',
+      loopTextColor: '#e2e8f0',
+      altSectionBkgColor: '#0f172a',
+      altSectionBkgColor2: '#0b1120',
+      sequenceNumberColor: '#3b82f6',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      fontSize: '13px'
+    },
+    sequence: {
+      diagramMarginX: 20,
+      diagramMarginY: 20,
+      actorMargin: 50,
+      width: 150,
+      height: 65,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 35,
+      mirrorActors: false,
+      useMaxWidth: true
+    }
+  });
+</script>
+</body>
+</html>

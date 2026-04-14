@@ -596,6 +596,133 @@
   </div>
 </div>
 
+
+<!-- ============================================ -->
+<h2>15. UML Class Diagram — Brain Data Model</h2>
+<!-- ============================================ -->
+
+<div class="diagram">
+  <div class="diagram-title">Brain Postgres Schema — Entity Relationships</div>
+  <div class="mermaid">
+classDiagram
+    class Memory {
+      +UUID id
+      +String key
+      +String content
+      +String category
+      +String scope
+      +UUID product_id
+      +Boolean promoted
+      +String promotion_status
+      +String reviewer_note
+      +DateTime reviewed_at
+      +JSON metadata
+      +DateTime created_at
+      +read_memories(scope, product_id) List~Memory~
+      +promote(reviewer_note) void
+    }
+    class Decision {
+      +UUID id
+      +String key
+      +String context
+      +String options_considered
+      +String chosen
+      +String rationale
+      +String scope
+      +UUID product_id
+      +DateTime created_at
+      +record(context, chosen, rationale) void
+    }
+    class Pattern {
+      +UUID id
+      +String name
+      +String problem
+      +String solution
+      +String anti_patterns
+      +Float success_rate
+      +Int usage_count
+      +String scope
+      +DateTime created_at
+      +apply() void
+      +record_outcome(success) void
+    }
+    class Conversation {
+      +UUID id
+      +UUID workflow_step_id
+      +String mode
+      +JSON messages
+      +JSON decisions_extracted
+      +DateTime created_at
+      +switch_mode(mode) void
+      +extract_decisions() List~Decision~
+    }
+    class ClaudeMemObservation {
+      +Int id
+      +String memory_session_id
+      +String title
+      +String narrative
+      +String facts
+      +String concepts
+      +Int relevance_count
+      +String content_hash
+      +sync_to_brain() Memory
+    }
+
+    Memory "1" --> "0..*" Decision : promotes
+    ClaudeMemObservation ..> Memory : sync (relevance>=2)
+    Conversation "1" --> "0..*" Decision : extracts
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>16. Deployment Architecture</h2>
+<!-- ============================================ -->
+
+<div class="diagram">
+  <div class="diagram-title">Local Dev vs Cloud/SaaS — Full Deployment Topology</div>
+  <div class="mermaid">
+graph TB
+    subgraph LOCAL["Local Dev (Developer Machine)"]
+        DEV["Developer Machine<br/>Claude Code CLI / Browser"]
+        R3000["localhost:3000/5173<br/>React Control Tower"]
+        F8000["localhost:8000<br/>FastAPI (uvicorn)"]
+        T7233["localhost:7233<br/>Temporal Server (local)"]
+        P5432["localhost:5432<br/>PostgreSQL"]
+        M37777["localhost:37777<br/>claude-mem Worker (Bun)"]
+        SQLITE["~/.claude-mem/claude-mem.db<br/>SQLite"]
+
+        DEV --> R3000
+        DEV --> F8000
+        R3000 --> F8000
+        F8000 --> T7233
+        F8000 --> P5432
+        M37777 --> SQLITE
+        F8000 --> M37777
+    end
+
+    subgraph CLOUD["Cloud / SaaS"]
+        VERCEL["Vercel / CDN<br/>React Control Tower"]
+        RAILWAY["Railway / Fly.io<br/>FastAPI (Docker)"]
+        TEMPORAL_CLOUD["Temporal Cloud<br/>Workflow Orchestration"]
+        SUPABASE["Supabase / RDS<br/>PostgreSQL"]
+        JIRA["JIRA Cloud (SaaS)"]
+        CONFLUENCE["Confluence Cloud (SaaS)"]
+        GITHUB["GitHub (SaaS)"]
+        ANTHROPIC["Anthropic API (SaaS)"]
+
+        VERCEL --> RAILWAY
+        RAILWAY --> TEMPORAL_CLOUD
+        RAILWAY --> SUPABASE
+        RAILWAY --> JIRA
+        RAILWAY --> CONFLUENCE
+        RAILWAY --> GITHUB
+        RAILWAY --> ANTHROPIC
+    end
+  </div>
+</div>
+
 </main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:'dark',themeVariables:{background:'#1e293b',primaryColor:'#1e3a5f',primaryTextColor:'#e2e8f0',lineColor:'#94a3b8'}})</script>
 </body>
 </html>
