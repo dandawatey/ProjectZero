@@ -22,6 +22,8 @@ from pathlib import Path
 
 from temporalio import activity
 
+from app.services.skill_registry import get_skill
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,19 +110,6 @@ def _brain_context(product_id: str, stage: str) -> str:
 # Activity: Spec Agent
 # ---------------------------------------------------------------------------
 
-SPEC_SYSTEM = """You are the Spec Agent for ProjectZeroFactory.
-Your role: parse a JIRA feature ticket and produce a complete specification document.
-
-Output a Markdown document with:
-1. Feature Overview (problem, goal, success metrics)
-2. User Stories (As a <role>, I want <action>, so that <benefit>)
-3. Acceptance Criteria (Given/When/Then format, ≥3 per story)
-4. SPARC Definition of Done
-5. Dependencies and risks
-
-Be precise. Be exhaustive. No vague language."""
-
-
 @activity.defn(name="spec_activity")
 async def spec_activity(inp: AgentInput) -> AgentOutput:
     activity.heartbeat("Spec Agent: reading Brain memories")
@@ -139,8 +128,9 @@ Additional context: {json.dumps(inp.context)}
 Produce the full specification document for this feature."""
 
     activity.heartbeat("Spec Agent: calling Claude")
+    skill = get_skill("spec")
     try:
-        output = _call_claude(SPEC_SYSTEM, user_prompt)
+        output = _call_claude(skill.system_prompt, user_prompt)
         rel = f".claude/specs/{inp.feature_id}-spec.md"
         path = _write_artifact(inp.repo_path, rel, output)
         activity.heartbeat("Spec Agent: artifact written")
@@ -162,21 +152,6 @@ Produce the full specification document for this feature."""
 # ---------------------------------------------------------------------------
 # Activity: Arch Agent
 # ---------------------------------------------------------------------------
-
-ARCH_SYSTEM = """You are the Arch Agent for ProjectZeroFactory.
-Your role: design the system architecture for a specified feature.
-
-Output a Markdown document with:
-1. Architecture Decision Record (ADR) header (title, status, context, decision, consequences)
-2. Component diagram (ASCII or Mermaid)
-3. Data models (table/schema definitions)
-4. API contracts (endpoint, method, request/response shapes)
-5. Technology choices with rationale
-6. Security considerations
-7. Scalability and observability notes
-
-Decisions must be explicit. Every choice must have a rationale."""
-
 
 @activity.defn(name="arch_activity")
 async def arch_activity(inp: AgentInput) -> AgentOutput:
@@ -202,8 +177,9 @@ Brain context:
 Produce the architecture document."""
 
     activity.heartbeat("Arch Agent: calling Claude")
+    skill = get_skill("arch")
     try:
-        output = _call_claude(ARCH_SYSTEM, user_prompt)
+        output = _call_claude(skill.system_prompt, user_prompt)
         rel = f"docs/adr/{inp.feature_id}-adr.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
@@ -221,22 +197,6 @@ Produce the architecture document."""
 # ---------------------------------------------------------------------------
 # Activity: Impl Agent
 # ---------------------------------------------------------------------------
-
-IMPL_SYSTEM = """You are the Impl Agent for ProjectZeroFactory.
-Your role: implement a feature using strict TDD (test-first).
-
-Output a Markdown document containing:
-1. Implementation plan (ordered steps)
-2. Test file (full code, failing tests written first)
-3. Implementation file (full code, makes tests pass)
-4. Commit message (references ticket ID)
-5. Coverage notes (which paths are tested)
-
-Rules:
-- Write the failing test FIRST, then the implementation
-- No placeholder code — complete, runnable implementation only
-- Follow existing project conventions"""
-
 
 @activity.defn(name="impl_activity")
 async def impl_activity(inp: AgentInput) -> AgentOutput:
@@ -261,8 +221,9 @@ Brain context:
 Implement this feature following TDD. Output tests first, then implementation."""
 
     activity.heartbeat("Impl Agent: calling Claude")
+    skill = get_skill("implement")
     try:
-        output = _call_claude(IMPL_SYSTEM, user_prompt)
+        output = _call_claude(skill.system_prompt, user_prompt)
         rel = f".claude/impl/{inp.feature_id}-impl.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
@@ -280,21 +241,6 @@ Implement this feature following TDD. Output tests first, then implementation.""
 # ---------------------------------------------------------------------------
 # Activity: Review Agent
 # ---------------------------------------------------------------------------
-
-REVIEW_SYSTEM = """You are the Review Agent for ProjectZeroFactory.
-Your role: perform static analysis and code review on an implementation.
-
-Output a Markdown document with:
-1. Review verdict (APPROVED / CHANGES_REQUIRED / REJECTED)
-2. Critical issues (blocking — must fix before merge)
-3. Major issues (should fix)
-4. Minor issues (suggestions)
-5. Security findings
-6. Coverage gaps
-7. Summary recommendation
-
-Be direct. Flag every issue. No false positives, no missed negatives."""
-
 
 @activity.defn(name="review_activity")
 async def review_activity(inp: AgentInput) -> AgentOutput:
@@ -314,8 +260,9 @@ Implementation artifact:
 Perform thorough code review."""
 
     activity.heartbeat("Review Agent: calling Claude")
+    skill = get_skill("review")
     try:
-        output = _call_claude(REVIEW_SYSTEM, user_prompt)
+        output = _call_claude(skill.system_prompt, user_prompt)
         rel = f".claude/reviews/{inp.feature_id}-review.md"
         path = _write_artifact(inp.repo_path, rel, output)
         verdict = "APPROVED" if "APPROVED" in output[:500] else "CHANGES_REQUIRED"
@@ -334,19 +281,6 @@ Perform thorough code review."""
 # ---------------------------------------------------------------------------
 # Activity: Deploy Agent
 # ---------------------------------------------------------------------------
-
-DEPLOY_SYSTEM = """You are the Deploy Agent for ProjectZeroFactory.
-Your role: prepare release artifacts for a completed feature.
-
-Output a Markdown document with:
-1. Changelog entry (Keep a Changelog format)
-2. Release tag recommendation (semver)
-3. Deployment checklist (pre-deploy, deploy, post-deploy steps)
-4. Rollback plan
-5. Stakeholder notification draft
-
-Be precise about versions and steps."""
-
 
 @activity.defn(name="deploy_activity")
 async def deploy_activity(inp: AgentInput) -> AgentOutput:
@@ -367,8 +301,9 @@ Review summary:
 Prepare release artifacts."""
 
     activity.heartbeat("Deploy Agent: calling Claude")
+    skill = get_skill("deploy")
     try:
-        output = _call_claude(DEPLOY_SYSTEM, user_prompt)
+        output = _call_claude(skill.system_prompt, user_prompt)
         rel = f".claude/releases/{inp.feature_id}-release.md"
         path = _write_artifact(inp.repo_path, rel, output)
         return AgentOutput(
