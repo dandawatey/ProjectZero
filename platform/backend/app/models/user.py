@@ -22,9 +22,11 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)   # nullable for OAuth-only accounts
     role = Column(String(20), nullable=False, default="developer")
     is_active = Column(Boolean, nullable=False, default=True)
+    oauth_provider = Column(String(50), nullable=True)     # google | microsoft | sso
+    oauth_sub = Column(String(255), nullable=True, index=True)  # provider subject ID
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

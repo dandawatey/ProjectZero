@@ -1,5 +1,21 @@
 # 05 - Stage-by-Stage Workflow
 
+```mermaid
+stateDiagram-v2
+    [*] --> Phase0_FactoryInit
+    Phase0_FactoryInit --> Phase1_ProductCreation : all integrations valid
+    Phase1_ProductCreation --> Phase2a_VisionToPRD : product created
+    Phase1_ProductCreation --> Phase2b_BusinessDiscovery : product created (parallel ok)
+    Phase2a_VisionToPRD --> Phase3_Specification : BMAD+PRD validated
+    Phase2b_BusinessDiscovery --> Phase3_Specification : discovery complete
+    Phase3_Specification --> Phase4_Architecture : spec approved
+    Phase4_Architecture --> Phase5_Implementation : arch approved
+    Phase5_Implementation --> Phase6_QualityRelease : all modules approved
+    Phase6_QualityRelease --> Phase7_BusinessPlanning : deployed + stable
+    Phase7_BusinessPlanning --> Phase8_Operations : planning complete
+    Phase8_Operations --> Phase8_Operations : ongoing (continuous)
+```
+
 ## The 8-Phase Model
 
 All phases are Temporal workflows. All transitions are Temporal signals. No phase can be skipped.
@@ -208,6 +224,30 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 **Exit Criteria (per module)**: All stories done. Module integration tests pass. Module gate checklist complete. `/approve --module {name}` passed.
 
 ### The 10-Stage Feature Development Workflow (Detail)
+
+```mermaid
+sequenceDiagram
+    participant RM as Release Manager
+    participant QA as QA Engineer
+    participant Eng as Engineering
+    participant Checker
+    participant Reviewer
+    participant Approver
+
+    RM->>RM: 1. Create branch (feature/TICKET-desc)
+    QA->>QA: 2. Write failing tests (red)
+    Eng->>Eng: 3. Implement code (green)
+    Eng->>Eng: 4. Refactor (green)
+    QA->>QA: 5. Coverage check >= 80%
+    Eng->>Eng: 6. Self-check (lint, format)
+    Eng->>Checker: 7. Submit for checker validation
+    Checker-->>Eng: FAIL → fix (max 3)
+    Checker->>Reviewer: PASS → review
+    Reviewer-->>Eng: REQUEST_CHANGES → fix (max 3)
+    Reviewer->>Approver: APPROVE → final sign-off
+    Approver-->>Eng: REJECTED → fix with rationale
+    Approver->>RM: APPROVED → create PR + sync JIRA
+```
 
 For a single feature/story, the full workflow within Phase 5:
 

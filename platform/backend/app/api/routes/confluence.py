@@ -171,7 +171,7 @@ async def management_dashboard():
 
     Returns: integration health, products list with workflow summary.
     """
-    from app.core.database import AsyncSessionLocal
+    from app.core.database import async_session as AsyncSessionLocal
     from sqlalchemy import select, func, text
     from app.models.workflow import WorkflowRun, WorkflowStep, WorkflowApproval, WorkflowArtifact
     from app.models.brain import Decision, Memory
@@ -279,3 +279,13 @@ async def management_dashboard():
         dashboard["db_error"] = "Database unavailable"
 
     return dashboard
+
+
+@router.post("/publish/temporal-guide")
+async def publish_temporal_guide():
+    """Publish the Temporal knowledge page to Confluence (full-width, auto-generated)."""
+    from app.services.temporal_page_publisher import publish_temporal_page
+    result = await publish_temporal_page()
+    if result.get("status") == "error":
+        raise HTTPException(status_code=503, detail=result["detail"])
+    return result

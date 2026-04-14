@@ -1,5 +1,28 @@
 # 03 - Org Operating Model
 
+```mermaid
+graph TD
+    CoE["Center of Excellence\nFactory maintainers"]
+    Factory["ProjectZeroFactory Repo\n.claude/ OS + platform/ infra"]
+    Temporal["Temporal Server\nworkflows for ALL products"]
+    Postgres["Postgres\nstate for ALL products"]
+    CT["React Control Tower\ndashboard for ALL products"]
+
+    P1["Product: MyProduct\nGitHub + JIRA + Confluence"]
+    P2["Product: AnotherProduct\nGitHub + JIRA + Confluence"]
+    P3["Product: ThirdProduct\nGitHub + JIRA + Confluence"]
+
+    CoE -->|maintains + versions| Factory
+    Factory --> Temporal
+    Factory --> Postgres
+    Factory --> CT
+    Factory -->|bootstrap| P1
+    Factory -->|bootstrap| P2
+    Factory -->|bootstrap| P3
+    Temporal -->|workflows| P1 & P2 & P3
+    Postgres -->|state per product_id| P1 & P2 & P3
+```
+
 ## Core Boundary: Factory vs Product
 
 Two repos. Always.
@@ -92,6 +115,25 @@ Postgres stores per-product:
 Control Tower (React) visualizes all of this across the portfolio.
 
 ## Factory Upgrades
+
+```mermaid
+graph LR
+    CoE["CoE\nreleases v2.1.0"]
+    FU["/factory-upgrade --version 2.1.0\n(Temporal workflow)"]
+    Diff["Diff .claude/ + platform/"]
+    Apply["Apply non-conflicting changes"]
+    Flag["Flag conflicts\nfor manual resolution"]
+    Gate["Run integration gate\nvalidate all 7 systems"]
+    Record["Update factory version\nin Postgres"]
+
+    CoE --> FU
+    FU --> Diff
+    Diff --> Apply
+    Diff --> Flag
+    Apply --> Gate
+    Gate -->|pass| Record
+    Gate -->|fail| Flag
+```
 
 Factory is versioned. Products pin to a factory version.
 

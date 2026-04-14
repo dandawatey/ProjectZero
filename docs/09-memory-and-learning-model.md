@@ -2,6 +2,28 @@
 
 Memory lives in the PRODUCT REPO and the **Brain** (Postgres-backed persistent memory). Factory has org-level memory and factory-level learning patterns. The Brain is the system of record; file-based memory still exists but Brain takes precedence.
 
+```mermaid
+graph TD
+    Session["Session Memory\n/brain/memory?scope=session"]
+    Product["Product Memory\n/brain/memory?scope=product"]
+    Factory["Factory Memory\n/brain/memory?scope=factory"]
+    FileMemory[".claude/memory/\nProduct Repo Files\n(secondary/offline)"]
+
+    Session -->|"3+ occurrences\nOR manual flag"| Product
+    Product -->|"2+ products\n+ CoE approval"| Factory
+    Factory -->|"sync activity"| FileMemory
+    Session -.->|"sync activity"| FileMemory
+
+    subgraph Brain [Brain — Postgres /api/v1/brain/]
+        Session
+        Product
+        Factory
+        Decisions["/brain/decisions\nADRs + rationale"]
+        Patterns["/brain/patterns\nproven patterns + success rates"]
+        Conversations["/brain/conversations\nper workflow step + interaction mode"]
+    end
+```
+
 ## Architecture
 
 ```
@@ -125,6 +147,13 @@ No skipping. Temporal workflow enforces this.
 ```
 
 ## Learning Promotion Pipeline
+
+```mermaid
+graph LR
+    S["Session\nlearning"] -->|"3+ occurrences\nOR flagged"| P["Project\nlearning\n.claude/learning/"]
+    P -->|"2+ products\n+ CoE approval"| F["Factory\ntemplate\n.claude/knowledge/"]
+    F -->|"next factory version"| NP["New Product\ninherits pattern"]
+```
 
 ```
 Session → Project → Factory (requires approval)

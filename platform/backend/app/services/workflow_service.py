@@ -31,6 +31,7 @@ from app.schemas.workflow import (
     WorkflowTriggerUpdate,
     DashboardSummary,
     WorkflowAuditRead,
+    WorkflowRunRead,
 )
 from app.temporal_integration import client as temporal
 
@@ -324,6 +325,16 @@ async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
     failed = await _count("failed")
     blocked = await _count("blocked")
 
+    pending_approvals_r = await db.execute(
+        select(func.count(WorkflowApproval.id)).where(WorkflowApproval.status == "pending")
+    )
+    pending_approvals = pending_approvals_r.scalar_one()
+
+    recent_runs_r = await db.execute(
+        select(WorkflowRun).order_by(WorkflowRun.updated_at.desc()).limit(10)
+    )
+    recent_run_rows = recent_runs_r.scalars().all()
+
     recent = await db.execute(
         select(WorkflowAudit).order_by(WorkflowAudit.created_at.desc()).limit(20)
     )
@@ -334,6 +345,8 @@ async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
         completed=completed,
         failed=failed,
         blocked=blocked,
+        pending_approvals=pending_approvals,
+        recent_runs=[WorkflowRunRead.model_validate(r) for r in recent_run_rows],
         recent_activity=[WorkflowAuditRead.model_validate(r) for r in recent_rows],
     )
 

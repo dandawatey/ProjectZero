@@ -51,6 +51,22 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
+    # OAuth2 / Social login
+    frontend_url: str = "http://localhost:3000"
+    oauth_redirect_base_url: str = "http://localhost:8000"
+    # Google OAuth2
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # Microsoft / Azure AD OAuth2
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
+    microsoft_tenant_id: str = "common"
+    # Company SSO — OIDC (set discovery URL to your IdP)
+    sso_client_id: str = ""
+    sso_client_secret: str = ""
+    sso_discovery_url: str = ""   # e.g. https://login.example.com/.well-known/openid-configuration
+    sso_display_name: str = "Company SSO"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 

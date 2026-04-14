@@ -30,6 +30,8 @@ class BootstrapRequest(BaseModel):
     product_name: str
     repo_path: str
     jira_project_key: str = ""
+    github_url: str = ""
+    confluence_url: str = ""
 
 
 class ProductRead(BaseModel):
@@ -37,6 +39,8 @@ class ProductRead(BaseModel):
     name: str
     repo_path: str
     jira_project_key: str | None
+    github_url: str | None
+    confluence_url: str | None
     created_at: str
 
     model_config = {"from_attributes": True}
@@ -65,6 +69,8 @@ async def bootstrap(req: BootstrapRequest, db: AsyncSession = Depends(get_db)):
         name=req.product_name,
         repo_path=scaffold["repo_path"],
         jira_project_key=req.jira_project_key or None,
+        github_url=req.github_url or None,
+        confluence_url=req.confluence_url or None,
     )
     db.add(product)
     await db.commit()
@@ -89,6 +95,8 @@ async def list_products(db: AsyncSession = Depends(get_db)):
             name=p.name,
             repo_path=p.repo_path,
             jira_project_key=p.jira_project_key,
+            github_url=p.github_url,
+            confluence_url=p.confluence_url,
             created_at=p.created_at.isoformat(),
         )
         for p in products
@@ -110,5 +118,7 @@ async def get_product(product_id: str, db: AsyncSession = Depends(get_db)):
         name=p.name,
         repo_path=p.repo_path,
         jira_project_key=p.jira_project_key,
+        github_url=p.github_url,
+        confluence_url=p.confluence_url,
         created_at=p.created_at.isoformat(),
     )

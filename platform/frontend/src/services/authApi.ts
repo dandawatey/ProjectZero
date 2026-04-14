@@ -46,4 +46,10 @@ export const authApi = {
     request<UserProfile>('/me', {
       headers: { Authorization: `Bearer ${token}` },
     }),
+
+  providers: () =>
+    request<{ providers: Array<{ id: string; label: string; icon: string }> }>('/oauth/providers'),
+
+  /** Redirect browser to social login — returns the redirect URL to open */
+  oauthUrl: (provider: string) => `/api/v1/auth/oauth/${provider}`,
 };

@@ -1,5 +1,32 @@
 # 04 - Governance Model
 
+```mermaid
+graph TD
+    Start(["Workflow Start"])
+    Gate{"Integration Gate\n7 systems valid?"}
+    BMAD{"BMAD Validated?"}
+    Maker["Maker\nAgent produces artifact"]
+    Checker{"Checker Gate\nmatches spec?"}
+    Reviewer{"Reviewer Gate\nquality + security?"}
+    Approver{"Approver Gate\nfinal sign-off?"}
+    Done(["Artifact Approved\nWorkflow continues"])
+    Blocked(["BLOCKED\nEscalate to human"])
+
+    Start --> Gate
+    Gate -->|fail| Blocked
+    Gate -->|pass| BMAD
+    BMAD -->|fail| Blocked
+    BMAD -->|pass| Maker
+    Maker --> Checker
+    Checker -->|FAIL max 3| Maker
+    Checker -->|PASS| Reviewer
+    Reviewer -->|REQUEST_CHANGES max 3| Maker
+    Reviewer -->|BLOCK critical| Blocked
+    Reviewer -->|APPROVE| Approver
+    Approver -->|REJECTED| Maker
+    Approver -->|APPROVED| Done
+```
+
 ## Core Rule
 
 All governance is enforced through Temporal workflows. Not documentation. Not honor system. Temporal.

@@ -1,5 +1,25 @@
 # 01 -- How ProjectZeroFactory Works
 
+```mermaid
+graph TD
+    UI["React UI\nControl Tower\nlocalhost:3000"]
+    API["FastAPI\nBusiness Logic + State\nlocalhost:8000"]
+    PG["Postgres\nSystem of Record"]
+    TS["Temporal Server\nlocalhost:7233"]
+    TW["Temporal Workers\nPython Activities"]
+    BRAIN["Brain\n/api/v1/brain/"]
+    AGENTS["Claude Agents\n34 agents / 7 teams"]
+
+    UI -->|HTTP / SSE| API
+    API -->|SQLAlchemy| PG
+    API -->|Temporal Client SDK| TS
+    TS -->|Task Queues| TW
+    TW -->|Brain read/write| BRAIN
+    BRAIN -->|Postgres tables| PG
+    TW -->|Invoke| AGENTS
+    TW -->|Sync via FastAPI| API
+```
+
 ## Architecture Overview
 
 ProjectZeroFactory is a governed product development system with five components:
@@ -67,6 +87,27 @@ Central user activity tracking is available at `/api/v1/activities/`. Every user
 Activity data feeds into the Control Tower dashboard for real-time visibility.
 
 ## Core Principle: Feature = Workflow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant React
+    participant FastAPI
+    participant Temporal
+    participant Worker
+    participant Agent
+
+    User->>React: Create feature
+    React->>FastAPI: POST /api/features
+    FastAPI->>Temporal: start_workflow(FeatureDevelopmentWorkflow)
+    Temporal->>Worker: dispatch activity (task queue)
+    Worker->>Agent: invoke Claude agent
+    Agent-->>Worker: result
+    Worker->>FastAPI: POST /api/internal/sync (idempotent)
+    FastAPI->>FastAPI: write Postgres
+    FastAPI-->>React: SSE push
+    React-->>User: live status update
+```
 
 Every feature, bug fix, release, and governance action is a Temporal workflow. There is no work outside workflow context. This means:
 

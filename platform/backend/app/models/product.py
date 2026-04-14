@@ -22,4 +22,6 @@ class Product(Base):
     name = Column(String(255), unique=True, nullable=False, index=True)
     repo_path = Column(String(1024), nullable=False)
     jira_project_key = Column(String(50), nullable=True)
+    github_url = Column(String(1024), nullable=True)
+    confluence_url = Column(String(1024), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

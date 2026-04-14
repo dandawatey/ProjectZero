@@ -10,7 +10,6 @@ from app.core.middleware import JWTAuthMiddleware
 import app.models.metrics    # noqa: F401 — registers CxoMetricsCache with Base
 import app.models.user       # noqa: F401 — registers User + RefreshToken with Base
 import app.models.product    # noqa: F401 — registers Product with Base
-import app.models.iso_audit  # noqa: F401 — registers ISO 42001 audit tables with Base
 import app.models.story      # noqa: F401 — registers Story + AcceptanceCriteria with Base
 from app.api.routes import (
     workflows,
@@ -31,8 +30,10 @@ from app.api.routes import (
     auth,
     products,
     commands,
-    iso_audit,
     stories,
+    factory_build,
+    tickets,
+    factory_floor,
 )
 from app.services.integration_health import validate_on_startup, start_all_monitors
 from app.temporal_integration.worker import start_worker, stop_worker
@@ -50,14 +51,6 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     startup_results = await validate_on_startup()
     logger.info("Integration startup check: %s", startup_results)
-
-    # Auto-seed ISO 42001 Annex A controls (idempotent)
-    from app.core.database import AsyncSessionLocal
-    from app.services.iso_audit_service import seed_controls
-    async with AsyncSessionLocal() as db:
-        seeded = await seed_controls(db)
-        if seeded:
-            logger.info("ISO 42001: seeded %d Annex A controls", seeded)
 
     # Start background health monitors (non-blocking)
     await start_all_monitors(settings)
@@ -106,8 +99,10 @@ app.include_router(confluence.router, prefix="/api/v1/confluence", tags=["conflu
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
 app.include_router(commands.router, prefix="/api/v1/commands", tags=["commands"])
-app.include_router(iso_audit.router, prefix="/api/v1/iso-audit", tags=["iso-audit"])
 app.include_router(stories.router, prefix="/api/v1/stories", tags=["stories"])
+app.include_router(factory_build.router, prefix="/api/v1/factory-build", tags=["factory-build"])
+app.include_router(tickets.router, prefix="/api/v1/tickets", tags=["tickets"])
+app.include_router(factory_floor.router, prefix="/api/v1/factory", tags=["factory-floor"])
 
 
 @app.get("/health")

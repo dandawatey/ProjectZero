@@ -2,6 +2,38 @@
 
 Temporal is the primary recovery mechanism. Temporal never loses state. Event sourcing. Every activity completion is a checkpoint.
 
+```mermaid
+graph TD
+    Fail["Failure Event\n(crash / timeout / error)"]
+    Class{"Failure Class"}
+
+    IDE["IDE Crash / Session End"]
+    WFF["Workflow Activity Failure"]
+    IntF["Integration Failure"]
+    CTX["Context Overflow"]
+
+    IDE_R["Temporal keeps running\n/resume reloads context\nno work lost"]
+    WFF_R{"Temporal retry\n≤ 3 attempts"}
+    WFF_Esc["Escalate to human\nwork item BLOCKED"]
+    IntF_R{"Retry with\nexp backoff 1s→5s→30s"}
+    IntF_Fall["Fallback to local file\nqueue for reconciliation"]
+    CTX_R["Temporal checkpoint\nnew session started\n/resume from Brain + Temporal"]
+
+    Fail --> Class
+    Class --> IDE
+    Class --> WFF
+    Class --> IntF
+    Class --> CTX
+
+    IDE --> IDE_R
+    WFF --> WFF_R
+    WFF_R -->|pass| WFF_R
+    WFF_R -->|exhausted| WFF_Esc
+    IntF --> IntF_R
+    IntF_R -->|exhausted| IntF_Fall
+    CTX --> CTX_R
+```
+
 ## Architecture
 
 ```
@@ -78,6 +110,26 @@ Additionally, human-readable checkpoints written to product repo at:
 - Before risky operations (deployments, migrations)
 
 ## Recovery Commands
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Resume as /resume command
+    participant Temporal
+    participant Brain as Brain /api/v1/brain/
+    participant Files as .claude/recovery/
+
+    User->>Resume: run /resume
+    Resume->>Temporal: query active workflow state
+    Temporal-->>Resume: workflow + activity state
+    Resume->>Brain: GET /brain/conversations (last step dialogue)
+    Brain-->>Resume: full conversation context
+    Resume->>Brain: GET /brain/decisions (interrupted session)
+    Brain-->>Resume: architecture decisions
+    Resume->>Files: read current-stage.json + active-work.json
+    Files-->>Resume: supplementary state
+    Resume-->>User: status report + continue from exact point
+```
 
 ### /resume
 

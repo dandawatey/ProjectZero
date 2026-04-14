@@ -61,6 +61,7 @@ Owns quality gates, security, and UX compliance.
 | Approver | governance-team/approver.md | Final gate: business requirements, governance compliance |
 | Security Reviewer | governance-team/security-reviewer.md | OWASP, dependency audit, auth review. Can BLOCK. |
 | UX Reviewer | governance-team/ux-reviewer.md | Usability, accessibility, design system. Can BLOCK. |
+| ISO Documentation Agent | governance-team/iso-documentation-agent.md | Keep ISO 42001 docs current: SoA, risk register, incidents, audit readiness → Confluence |
 
 ## Operations Team
 Owns releases, integrations, infrastructure operations, and factory tooling.
@@ -91,4 +92,4 @@ CXO Team (CEO, CTO, CPO, CFO, CMO, CRO, Ralph)
     └──→ Marketing Team
 ```
 
-## Total Agents: 34 (across 7 teams)
+## Total Agents: 35 (across 7 teams)

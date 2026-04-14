@@ -13,6 +13,7 @@ import {
   Monitor,
   ExternalLink,
   BookOpen,
+  Factory,
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -28,22 +29,25 @@ import TemporalExecution from './pages/TemporalExecution';
 import ActivityMonitor from './pages/ActivityMonitor';
 import DevMonitor from './pages/DevMonitor';
 import UserGuide from './pages/UserGuide';
+import FactoryFloor from './pages/FactoryFloor';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfileMenu from './components/ProfileMenu';
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/dev', label: 'Dev Monitor', icon: Monitor },
-  { to: '/temporal', label: 'Temporal', icon: Zap },
-  { to: '/workflows', label: 'Workflows', icon: GitBranch },
-  { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
-  { to: '/agents', label: 'Agents', icon: Bot },
-  { to: '/activities', label: 'Activity', icon: Activity },
-  { to: '/artifacts', label: 'Artifacts', icon: Package },
-  { to: '/audit', label: 'Audit Log', icon: ScrollText },
-  { to: '/failures', label: 'Failures', icon: AlertTriangle },
-  { to: '/guide', label: 'User Guide', icon: BookOpen },
+  { to: '/app', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/app/floor', label: 'Factory Floor', icon: Factory },
+  { to: '/app/dev', label: 'Dev Monitor', icon: Monitor },
+  { to: '/app/temporal', label: 'Temporal', icon: Zap },
+  { to: '/app/workflows', label: 'Workflows', icon: GitBranch },
+  { to: '/app/approvals', label: 'Approvals', icon: ShieldCheck },
+  { to: '/app/agents', label: 'Agents', icon: Bot },
+  { to: '/app/activities', label: 'Activity', icon: Activity },
+  { to: '/app/artifacts', label: 'Artifacts', icon: Package },
+  { to: '/app/audit', label: 'Audit Log', icon: ScrollText },
+  { to: '/app/failures', label: 'Failures', icon: AlertTriangle },
+  { to: '/app/guide', label: 'User Guide', icon: BookOpen },
 ];
 
 // External links rendered separately in sidebar
@@ -63,7 +67,7 @@ function AppShell() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.to === '/app'}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
                   isActive
@@ -95,6 +99,7 @@ function AppShell() {
       <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/floor" element={<FactoryFloor />} />
           <Route path="/workflows" element={<WorkflowRuns />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
           <Route path="/approvals" element={<Approvals />} />
@@ -117,10 +122,11 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       {/* Protected — all app routes require auth */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/*" element={<AppShell />} />
+        <Route path="/app/*" element={<AppShell />} />
       </Route>
     </Routes>
   );

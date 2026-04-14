@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Layers } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,58 +21,69 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate(from, { replace: true });
-    } catch {
-      setError('Invalid email or password');
+    } catch (err) {
+      setError((err as Error).message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-900">
-      <div className="w-full max-w-sm rounded-xl bg-gray-800 p-8 shadow-2xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white">ProjectZero</h1>
-          <p className="mt-1 text-sm text-gray-400">Control Tower — Sign in</p>
+    <div className="flex h-screen w-full items-center justify-center bg-gray-950">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-blue-600/8 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg shadow-blue-500/20">
+            <Layers size={22} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">ProjectZero</h1>
+          <p className="text-sm text-gray-500 mt-1">Control Tower — Sign in</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-              className="w-full rounded-lg bg-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 border border-gray-600 focus:border-blue-500 focus:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg bg-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 border border-gray-600 focus:border-blue-500 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                className="w-full rounded-xl bg-gray-800 px-3.5 py-2.5 text-sm text-white placeholder-gray-600 border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full rounded-xl bg-gray-800 px-3.5 py-2.5 text-sm text-white placeholder-gray-600 border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
 
-          {error && (
-            <p className="text-xs text-red-400 bg-red-900/30 rounded px-3 py-2">{error}</p>
-          )}
+            {error && (
+              <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2.5">
+                {error}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60 transition-colors"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 py-2.5 text-sm font-semibold text-white disabled:opacity-60 transition-all"
+            >
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

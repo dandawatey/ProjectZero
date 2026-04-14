@@ -1,5 +1,49 @@
 # Architecture: Temporal Execution Engine
 
+```mermaid
+graph TD
+    subgraph React ["React Control Tower"]
+        FD[Features Dashboard]
+        AQ[Approval Queue]
+        WD[Workflow Detail]
+        RB[Release Board]
+    end
+
+    subgraph FastAPI ["FastAPI Backend"]
+        FAPI[Feature / Approval / Workflow / Release APIs]
+        SL[Sync Layer]
+        TC[Temporal Client]
+        PG[(Postgres)]
+        BRAIN[(Brain Tables)]
+        ACT[(Activity Monitor)]
+    end
+
+    subgraph Temporal ["Temporal Server"]
+        WE[Workflow Engine]
+        TQ1[feature-dev-task-queue]
+        TQ2[qa-task-queue]
+        TQ3[review-task-queue]
+        TQ4[release-task-queue]
+    end
+
+    subgraph Workers ["Temporal Workers"]
+        EW[Engineering Worker]
+        QW[QA Worker]
+        GW[Governance Worker]
+    end
+
+    React -->|HTTP/SSE| FastAPI
+    TC --> WE
+    WE --> TQ1 & TQ2 & TQ3 & TQ4
+    TQ1 --> EW
+    TQ2 --> QW
+    TQ3 & TQ4 --> GW
+    EW & QW & GW -->|HTTP sync| SL
+    SL --> PG
+    PG --> BRAIN
+    PG --> ACT
+```
+
 ## System Architecture
 
 ```
@@ -246,6 +290,26 @@ CREATE TABLE audit_log (
 
 ## Signal-Based Approvals
 
+```mermaid
+sequenceDiagram
+    participant WF as Temporal Workflow
+    participant FA as FastAPI
+    participant PG as Postgres
+    participant UI as React UI
+    participant Human
+
+    WF->>FA: POST /api/approvals (create_approval_request)
+    FA->>PG: INSERT approval_request (pending)
+    WF->>WF: await wait_condition(decision not None)
+    UI->>FA: GET /api/approvals/pending
+    FA-->>UI: list of pending approvals
+    Human->>UI: click Approve / Reject
+    UI->>FA: POST /api/approvals/{id}
+    FA->>PG: UPDATE approval_request (approved/rejected)
+    FA->>WF: temporal.signal("checker_signal", decision)
+    WF->>WF: wait_condition resolves → continue
+```
+
 Human decisions (approve, reject, sign-off) flow from React UI through FastAPI to Temporal as signals.
 
 ### Flow
@@ -297,6 +361,26 @@ async def submit_approval(approval_id: UUID, body: ApprovalSubmission, db: Async
 ```
 
 ## Child Workflows for Governance
+
+```mermaid
+graph TD
+    Parent["feature_development_workflow\n(parent)"]
+    MCRA1["maker_checker_reviewer_approver_workflow\nspec governance"]
+    MCRA2["maker_checker_reviewer_approver_workflow\ndesign governance"]
+    MCRA3["maker_checker_reviewer_approver_workflow\narch governance"]
+    QA["qa_validation_workflow\ntesting"]
+    MCRA4["maker_checker_reviewer_approver_workflow\ncode review governance"]
+    Deploy["deployment_readiness_workflow\npre-deploy checks"]
+    Release["release_governance_workflow\nrelease sign-offs"]
+
+    Parent --> MCRA1
+    Parent --> MCRA2
+    Parent --> MCRA3
+    Parent --> QA
+    Parent --> MCRA4
+    Parent --> Deploy
+    Parent --> Release
+```
 
 Governance (MCRA, QA validation, deployment readiness) runs as child workflows:
 

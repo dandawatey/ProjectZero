@@ -242,6 +242,36 @@ class ConfluenceClient:
     # Page CRUD
     # ------------------------------------------------------------------
 
+    async def _set_full_width(self, client: httpx.AsyncClient, page_id: str) -> None:
+        """Set full-width layout on a Confluence page via content property."""
+        for key in ("content-appearance-published", "content-appearance-draft"):
+            try:
+                # Check if property already exists
+                r = await client.get(
+                    f"{self.base}/rest/api/content/{page_id}/property/{key}",
+                    auth=self.auth, timeout=15,
+                )
+                if r.status_code == 200:
+                    existing = r.json()
+                    version = existing.get("version", {}).get("number", 1)
+                    await client.put(
+                        f"{self.base}/rest/api/content/{page_id}/property/{key}",
+                        json={"key": key, "value": "full-width", "version": {"number": version + 1}},
+                        auth=self.auth,
+                        headers={"Content-Type": "application/json"},
+                        timeout=15,
+                    )
+                else:
+                    await client.post(
+                        f"{self.base}/rest/api/content/{page_id}/property",
+                        json={"key": key, "value": "full-width"},
+                        auth=self.auth,
+                        headers={"Content-Type": "application/json"},
+                        timeout=15,
+                    )
+            except Exception as exc:
+                logger.debug("_set_full_width(%s, %s): %s", page_id, key, exc)
+
     async def _create_page(self, title: str, body: str, parent_id: str | None) -> str | None:
         payload: dict[str, Any] = {
             "type": "page",
@@ -256,6 +286,9 @@ class ConfluenceClient:
                 result = await self._post(c, "/rest/api/content", payload)
             page_id = result.get("id")
             logger.info("Created Confluence page '%s' id=%s", title, page_id)
+            if page_id:
+                async with httpx.AsyncClient() as c:
+                    await self._set_full_width(c, page_id)
             return page_id
         except Exception as exc:
             logger.error("_create_page(%s) failed: %s", title, exc)
@@ -271,6 +304,7 @@ class ConfluenceClient:
         try:
             async with httpx.AsyncClient() as c:
                 await self._put(c, f"/rest/api/content/{page_id}", payload)
+                await self._set_full_width(c, page_id)
             logger.info("Updated Confluence page id=%s version=%d", page_id, current_version + 1)
             return True
         except Exception as exc:

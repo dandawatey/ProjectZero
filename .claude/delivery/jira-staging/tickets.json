@@ -1,0 +1,359 @@
+{
+  "project_key": "PRJ0",
+  "epic": {
+    "summary": "ProjectZero Platform — Missing Infrastructure & Services",
+    "description": "Epic covering all 14 missing platform features identified in gap analysis. Each feature follows SPARC methodology with clear DONE criteria."
+  },
+  "tickets": [
+    {
+      "id": "PZ-DOCKER",
+      "type": "Story",
+      "priority": "P1",
+      "summary": "Docker + docker-compose for full platform stack",
+      "labels": ["infrastructure", "P1", "sparc"],
+      "story_points": 5,
+      "description": "As a developer, I want to run the entire ProjectZero stack locally with one command so that I can develop and test without manual service setup.",
+      "sparc": {
+        "specification": "Create Dockerfile for backend (FastAPI), frontend (React/Vite), temporal worker. Create docker-compose.yml orchestrating: postgres, redis, temporal-server, temporal-ui, backend, frontend, temporal-worker. Include volume mounts for hot-reload. Include health checks.",
+        "pseudocode": "docker-compose.yml: postgres:15 → redis:7 → temporal-server (depends: postgres) → temporal-ui (depends: temporal-server) → backend (depends: postgres, redis, temporal) → frontend (depends: backend) → worker (depends: temporal, backend)",
+        "architecture": "Multi-container Docker Compose. Postgres on 5432, Redis on 6379, Temporal on 7233, Temporal UI on 8233, Backend on 8000, Frontend on 3000. Shared network. Named volumes for data persistence.",
+        "realization": "Write Dockerfiles with multi-stage builds. Write docker-compose.yml. Test all services start and communicate. Backend runs migrations on startup.",
+        "completion": "All services start with `docker-compose up`. Health checks pass. Frontend loads. Backend responds. Temporal UI accessible."
+      },
+      "acceptance_criteria": [
+        "`docker-compose up` starts all 7 services without errors",
+        "Frontend accessible at localhost:3000",
+        "Backend health check passes at localhost:8000/health",
+        "Temporal UI accessible at localhost:8233",
+        "Postgres, Redis reachable from backend container",
+        "Hot-reload works for backend and frontend in dev mode",
+        "Volume persistence: data survives `docker-compose down` + `up`"
+      ],
+      "done_state": "All 7 containers running. Health checks green. Frontend renders dashboard. Backend serves API. Temporal processes test workflow. No manual setup steps required beyond `docker-compose up`."
+    },
+    {
+      "id": "PZ-ALEMBIC",
+      "type": "Story",
+      "priority": "P1",
+      "summary": "Alembic database migrations for all models",
+      "labels": ["database", "P1", "sparc"],
+      "story_points": 3,
+      "description": "As a developer, I want database schema managed through versioned migrations so that schema changes are repeatable, reversible, and tracked.",
+      "sparc": {
+        "specification": "Initialize Alembic in platform/backend/. Generate initial migration for all 14 models (WorkflowRun, WorkflowStep, WorkflowApproval, WorkflowArtifact, WorkflowAudit, WorkflowTrigger, AgentContribution, UserActivity, UserSession, SystemEvent, Memory, Decision, Pattern, Conversation). Configure for async SQLAlchemy.",
+        "pseudocode": "alembic init → configure env.py for async → autogenerate migration → test upgrade → test downgrade",
+        "architecture": "Alembic migrations in platform/backend/migrations/versions/. env.py configured for async PostgreSQL. All models imported in env.py target_metadata.",
+        "realization": "Run alembic init. Edit env.py for async. Generate first migration. Test up/down.",
+        "completion": "`alembic upgrade head` creates all tables. `alembic downgrade -1` reverses cleanly."
+      },
+      "acceptance_criteria": [
+        "Alembic initialized in platform/backend/",
+        "Initial migration creates all 14 model tables",
+        "`alembic upgrade head` succeeds on clean database",
+        "`alembic downgrade -1` reverses without errors",
+        "All indexes and constraints match model definitions",
+        "Migration runs inside Docker container"
+      ],
+      "done_state": "Running `alembic upgrade head` on empty Postgres creates complete schema matching all 14 SQLAlchemy models. Downgrade works. Migration embedded in Docker startup."
+    },
+    {
+      "id": "PZ-AUTH",
+      "type": "Story",
+      "priority": "P1",
+      "summary": "Authentication and user management system",
+      "labels": ["auth", "security", "P1", "sparc"],
+      "story_points": 8,
+      "description": "As a platform user, I want to authenticate and have my actions tracked to my identity so that all activity is attributable and access is controlled.",
+      "sparc": {
+        "specification": "User model (id, email, name, role, password_hash, is_active). JWT auth (access token 15min, refresh token 7d). Roles: admin, developer, viewer. Routes: POST /auth/register, POST /auth/login, POST /auth/refresh, GET /auth/me. Password hashing with bcrypt. Auth middleware on all /api/v1/ routes. CORS token handling.",
+        "pseudocode": "register(email, password, name) → hash pw → save user → return tokens. login(email, password) → verify → issue JWT. middleware: extract token → verify → inject user into request.",
+        "architecture": "User model in models/user.py. Auth service in services/auth_service.py. Auth routes in api/routes/auth.py. JWT middleware in core/auth.py. Dependencies inject current_user.",
+        "realization": "Implement User model, auth service (register, login, verify, refresh), JWT utility, auth dependency, routes. Add auth middleware to existing routes.",
+        "completion": "Register, login, refresh work. Protected routes require valid JWT. Activity tracking includes user_id from JWT."
+      },
+      "acceptance_criteria": [
+        "User registration with email + password",
+        "Login returns JWT access + refresh tokens",
+        "Protected routes reject requests without valid token",
+        "User roles enforced (admin can manage users, developer can execute, viewer read-only)",
+        "Password stored as bcrypt hash, never plaintext",
+        "Activity tracking auto-captures user_id from JWT",
+        "Token refresh works without re-login"
+      ],
+      "done_state": "User registers → logs in → gets JWT → accesses protected routes → activity logged with user identity. Invalid/expired tokens rejected with 401. Admin can list/deactivate users."
+    },
+    {
+      "id": "PZ-REDIS",
+      "type": "Story",
+      "priority": "P1",
+      "summary": "Redis client service for caching and pub/sub",
+      "labels": ["infrastructure", "P1", "sparc"],
+      "story_points": 3,
+      "description": "As the platform, I need Redis for caching frequently-accessed data and real-time pub/sub for live UI updates.",
+      "sparc": {
+        "specification": "Redis client in core/redis.py using redis.asyncio. Cache service: get/set/delete with TTL. Pub/sub: publish workflow state changes, subscribe from WebSocket handler. Cache targets: dashboard summary (30s TTL), integration status (60s TTL), agent status (10s TTL).",
+        "pseudocode": "init: redis.from_url(REDIS_URL). cache_get(key) → redis.get. cache_set(key, value, ttl) → redis.setex. publish(channel, message) → redis.publish. subscribe(channel) → redis.subscribe + async iterator.",
+        "architecture": "core/redis.py (connection factory), services/cache_service.py (cache operations), used by routes for response caching.",
+        "realization": "Implement redis client, cache service, add caching to dashboard and agent status routes.",
+        "completion": "Redis connected. Dashboard caches. Pub/sub publishes workflow events."
+      },
+      "acceptance_criteria": [
+        "Redis client connects on startup",
+        "Dashboard summary cached (30s TTL)",
+        "Cache invalidated on workflow state change",
+        "Pub/sub publishes on workflow transitions",
+        "Redis health check in /api/v1/integrations/validate",
+        "Works in Docker network"
+      ],
+      "done_state": "Redis connected. GET /dashboard/summary serves from cache on repeat calls. Workflow state change invalidates cache. Redis PING returns PONG in health check."
+    },
+    {
+      "id": "PZ-GITHUB",
+      "type": "Story",
+      "priority": "P2",
+      "summary": "GitHub API client for repo and PR management",
+      "labels": ["integration", "P2", "sparc"],
+      "story_points": 5,
+      "description": "As the platform, I need to create GitHub repos, branches, and PRs programmatically during product bootstrap and feature development.",
+      "sparc": {
+        "specification": "GitHub service using httpx. Operations: create_repo(org, name), create_branch(repo, branch, from_branch), create_pr(repo, title, body, head, base), get_repo(org, name), list_prs(repo), merge_pr(repo, pr_number). Auth via GITHUB_TOKEN. Error handling with retry.",
+        "pseudocode": "create_repo: POST /orgs/{org}/repos → return repo_url. create_pr: POST /repos/{owner}/{repo}/pulls → return pr_url. All calls: headers={Authorization: token {GITHUB_TOKEN}}.",
+        "architecture": "services/github_service.py (async httpx client). Used by /bootstrap-product command and Temporal activities.",
+        "realization": "Implement all operations. Add to bootstrap flow. Test with real API.",
+        "completion": "/bootstrap-product creates real GitHub repo. Feature workflow creates branch + PR."
+      },
+      "acceptance_criteria": [
+        "Create repo via API during /bootstrap-product",
+        "Create feature branch per ticket",
+        "Create PR with title, description, base branch",
+        "List and merge PRs",
+        "Retry on rate limit (exponential backoff)",
+        "Validate token in /api/v1/integrations/validate"
+      ],
+      "done_state": "/bootstrap-product creates GitHub repo. /implement creates feature branch. PR created after implementation. GitHub integration validates in /factory-init."
+    },
+    {
+      "id": "PZ-JIRA",
+      "type": "Story",
+      "priority": "P2",
+      "summary": "JIRA API client for ticket lifecycle management",
+      "labels": ["integration", "P2", "sparc"],
+      "story_points": 8,
+      "description": "As the platform, I need to create and manage JIRA tickets automatically as features move through workflow stages.",
+      "sparc": {
+        "specification": "JIRA service using httpx + Basic Auth. Operations: create_project(key, name), create_issue(project, type, summary, description, priority, labels), update_issue(key, fields), transition_issue(key, transition_id), get_issue(key), search_issues(jql), add_comment(key, comment), create_sprint(board_id, name). Auth: email:token base64.",
+        "pseudocode": "create_issue: POST /rest/api/3/issue → return issue_key. transition: POST /rest/api/3/issue/{key}/transitions. All calls: auth=(email, token).",
+        "architecture": "services/jira_service.py. Temporal activity calls JIRA service at each stage transition. Maps workflow stages to JIRA statuses.",
+        "realization": "Implement all operations. Wire into Temporal record_step activity. Auto-create tickets during /spec. Auto-transition during workflow execution.",
+        "completion": "/spec creates JIRA tickets. Workflow transitions update ticket status. Comments added at each stage."
+      },
+      "acceptance_criteria": [
+        "Create JIRA project during /bootstrap-product",
+        "Create tickets with summary, description, acceptance criteria, story points",
+        "Transition tickets as workflow progresses (To Do → In Progress → In Review → Done)",
+        "Add comments at each stage with agent output summary",
+        "Search issues by JQL",
+        "Handle rate limits and auth errors gracefully"
+      ],
+      "done_state": "Running /spec creates JIRA tickets. Running /implement transitions tickets through statuses. Each stage adds comment. Ticket reaches 'Done' when workflow completes."
+    },
+    {
+      "id": "PZ-CONFLUENCE",
+      "type": "Story",
+      "priority": "P2",
+      "summary": "Confluence API client for documentation hub management",
+      "labels": ["integration", "P2", "sparc"],
+      "story_points": 5,
+      "description": "As the platform, I need to create and update Confluence spaces and pages to maintain living project documentation.",
+      "sparc": {
+        "specification": "Confluence service using httpx. Operations: create_space(key, name), create_page(space, title, body, parent_id), update_page(page_id, title, body, version), get_page(page_id), search(cql). Create hub structure from templates during bootstrap.",
+        "pseudocode": "create_space: POST /rest/api/space. create_page: POST /rest/api/content with storage format body. update: PUT /rest/api/content/{id} with version increment.",
+        "architecture": "services/confluence_service.py. Used by /bootstrap-product (create hub) and phase transitions (update pages).",
+        "realization": "Implement operations. Create hub structure from .claude/templates/confluence-*. Update pages at phase boundaries.",
+        "completion": "/bootstrap-product creates Confluence space with hub. Phase completions update relevant pages."
+      },
+      "acceptance_criteria": [
+        "Create Confluence space during /bootstrap-product",
+        "Create hub pages from templates (overview, BMAD, architecture, modules, etc.)",
+        "Update pages at phase boundaries with generated content",
+        "Search pages by CQL",
+        "Handle version conflicts (read-modify-write)"
+      ],
+      "done_state": "/bootstrap-product creates Confluence space with 10 hub pages. /arch updates architecture page. /release updates release notes page. All from templates."
+    },
+    {
+      "id": "PZ-AI-EXEC",
+      "type": "Story",
+      "priority": "P2",
+      "summary": "AI/Claude execution service for agent work",
+      "labels": ["ai", "core", "P2", "sparc"],
+      "story_points": 8,
+      "description": "As an AI agent, I need to call Claude API to perform actual work (write specs, generate code, review, etc.) within Temporal workflow steps.",
+      "sparc": {
+        "specification": "AI service wrapping Anthropic SDK. Operations: execute_agent(agent_type, prompt, context, max_tokens), stream_agent(agent_type, prompt, context). Agent context loading: read Brain memories + relevant .claude/agents/ definition + skill instructions. Response parsing: extract code blocks, decisions, artifacts. Token tracking per execution.",
+        "pseudocode": "execute_agent: load_context(agent_type, product_id) → build_prompt(agent_def + memories + task) → anthropic.messages.create() → parse_response() → store_artifacts() → write_brain()",
+        "architecture": "services/ai_service.py (Anthropic client wrapper). Used by Temporal execute_stage activity. Each agent type maps to system prompt from .claude/agents/. Context enriched from Brain.",
+        "realization": "Implement Anthropic client, agent context builder, prompt templating, response parser, artifact extractor. Wire into execute_stage activity.",
+        "completion": "Temporal execute_stage calls Claude API with agent-specific context. Response parsed into artifacts. Brain updated."
+      },
+      "acceptance_criteria": [
+        "Claude API called with agent-specific system prompt",
+        "Brain memories loaded as context before each call",
+        "Response parsed: code blocks extracted, decisions captured",
+        "Artifacts stored in DB and optionally in MinIO",
+        "Token usage tracked per agent execution",
+        "Handles API errors, rate limits, context overflow gracefully",
+        "Works with claude-sonnet-4-20250514 model"
+      ],
+      "done_state": "Temporal workflow step calls execute_stage → AI service loads agent context from Brain + .claude/agents/ → calls Claude API → parses response → stores artifacts → writes learnings to Brain. Token usage logged."
+    },
+    {
+      "id": "PZ-MINIO",
+      "type": "Story",
+      "priority": "P3",
+      "summary": "MinIO object storage for document and artifact uploads",
+      "labels": ["storage", "P3", "sparc"],
+      "story_points": 5,
+      "description": "As the platform, I need object storage for uploaded documents (PRDs, BMADs) and generated artifacts (code, reports, diagrams).",
+      "sparc": {
+        "specification": "MinIO service using minio-py SDK. Operations: upload_file(bucket, key, file), download_file(bucket, key), get_presigned_url(bucket, key, expiry), list_objects(bucket, prefix), delete_object(bucket, key). Buckets: documents (user uploads), artifacts (generated), exports (reports).",
+        "pseudocode": "upload: client.put_object(bucket, key, data, length). download: client.get_object(bucket, key). presigned: client.presigned_get_object(bucket, key, expires=3600).",
+        "architecture": "services/storage_service.py. MinIO in docker-compose. Used by: /vision-to-prd (store uploaded PRD), artifact generation (store outputs), /release (store release packages).",
+        "realization": "Implement MinIO client, storage service, upload route. Add MinIO to docker-compose. Wire into artifact workflow.",
+        "completion": "Files upload/download via API. Artifacts stored in MinIO. Presigned URLs for frontend display."
+      },
+      "acceptance_criteria": [
+        "MinIO running in docker-compose",
+        "Upload documents via POST /api/v1/storage/upload",
+        "Download via GET /api/v1/storage/download/{key}",
+        "Presigned URLs for frontend display",
+        "Artifacts from workflows auto-stored",
+        "3 buckets: documents, artifacts, exports"
+      ],
+      "done_state": "User uploads PRD → stored in MinIO. Workflow generates artifact → stored in MinIO. Frontend displays via presigned URL. All buckets created on startup."
+    },
+    {
+      "id": "PZ-WEBSOCKET",
+      "type": "Story",
+      "priority": "P3",
+      "summary": "WebSocket real-time updates for Control Tower",
+      "labels": ["frontend", "real-time", "P3", "sparc"],
+      "story_points": 5,
+      "description": "As a developer watching the Control Tower, I want real-time updates without refreshing so that I see workflow progress, agent activity, and approvals live.",
+      "sparc": {
+        "specification": "WebSocket endpoint at /ws. Channels: workflow_updates (stage transitions), agent_activity (agent start/complete), approvals (new pending), system_events. Backend publishes via Redis pub/sub → WebSocket broadcaster. Frontend: useWebSocket hook, auto-reconnect.",
+        "pseudocode": "backend: @app.websocket('/ws') → subscribe redis channels → forward to client. frontend: useWebSocket('/ws') → onMessage → update React Query cache.",
+        "architecture": "WebSocket handler in backend using Starlette. Redis pub/sub for cross-process broadcasting. Frontend hook updates React Query cache for instant UI refresh.",
+        "realization": "Implement WS handler, Redis subscriber, message router. Frontend hook with reconnection. Update Dashboard, DevMonitor, Approvals pages.",
+        "completion": "Workflow state change → Redis pub → WebSocket → UI updates without refresh."
+      },
+      "acceptance_criteria": [
+        "WebSocket connects at /ws",
+        "Workflow stage transitions appear in real-time",
+        "New approvals appear without refresh",
+        "Agent start/complete visible live",
+        "Auto-reconnect on disconnect",
+        "Works behind Docker network"
+      ],
+      "done_state": "Start workflow → Dashboard updates in real-time. Approval requested → Approvals page shows instantly. Agent starts → DevMonitor shows live. No polling required."
+    },
+    {
+      "id": "PZ-OBSERVABILITY",
+      "type": "Story",
+      "priority": "P3",
+      "summary": "Observability stack: Prometheus + Sentry + OpenTelemetry",
+      "labels": ["observability", "P3", "sparc"],
+      "story_points": 5,
+      "description": "As an operator, I want metrics, error tracking, and distributed tracing so that I can monitor platform health and debug issues.",
+      "sparc": {
+        "specification": "Prometheus metrics endpoint at /metrics (request count, latency histogram, active workflows, agent executions). Sentry integration for error tracking. OpenTelemetry tracing for distributed request tracing across FastAPI → Temporal → agents. Grafana dashboard.",
+        "pseudocode": "prometheus: instrument fastapi with prometheus_fastapi_instrumentator. sentry: sentry_sdk.init(dsn). otel: configure TracerProvider with OTLP exporter.",
+        "architecture": "core/observability.py (init all providers). Prometheus at /metrics. Sentry error handler. OTEL trace context propagated to Temporal activities.",
+        "realization": "Add prometheus-fastapi-instrumentator, sentry-sdk, opentelemetry packages. Configure in app startup. Add Prometheus + Grafana to docker-compose.",
+        "completion": "/metrics returns Prometheus data. Errors appear in Sentry. Traces span FastAPI → Temporal."
+      },
+      "acceptance_criteria": [
+        "GET /metrics returns Prometheus metrics",
+        "Grafana dashboard shows request rate, latency, error rate",
+        "Errors auto-reported to Sentry with context",
+        "Distributed traces span API → Temporal → activities",
+        "Custom metrics: active_workflows, agent_executions, approval_wait_time"
+      ],
+      "done_state": "Grafana dashboard shows platform health. Sentry captures errors with stack traces. Traces visible in Jaeger/OTEL collector. Custom workflow metrics tracked."
+    },
+    {
+      "id": "PZ-BACKEND-TESTS",
+      "type": "Story",
+      "priority": "P4",
+      "summary": "Backend test suite: unit + integration + API tests",
+      "labels": ["testing", "P4", "sparc"],
+      "story_points": 8,
+      "description": "As a developer, I want comprehensive backend tests so that changes don't break existing functionality.",
+      "sparc": {
+        "specification": "pytest + pytest-asyncio + httpx for async tests. Unit tests: all services (workflow, brain, activity, auth). Integration tests: all API routes with test DB. Fixtures: test database, test user, sample workflow. Coverage target: 80%.",
+        "pseudocode": "conftest.py: create test DB, async session, test client. test_workflows.py: test start, signal, query. test_brain.py: test memory CRUD, promotion. test_auth.py: test register, login, protected routes.",
+        "architecture": "platform/backend/tests/ with conftest.py, test_*.py per module. Uses pytest-asyncio for async. Test DB created/dropped per session.",
+        "realization": "Write conftest with fixtures. Write tests per service and route module. Run with coverage.",
+        "completion": "pytest passes. Coverage ≥ 80%. CI-ready."
+      },
+      "acceptance_criteria": [
+        "Tests for all service functions",
+        "Tests for all API routes (success + error cases)",
+        "Test database isolation (no pollution between tests)",
+        "Coverage ≥ 80%",
+        "Tests run in < 60 seconds",
+        "CI-compatible (no manual setup needed)"
+      ],
+      "done_state": "`pytest` passes all tests. `pytest --cov` shows ≥ 80% coverage. Tests run in Docker. No flaky tests."
+    },
+    {
+      "id": "PZ-FRONTEND-TESTS",
+      "type": "Story",
+      "priority": "P4",
+      "summary": "Frontend test suite: component + integration tests",
+      "labels": ["testing", "P4", "sparc"],
+      "story_points": 5,
+      "description": "As a developer, I want frontend tests for all pages and components so that UI changes don't break functionality.",
+      "sparc": {
+        "specification": "Vitest + React Testing Library. Component tests: StatusBadge, StagePipeline. Page tests: Dashboard (renders cards), AgentsList (renders teams), Approvals (approve/reject). Mock API responses.",
+        "pseudocode": "test('Dashboard renders stat cards', () => { render(<Dashboard />); expect(screen.getByText('Active')).toBeInTheDocument(); })",
+        "architecture": "platform/frontend/src/__tests__/ or co-located *.test.tsx. Vitest config in vite.config.ts. MSW for API mocking.",
+        "realization": "Configure Vitest. Write tests for all 13 pages and 2 components. Mock API with MSW.",
+        "completion": "vitest passes. All pages render without errors. Key interactions tested."
+      },
+      "acceptance_criteria": [
+        "Tests for all 13 pages (render + key interactions)",
+        "Tests for StatusBadge and StagePipeline components",
+        "API calls mocked with MSW",
+        "Tests run in < 30 seconds",
+        "No console errors during tests"
+      ],
+      "done_state": "`npm test` passes all tests. All pages render. Approve/reject buttons work in tests. Mock API responses match real schema."
+    },
+    {
+      "id": "PZ-BOOTSTRAP-API",
+      "type": "Story",
+      "priority": "P2",
+      "summary": "Bootstrap product script with real API calls",
+      "labels": ["automation", "P2", "sparc"],
+      "story_points": 5,
+      "description": "As a user running /bootstrap-product, I want the system to actually create GitHub repo, JIRA project, and Confluence space via APIs, not just print instructions.",
+      "sparc": {
+        "specification": "Rewrite scripts/bootstrap-product.sh to call FastAPI endpoints which in turn call GitHub/JIRA/Confluence APIs. Flow: validate integrations → create GitHub repo → create JIRA project → create Confluence space + hub → copy product skeleton → init git → push. All via backend API.",
+        "pseudocode": "curl POST /api/v1/integrations/validate → check all pass. curl POST /api/v1/github/repos → create repo. curl POST /api/v1/jira/projects → create project. curl POST /api/v1/confluence/spaces → create space.",
+        "architecture": "Backend routes: POST /api/v1/bootstrap/product. Orchestrates GitHub + JIRA + Confluence service calls. Returns product config. Script calls this single endpoint.",
+        "realization": "Create bootstrap route. Wire GitHub, JIRA, Confluence services. Update script to call backend. Add to Temporal as bootstrap workflow.",
+        "completion": "/bootstrap-product creates real external resources. Product repo exists on GitHub. JIRA project exists. Confluence hub exists."
+      },
+      "acceptance_criteria": [
+        "Single API call creates GitHub repo + JIRA project + Confluence space",
+        "Script validates integrations before creating anything",
+        "Rollback on partial failure (delete created resources)",
+        "Product .env generated with correct keys",
+        "Git initialized and pushed to new repo",
+        "Confluence hub pages created from templates"
+      ],
+      "done_state": "Run /bootstrap-product → GitHub repo created and visible → JIRA project created with board → Confluence space created with 10 hub pages → product repo cloned locally with .claude OS → ready for /spec."
+    }
+  ]
+}

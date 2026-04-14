@@ -223,6 +223,8 @@ class DashboardSummary(BaseModel):
     completed: int
     failed: int
     blocked: int
+    pending_approvals: int
+    recent_runs: list[WorkflowRunRead]
     recent_activity: list[WorkflowAuditRead]
 
 

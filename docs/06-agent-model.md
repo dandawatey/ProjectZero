@@ -2,6 +2,26 @@
 
 34 agents. 7 teams. Every agent executes inside Temporal workflow steps. No exceptions.
 
+```mermaid
+graph TD
+    Factory["ProjectZeroFactory"]
+    CXO["CXO Team\nCEO · CTO · CFO · CPO"]
+    Product["Product Team\nPM · UX Designer · UX Reviewer\nSpec Miner · Design Sprint Lead"]
+    Engineering["Engineering Team\nArchitect · Backend · Frontend\nData · DevOps · QA · SRE · Security"]
+    Sales["Sales Team\nStrategist · Demo Builder · Proposal Writer"]
+    Marketing["Marketing Team\nContent · Brand · Analytics"]
+    Governance["Governance Team\nChecker · Reviewer · Approver\nFinOps · Compliance"]
+    Operations["Operations Team\nRalph · Release Mgr · Integration\nMemory · Pipeline"]
+
+    Factory --> CXO
+    Factory --> Product
+    Factory --> Engineering
+    Factory --> Sales
+    Factory --> Marketing
+    Factory --> Governance
+    Factory --> Operations
+```
+
 ## Architecture
 
 ```
@@ -99,6 +119,24 @@ Each workflow step = one assigned agent. Execution tracked. Contribution recorde
 ## Agent Execution Model
 
 Agents execute ONLY inside Temporal workflow steps.
+
+```mermaid
+sequenceDiagram
+    participant TW as Temporal Workflow
+    participant MA as Memory Agent
+    participant Brain as Brain /api/v1/brain/
+    participant Agent as Assigned Agent
+    participant Postgres
+
+    TW->>Brain: GET /brain/memory (read context)
+    Brain-->>TW: relevant memories + patterns
+    TW->>Agent: execute task (activity)
+    Agent->>Brain: POST /brain/conversations (stream dialogue)
+    Agent-->>TW: result
+    TW->>Brain: POST /brain/memory (write learnings)
+    TW->>Postgres: sync via FastAPI (idempotent)
+    TW->>TW: trigger next step
+```
 
 ```
 Temporal Workflow

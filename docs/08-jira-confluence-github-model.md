@@ -2,6 +2,26 @@
 
 Integration gate is mandatory. 7 required systems must validate. No integration, no execution.
 
+```mermaid
+graph TD
+    Command["/factory-init command"]
+    Gate{"Integration Gate\n7 systems valid?"}
+    Blocked(["ALL workflows BLOCKED"])
+
+    Command --> Gate
+    Gate -->|any fail| Blocked
+
+    Gate -->|all pass| Workflows["Temporal Workflows\ncan execute"]
+
+    Workflows --> JA["JIRA Activities\ncreate/update tickets\nsync status"]
+    Workflows --> CA["Confluence Activities\npublish docs\nupdate pages"]
+    Workflows --> GHA["GitHub Activities\nbranch / PR / merge\nstatus checks"]
+
+    JA -->|"retry 3x exp backoff\non fail → local file"| JIRA[(JIRA API)]
+    CA -->|"retry 3x exp backoff\non fail → local file"| Confluence[(Confluence API)]
+    GHA -->|"retry 3x exp backoff\non fail → local file"| GitHub[(GitHub API)]
+```
+
 ## Architecture
 
 ```
@@ -61,6 +81,19 @@ Project → Epic (module) → Story (feature) → Task/Subtask (implementation)
 
 ### Ticket Lifecycle
 Tickets created and updated by Temporal activities. Status synced at every stage transition.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Backlog
+    Backlog --> ToDo : /spec creates ticket
+    ToDo --> InProgress : /implement starts
+    InProgress --> InReview : Maker → Checker handoff
+    InProgress --> Blocked : block detected
+    InReview --> Blocked : review blocked
+    InReview --> Done : Approver approved
+    Blocked --> InProgress : block resolved
+    Done --> [*]
+```
 
 ```
 Backlog → To Do → In Progress → In Review → Done

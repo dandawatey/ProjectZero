@@ -373,3 +373,183 @@ class JiraClient:
         """Returns {name: id} mapping for easy transition lookup."""
         transitions = await self.get_transitions(issue_key)
         return {t["name"]: t["id"] for t in transitions}
+
+    # ================================================================
+    # PM Reporting methods  (used by confluence_reporting.py)
+    # ================================================================
+
+    async def project_epics(self, client: httpx.AsyncClient, project_key: str) -> list[dict]:
+        """All epics in project with summary, status, priority, assignee, story points."""
+        issues = await self.search(
+            client,
+            f'project = "{project_key}" AND issuetype = Epic ORDER BY priority ASC',
+            ["summary", "status", "priority", "assignee", "labels",
+             self.sp_field, "duedate", "created", "customfield_10014"],
+            max_results=200,
+        )
+        return [
+            {
+                "key": i["key"],
+                "summary": i["fields"].get("summary", ""),
+                "status": i["fields"].get("status", {}).get("name", ""),
+                "status_cat": i["fields"].get("status", {}).get("statusCategory", {}).get("key", ""),
+                "priority": i["fields"].get("priority", {}).get("name", ""),
+                "assignee": (i["fields"].get("assignee") or {}).get("displayName", "Unassigned"),
+                "points": self._points(i, self.sp_field),
+                "labels": i["fields"].get("labels", []),
+                "due": (i["fields"].get("duedate") or "")[:10],
+                "created": (i["fields"].get("created") or "")[:10],
+            }
+            for i in issues
+        ]
+
+    async def epic_stories(self, client: httpx.AsyncClient, epic_key: str) -> list[dict]:
+        """All stories/tasks under an epic with status, assignee, points."""
+        issues = await self.search(
+            client,
+            f'"Epic Link" = "{epic_key}" OR parent = "{epic_key}" ORDER BY priority ASC',
+            ["summary", "status", "priority", "assignee", "issuetype",
+             self.sp_field, "subtasks", "resolutiondate"],
+            max_results=200,
+        )
+        return [
+            {
+                "key": i["key"],
+                "summary": i["fields"].get("summary", ""),
+                "type": i["fields"].get("issuetype", {}).get("name", ""),
+                "status": i["fields"].get("status", {}).get("name", ""),
+                "status_cat": i["fields"].get("status", {}).get("statusCategory", {}).get("key", ""),
+                "priority": i["fields"].get("priority", {}).get("name", ""),
+                "assignee": (i["fields"].get("assignee") or {}).get("displayName", "Unassigned"),
+                "points": self._points(i, self.sp_field),
+                "subtask_count": len(i["fields"].get("subtasks", [])),
+                "resolved": (i["fields"].get("resolutiondate") or "")[:10],
+            }
+            for i in issues
+        ]
+
+    async def project_contributors(self, client: httpx.AsyncClient, project_key: str) -> list[dict]:
+        """Unique contributors — all assignees + reporters with their ticket counts."""
+        issues = await self.search(
+            client,
+            f'project = "{project_key}"',
+            ["assignee", "reporter", "status"],
+            max_results=500,
+        )
+        contrib: dict[str, dict] = {}
+        for i in issues:
+            for role, field in [("assignee", "assignee"), ("reporter", "reporter")]:
+                person = i["fields"].get(field) or {}
+                name = person.get("displayName")
+                email = person.get("emailAddress", "")
+                if not name:
+                    continue
+                if name not in contrib:
+                    contrib[name] = {"name": name, "email": email, "assigned": 0, "reported": 0, "done": 0}
+                contrib[name][role if role == "reporter" else "assigned"] += 1
+                if role == "assignee" and self._is_done(i):
+                    contrib[name]["done"] += 1
+        return sorted(contrib.values(), key=lambda x: -(x["assigned"] + x["reported"]))
+
+    async def current_sprint_details(self, client: httpx.AsyncClient, project_key: str) -> dict:
+        """Active sprint with full story list, capacity breakdown, and risk flags."""
+        boards = await self.project_boards(client, project_key)
+        if not boards:
+            return {"sprint": None, "stories": [], "summary": {}}
+
+        board_id = boards[0]["id"]
+        sprints = await self.board_sprints(client, board_id, state="active")
+        if not sprints:
+            return {"sprint": None, "stories": [], "summary": {}}
+
+        sprint = sprints[0]
+        issues = await self.sprint_issues(client, sprint["id"])
+
+        total_pts = sum(self._points(i, self.sp_field) for i in issues)
+        done_pts = sum(self._points(i, self.sp_field) for i in issues if self._is_done(i))
+        in_prog_pts = sum(
+            self._points(i, self.sp_field)
+            for i in issues
+            if i["fields"].get("status", {}).get("statusCategory", {}).get("key") == "indeterminate"
+        )
+        todo_pts = total_pts - done_pts - in_prog_pts
+        pct_done = round((done_pts / total_pts * 100) if total_pts else 0, 1)
+
+        stories = [
+            {
+                "key": i["key"],
+                "summary": i["fields"].get("summary", ""),
+                "type": i["fields"].get("issuetype", {}).get("name", ""),
+                "status": i["fields"].get("status", {}).get("name", ""),
+                "status_cat": i["fields"].get("status", {}).get("statusCategory", {}).get("key", ""),
+                "assignee": (i["fields"].get("assignee") or {}).get("displayName", "Unassigned"),
+                "points": self._points(i, self.sp_field),
+            }
+            for i in issues
+        ]
+
+        # Assignee capacity view
+        cap: dict[str, dict] = {}
+        for s in stories:
+            a = s["assignee"]
+            if a not in cap:
+                cap[a] = {"assignee": a, "total_pts": 0, "done_pts": 0, "stories": 0}
+            cap[a]["total_pts"] += s["points"]
+            cap[a]["stories"] += 1
+            if s["status_cat"] == "done":
+                cap[a]["done_pts"] += s["points"]
+
+        return {
+            "sprint": {
+                "name": sprint.get("name"),
+                "state": sprint.get("state"),
+                "start": (sprint.get("startDate") or "")[:10],
+                "end": (sprint.get("endDate") or "")[:10],
+                "goal": sprint.get("goal", ""),
+            },
+            "stories": sorted(stories, key=lambda x: x["assignee"]),
+            "summary": {
+                "total_pts": round(total_pts, 1),
+                "done_pts": round(done_pts, 1),
+                "in_progress_pts": round(in_prog_pts, 1),
+                "todo_pts": round(todo_pts, 1),
+                "pct_done": pct_done,
+                "total_stories": len(issues),
+            },
+            "assignee_capacity": list(cap.values()),
+        }
+
+    async def feature_roadmap(self, client: httpx.AsyncClient, project_key: str) -> list[dict]:
+        """Build feature roadmap from epics grouped by label or quarter."""
+        epics = await self.project_epics(client, project_key)
+
+        # Group by label prefix "feature:" or fall back to epic itself as feature
+        features: dict[str, list] = {}
+        for e in epics:
+            feature_labels = [lb for lb in e["labels"] if lb.lower().startswith("feature:")]
+            feature_name = feature_labels[0].split(":", 1)[1].strip() if feature_labels else e["summary"]
+            features.setdefault(feature_name, []).append(e)
+
+        roadmap = []
+        for feature, epics_list in features.items():
+            statuses = [e["status_cat"] for e in epics_list]
+            if all(s == "done" for s in statuses):
+                overall = "DONE"
+            elif any(s == "indeterminate" for s in statuses):
+                overall = "IN PROGRESS"
+            else:
+                overall = "PLANNED"
+
+            total_pts = sum(e["points"] for e in epics_list)
+            due_dates = [e["due"] for e in epics_list if e["due"]]
+            roadmap.append({
+                "feature": feature,
+                "epics": epics_list,
+                "epic_count": len(epics_list),
+                "total_pts": total_pts,
+                "status": overall,
+                "target_date": max(due_dates) if due_dates else "",
+                "assignees": list({e["assignee"] for e in epics_list}),
+            })
+
+        return sorted(roadmap, key=lambda x: (x["status"] != "IN PROGRESS", x["target_date"] or "9999"))

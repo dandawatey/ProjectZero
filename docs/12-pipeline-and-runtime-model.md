@@ -1,5 +1,35 @@
 # 12 - Pipeline and Runtime Model
 
+```mermaid
+graph TD
+    React["React Control Tower\nlocalhost:3000"]
+    FastAPI["FastAPI Backend\nlocalhost:8000"]
+    Postgres["Postgres\nSystem of Record"]
+    Brain["Brain\n/api/v1/brain/"]
+    Activities["/api/v1/activities/\nActivity Monitor"]
+    Temporal["Temporal Server\nlocalhost:7233 gRPC\nlocalhost:8233 UI"]
+    Q1["factory-main\ntask queue"]
+    Q2["factory-governance\ntask queue"]
+    Q3["factory-integration\ntask queue"]
+    Q4["factory-heavy\ntask queue"]
+    Workers["Temporal Workers\nplatform/temporal/workers/main.py"]
+
+    React -->|HTTP/SSE| FastAPI
+    FastAPI -->|SQLAlchemy| Postgres
+    Postgres --> Brain
+    Postgres --> Activities
+    FastAPI -->|Temporal Client SDK| Temporal
+    Temporal --> Q1
+    Temporal --> Q2
+    Temporal --> Q3
+    Temporal --> Q4
+    Q1 --> Workers
+    Q2 --> Workers
+    Q3 --> Workers
+    Q4 --> Workers
+    Workers -->|"POST /api/internal/sync\n(idempotent)"| FastAPI
+```
+
 ## Overview
 
 Temporal IS the pipeline engine. There is no separate Dagster. There is no Redis queue. There are no file-based queues. Every piece of work in ProjectZeroFactory flows through Temporal workflows, with Postgres as the system of record and FastAPI as the API layer.
@@ -276,6 +306,23 @@ Shows:
 All of this data comes from the Temporal API and Postgres. No separate monitoring infrastructure needed for the factory itself.
 
 ## Brain as Runtime Component
+
+```mermaid
+sequenceDiagram
+    participant T as Temporal Worker
+    participant B as Brain /api/v1/brain/
+    participant A as Agent (Claude)
+    participant F as FastAPI Sync
+
+    T->>B: GET /brain/memory + /brain/patterns
+    B-->>T: context injected
+    T->>A: execute activity
+    A->>B: POST /brain/conversations (stream)
+    A-->>T: result
+    T->>B: POST /brain/decisions (new decisions)
+    T->>F: POST /api/internal/sync (idempotent)
+    F->>F: write Postgres + push SSE
+```
 
 The Brain (`/api/v1/brain/`) is a core runtime component that sits between Postgres and the agents. It provides persistent memory that agents read before every action and write after every completion.
 
