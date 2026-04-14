@@ -62,6 +62,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
   <a href="control-tower.html">Control Tower</a>
   <a href="governance.html">Governance</a>
   <a href="recovery.html">Recovery</a>
+  <a href="memory.html">Memory</a>
   <a href="diagrams.html">Diagrams</a>
 </nav>
 
@@ -280,6 +281,36 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
         <td><span class="scope ui">UI</span></td>
         <td>Audit the full UI layer: design system adherence, component usage, accessibility compliance, and consistency.</td>
         <td>UIAuditWorkflow</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Memory Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--cyan)"></span> Memory Commands</h2>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Backend</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/mem-search</code></td>
+        <td>Any</td>
+        <td><span class="scope product">Product</span></td>
+        <td>
+          Search cross-session compressed memory. Three layers of progressive disclosure:<br>
+          <strong>Layer 1</strong> — <code>/mem-search &lt;query&gt;</code> (~50 tokens, always start here)<br>
+          <strong>Layer 2</strong> — <code>/mem-search timeline &lt;id&gt;</code> (session context window)<br>
+          <strong>Layer 3</strong> — <code>/mem-search fetch &lt;id1&gt; &lt;id2&gt;</code> (full content, selected IDs)<br>
+          Skill at <code>.claude/skills/mem-search/</code>.
+        </td>
+        <td>claude-mem :37777</td>
+      </tr>
+      <tr>
+        <td><code>/console</code></td>
+        <td>Any</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Launch the Rich terminal execution console showing Feature&rarr;Epic&rarr;Ticket&rarr;Workflow live progress bars. Demo mode available via <code>execution_console/scripts/demo.py</code> (no infra needed).</td>
+        <td>execution_console :8001</td>
       </tr>
     </tbody>
   </table>

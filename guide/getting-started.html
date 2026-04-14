@@ -161,6 +161,7 @@ pre code { background: none; padding: 0; color: inherit; }
     <a href="control-tower.html">Control Tower</a>
     <a href="governance.html">Governance</a>
     <a href="recovery.html">Recovery</a>
+    <a href="memory.html">Memory</a>
     <a href="diagrams.html">Diagrams</a>
   </nav>
 </aside>
@@ -257,6 +258,49 @@ pre code { background: none; padding: 0; color: inherit; }
         Open the Control Tower (<code>/monitor</code>) to watch agent activity, workflow state, and approval queues in real time.
       </li>
     </ol>
+
+    <h2>Persistent Memory (claude-mem)</h2>
+    <p>claude-mem provides cross-session compressed memory for all agents. It runs as a local worker on port 37777 and persists observations between Claude Code sessions.</p>
+
+    <h3>Quick Start</h3>
+    <pre><code><span class="code-comment"># Start the memory worker (auto-started by SessionStart hook)</span>
+<span class="code-cmd">npx claude-mem start</span>
+<span class="code-output">  Memory worker running on port 37777</span>
+
+<span class="code-comment"># Search past context before starting a ticket</span>
+<span class="code-cmd">/mem-search</span> auth implementation
+<span class="code-output">  [obs:a1b2c3] PRJ0-42: JWT refresh pattern — store in httpOnly cookie</span></code></pre>
+
+    <p>Three layers of progressive disclosure keep token usage low:</p>
+    <ol style="margin: 0 0 1.5rem 1.5rem; color: var(--text-muted);">
+      <li><strong style="color:var(--text)">Layer 1</strong> &mdash; <code>/mem-search &lt;query&gt;</code> — fast, ~50 tokens, always start here</li>
+      <li><strong style="color:var(--text)">Layer 2</strong> &mdash; <code>/mem-search timeline &lt;id&gt;</code> — session context window</li>
+      <li><strong style="color:var(--text)">Layer 3</strong> &mdash; <code>/mem-search fetch &lt;id1&gt; &lt;id2&gt;</code> — full content for selected IDs</li>
+    </ol>
+
+    <div class="callout tip">
+      <div class="callout-title">Tip</div>
+      <p style="margin:0">Hooks auto-start the worker on <code>SessionStart</code> and auto-sync to Brain on <code>Stop</code>. Manual start only needed if hooks are disabled. See <a href="memory.html">Memory</a> for full details.</p>
+    </div>
+
+    <h2>Execution Console</h2>
+    <p>A Rich terminal dashboard showing real-time execution state across Feature → Epic → Ticket → Temporal Workflow → Agent.</p>
+
+    <pre><code><span class="code-comment"># Demo mode — no JIRA or Temporal required</span>
+<span class="code-cmd">python execution_console/scripts/demo.py</span>
+
+<span class="code-comment"># Full mode: start backend, then renderer</span>
+<span class="code-cmd">uvicorn execution_console.app.main:app --port 8001</span>
+<span class="code-cmd">python execution_console/scripts/start_console.py</span></code></pre>
+
+    <p>The console auto-emits events via the <code>CLAUDE_CURRENT_TICKET</code> env var and the <code>post_tool_use.sh</code> hook. Set the var before running Claude Code to link events to a ticket:</p>
+    <pre><code><span class="code-cmd">export</span> CLAUDE_CURRENT_TICKET=PRJ0-49
+<span class="code-cmd">claude</span>  <span class="code-comment"># all tool events tagged to PRJ0-49</span></code></pre>
+
+    <div class="callout">
+      <div class="callout-title">Console Slash Command</div>
+      <p style="margin:0">Run <code>/console</code> inside Claude Code to launch the dashboard directly from the CLI.</p>
+    </div>
 
     <h3>Example: Full Flow</h3>
     <pre><code><span class="code-comment"># Initialize once per machine</span>

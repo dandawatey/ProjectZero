@@ -164,6 +164,7 @@ p code, li code { background: rgba(59,130,246,0.12); color: var(--accent); paddi
     <a href="control-tower.html">Control Tower</a>
     <a href="governance.html">Governance</a>
     <a href="recovery.html">Recovery</a>
+    <a href="memory.html">Memory</a>
     <a href="diagrams.html">Diagrams</a>
   </nav>
 </aside>
@@ -275,6 +276,68 @@ p code, li code { background: rgba(59,130,246,0.12); color: var(--accent); paddi
 
     <h3>Why Not Just Use Postgres?</h3>
     <p>Postgres alone cannot orchestrate long-running workflows with retries, timeouts, and human-in-the-loop signals. Temporal provides durable execution guarantees that a database and background job queue cannot match. The combination gives you both reliable orchestration (Temporal) and queryable state (Postgres).</p>
+
+    <h2>Hook System</h2>
+    <p>Claude Code hooks automate memory, graph refresh, and execution telemetry without manual intervention. Hooks are configured in <code>.claude/settings.json</code> and fire at defined lifecycle events.</p>
+
+    <div class="diagram">
+      <div class="diagram-row">
+        <div class="diagram-box react" style="border-color:var(--green);color:var(--green)">SessionStart</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">claude_mem_session_start.sh — auto-start worker on :37777</div>
+      <div style="margin:1.5rem 0 0.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)">&#8212;&#8212; during session &#8212;&#8212;</div>
+      <div class="diagram-row">
+        <div class="diagram-box fastapi" style="border-color:var(--purple);color:var(--purple)">PostToolUse (Write/Edit)</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">graphify-ts regenerate → post_tool_use.sh → claude-mem /observe</div>
+      <div class="diagram-row" style="margin-top:1rem">
+        <div class="diagram-box fastapi" style="border-color:var(--purple);color:var(--purple)">PostToolUse (Bash)</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">post_tool_use.sh → claude-mem /observe</div>
+      <div style="margin:1.5rem 0 0.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)">&#8212;&#8212; session end &#8212;&#8212;</div>
+      <div class="diagram-row">
+        <div class="diagram-box agents" style="border-color:var(--orange);color:var(--orange)">Stop</div>
+      </div>
+      <div class="diagram-arrow down">&#8595;</div>
+      <div class="diagram-label">claude_mem_stop.sh — sync + compress → promote score&ge;0.7 → Brain</div>
+    </div>
+
+    <div class="comp-cards">
+      <div class="comp-card" style="border-left-color:var(--green)">
+        <h4 style="color:var(--green)">SessionStart Hook</h4>
+        <p>Fires when a new Claude Code session opens. Runs <code>claude_mem_session_start.sh</code> to ensure the claude-mem worker is live on port 37777 before any agent work begins.</p>
+      </div>
+      <div class="comp-card" style="border-left-color:var(--purple)">
+        <h4 style="color:var(--purple)">PostToolUse (Write/Edit)</h4>
+        <p>Fires after any file write or edit. Triggers <code>graphify-ts generate</code> to keep the knowledge graph current, then records the observation in claude-mem.</p>
+      </div>
+      <div class="comp-card" style="border-left-color:var(--purple)">
+        <h4 style="color:var(--purple)">PostToolUse (Bash)</h4>
+        <p>Fires after Bash tool use. Emits execution events via <code>post_tool_use.sh</code> and records the observation in claude-mem for future session recall.</p>
+      </div>
+      <div class="comp-card" style="border-left-color:var(--orange)">
+        <h4 style="color:var(--orange)">Stop Hook</h4>
+        <p>Fires when the session ends. Runs <code>claude_mem_stop.sh</code> to flush the compression buffer and promote high-value memories (score &ge;0.7) to the Postgres Brain.</p>
+      </div>
+    </div>
+
+    <h2>claude-mem in the System</h2>
+    <p>claude-mem slots between the Claude Code CLI and the Postgres Brain as a fast local cache with compression.</p>
+    <pre><code>Claude Code CLI
+    |
+    +-- PostToolUse hook ──&gt; claude-mem worker (:37777)
+    |                              |
+    |                              |-- SQLite local store (CLAUDE_MEM_DB_PATH)
+    |                              |-- /mem-search (3-layer query)
+    |
+    +-- Stop hook ──────────&gt; sync_to_brain.py
+                                   |
+                                   |-- score &gt;= CLAUDE_MEM_BRAIN_THRESHOLD (0.7)
+                                   |
+                                   └──&gt; POST /api/v1/brain/memories (Postgres Brain)</code></pre>
 
   </div>
 </div>
