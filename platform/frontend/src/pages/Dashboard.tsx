@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity, CheckCircle, XCircle, ShieldAlert, Clock,
-  Github, BookOpen, ExternalLink, Package, Layers,
+  Github, BookOpen, ExternalLink, Package, Layers, Plus,
 } from 'lucide-react';
 import { useDashboard } from '../hooks/useWorkflows';
 import { useQuery } from '@tanstack/react-query';
@@ -148,6 +148,12 @@ export default function Dashboard() {
               {products.length}
             </span>
           )}
+          <Link
+            to="/app/new-product"
+            className="ml-auto flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+          >
+            <Plus size={12} /> New Product
+          </Link>
         </div>
 
         {productsLoading ? (
@@ -166,9 +172,9 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl border border-dashed border-gray-300 p-10 text-center">
             <Package size={32} className="mx-auto text-gray-300 mb-3" />
             <p className="text-sm text-gray-500 font-medium">No projects yet</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Run <code className="bg-gray-100 px-1 py-0.5 rounded">/bootstrap-product</code> to create your first product
-            </p>
+            <Link to="/app/new-product" className="mt-3 inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+              <Plus size={12} /> Create your first product
+            </Link>
           </div>
         )}
       </div>

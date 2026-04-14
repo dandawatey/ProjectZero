@@ -1,9 +1,10 @@
 """Products router — PRJ0-42.
 
 Endpoints:
-  POST /api/v1/products/bootstrap   — create isolated product git repo + DB record
-  GET  /api/v1/products             — list all products
-  GET  /api/v1/products/{id}        — get single product
+  POST /api/v1/products/prd-chat     — stream PRD agent conversation turn
+  POST /api/v1/products/bootstrap    — create isolated product git repo + DB record
+  GET  /api/v1/products              — list all products
+  GET  /api/v1/products/{id}         — get single product
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from __future__ import annotations
 import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -18,12 +20,54 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.models.product import Product
 from app.services.product_bootstrap import bootstrap_product_repo
+from app.services.prd_agent import stream_prd_chat, extract_prd_from_conversation
 
 router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
 # Schemas
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# PRD Agent chat
+# ---------------------------------------------------------------------------
+
+class ChatMessage(BaseModel):
+    role: str   # "user" | "assistant"
+    content: str
+
+class PrdChatRequest(BaseModel):
+    messages: list[ChatMessage]  # full conversation history
+
+
+@router.post("/prd-chat")
+async def prd_chat(req: PrdChatRequest):
+    """Stream a PRD agent response. Send the full message history each turn."""
+    msgs = [{"role": m.role, "content": m.content} for m in req.messages]
+
+    async def generate():
+        try:
+            async for chunk in stream_prd_chat(msgs):
+                yield chunk
+        except Exception as exc:
+            yield f"\n\n[Agent error: {exc}]"
+
+    return StreamingResponse(generate(), media_type="text/plain")
+
+
+@router.post("/prd-extract")
+async def prd_extract(req: PrdChatRequest):
+    """Extract the final PRD markdown from a completed conversation."""
+    msgs = [{"role": m.role, "content": m.content} for m in req.messages]
+    prd = extract_prd_from_conversation(msgs)
+    if not prd:
+        raise HTTPException(status_code=404, detail="No PRD found in conversation yet")
+    return {"prd": prd}
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap
 # ---------------------------------------------------------------------------
 
 class BootstrapRequest(BaseModel):

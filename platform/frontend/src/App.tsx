@@ -30,6 +30,7 @@ import ActivityMonitor from './pages/ActivityMonitor';
 import DevMonitor from './pages/DevMonitor';
 import UserGuide from './pages/UserGuide';
 import FactoryFloor from './pages/FactoryFloor';
+import CreateProduct from './pages/CreateProduct';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -100,6 +101,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/floor" element={<FactoryFloor />} />
+          <Route path="/new-product" element={<CreateProduct />} />
           <Route path="/workflows" element={<WorkflowRuns />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
           <Route path="/approvals" element={<Approvals />} />
