@@ -163,6 +163,91 @@ sequenceDiagram
   </div>
 </div>
 
+<!-- ============================================ -->
+<h2>3. Use Case Diagram</h2>
+<!-- ============================================ -->
+<p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem">Actors and their available use cases within ProjectZeroFactory.</p>
+
+<div class="diagram">
+  <div class="diagram-title">ProjectZeroFactory — Actor Use Cases</div>
+  <div class="mermaid">
+flowchart LR
+    subgraph Actors["👥 Actors"]
+        Dev["👤 Developer"]
+        PM["📋 PM / Tech Lead"]
+        CXO["📊 CXO Viewer"]
+        Worker["⚙️ Temporal Worker"]
+        Agent["🤖 AI Agent"]
+    end
+
+    subgraph System["🏭 ProjectZeroFactory — Use Cases"]
+        direction TB
+        UC1(["Run /factory-init"])
+        UC2(["Create Product"])
+        UC3(["Submit Ticket"])
+        UC4(["View Factory Floor"])
+        UC5(["Approve Stage Gate"])
+        UC6(["Run /spec"])
+        UC7(["Run /arch"])
+        UC8(["Run /implement"])
+        UC9(["Run /check"])
+        UC10(["Run /review"])
+        UC11(["Run /release"])
+        UC12(["View CXO Dashboard"])
+        UC13(["View Sprint Metrics"])
+        UC14(["Publish to Confluence"])
+        UC15(["Execute Workflow Activity"])
+        UC16(["Transition JIRA Ticket"])
+        UC17(["Call Claude API"])
+        UC18(["Read Brain Memories"])
+        UC19(["Write Brain Memories"])
+        UC20(["Create Git Branch & PR"])
+        UC21(["Run Quality Gates"])
+        UC22(["Search claude-mem"])
+    end
+
+    Dev --> UC1
+    Dev --> UC2
+    Dev --> UC3
+    Dev --> UC4
+    Dev --> UC5
+    Dev --> UC6
+    Dev --> UC7
+    Dev --> UC8
+    Dev --> UC9
+    Dev --> UC10
+    Dev --> UC11
+    Dev --> UC22
+
+    PM --> UC3
+    PM --> UC4
+    PM --> UC5
+    PM --> UC13
+    PM --> UC14
+
+    CXO --> UC12
+    CXO --> UC13
+
+    Worker --> UC15
+    Worker --> UC16
+    Worker --> UC21
+
+    Agent --> UC17
+    Agent --> UC18
+    Agent --> UC19
+    Agent --> UC20
+    Agent --> UC16
+
+    style Actors fill:#0f172a,stroke:#334155,color:#e2e8f0
+    style System fill:#0f172a,stroke:#334155,color:#e2e8f0
+    style Dev fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style PM fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style CXO fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style Worker fill:#2d1b4e,stroke:#a855f7,color:#e2e8f0
+    style Agent fill:#1a3320,stroke:#22c55e,color:#e2e8f0
+  </div>
+</div>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
