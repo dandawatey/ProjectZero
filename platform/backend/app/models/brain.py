@@ -38,6 +38,13 @@ class Memory(Base):
     is_promoted = Column(Boolean, default=False)
     promoted_from = Column(UUID(as_uuid=True), nullable=True)
 
+    # Promotion approval gate (PRJ0-38)
+    promoted = Column(Boolean, default=False, nullable=False, server_default="false")
+    promotion_status = Column(String(20), default="local", nullable=False, server_default="local")
+    # Values: "local" | "pending" | "approved" | "rejected"
+    reviewer_note = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+
     # Lifecycle
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

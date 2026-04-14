@@ -1,12 +1,16 @@
 """Brain API — persistent memory, decisions, patterns, conversations."""
 
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.brain import Memory
 from app.services import brain_service
 
 router = APIRouter()
@@ -17,11 +21,13 @@ router = APIRouter()
 @router.post("/memory")
 async def store_memory(body: dict, db: AsyncSession = Depends(get_db)):
     m = await brain_service.store_memory(
-        db, scope=body["scope"], category=body["category"],
-        title=body["title"], content=body["content"],
+        db, scope=body.get("scope", "product"), category=body.get("category", "general"),
+        title=body.get("title", body.get("content", "")[:80]),
+        content=body["content"],
         product_id=body.get("product_id"), tags=body.get("tags", []),
         source_agent=body.get("source_agent"), source_workflow=body.get("source_workflow"),
         source_stage=body.get("source_stage"), confidence=body.get("confidence", 0.8),
+        promotion_status=body.get("promotion_status", "local"),
     )
     return {"id": str(m.id), "status": "stored"}
 
@@ -30,25 +36,87 @@ async def store_memory(body: dict, db: AsyncSession = Depends(get_db)):
 async def recall_memories(
     scope: Optional[str] = None, category: Optional[str] = None,
     product_id: Optional[str] = None, search: Optional[str] = None,
+    promotion_scope: Optional[str] = Query(default=None, alias="scope_filter"),
     limit: int = Query(default=20, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    # scope=factory → return only approved promotions (PRJ0-38)
+    effective_scope = scope
+    approved_only = False
+    if scope == "factory":
+        approved_only = True
+
     memories = await brain_service.recall_memories(
-        db, scope=scope, category=category, product_id=product_id, search=search, limit=limit,
+        db, scope=effective_scope, category=category, product_id=product_id,
+        search=search, limit=limit,
     )
+
+    if approved_only:
+        memories = [m for m in memories if getattr(m, "promotion_status", "local") == "approved"]
+
     return [
         {"id": str(m.id), "scope": m.scope, "category": m.category, "title": m.title,
          "content": m.content, "tags": m.tags, "confidence": m.confidence,
          "usage_count": m.usage_count, "source_agent": m.source_agent,
+         "promotion_status": getattr(m, "promotion_status", "local"),
+         "promoted": getattr(m, "promoted", False),
          "created_at": m.created_at.isoformat()}
         for m in memories
     ]
 
 
+@router.get("/memories/pending-promotion")
+async def get_pending_promotions(db: AsyncSession = Depends(get_db)):
+    """List all memories awaiting promotion approval (PRJ0-38)."""
+    result = await db.execute(
+        select(Memory).where(Memory.promotion_status == "pending").order_by(Memory.created_at.desc())
+    )
+    memories = result.scalars().all()
+    return [
+        {"id": str(m.id), "scope": m.scope, "category": m.category, "title": m.title,
+         "content": m.content, "tags": m.tags, "confidence": m.confidence,
+         "promotion_status": m.promotion_status, "source_agent": m.source_agent,
+         "created_at": m.created_at.isoformat()}
+        for m in memories
+    ]
+
+
+class PromoteRequest(BaseModel):
+    approved: bool
+    reviewer_note: str = ""
+
+
+@router.post("/memories/{memory_id}/promote")
+async def promote_memory_with_approval(
+    memory_id: UUID, body: PromoteRequest, db: AsyncSession = Depends(get_db)
+):
+    """Approve or reject a pending memory promotion (PRJ0-38)."""
+    result = await db.execute(select(Memory).where(Memory.id == memory_id))
+    memory = result.scalar_one_or_none()
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    memory.promotion_status = "approved" if body.approved else "rejected"
+    memory.promoted = body.approved
+    memory.reviewer_note = body.reviewer_note
+    memory.reviewed_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {
+        "id": str(memory_id),
+        "promotion_status": memory.promotion_status,
+        "approved": body.approved,
+    }
+
+
 @router.post("/memory/{memory_id}/promote")
 async def promote_memory(memory_id: UUID, db: AsyncSession = Depends(get_db)):
-    promoted = await brain_service.promote_memory(db, memory_id)
-    return {"id": str(promoted.id), "status": "promoted", "scope": "factory"}
+    """Legacy promote endpoint — flags memory as pending approval (PRJ0-38)."""
+    result = await db.execute(select(Memory).where(Memory.id == memory_id))
+    memory = result.scalar_one_or_none()
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    memory.promotion_status = "pending"
+    await db.commit()
+    return {"id": str(memory_id), "status": "pending_approval"}
 
 
 # ── DECISIONS ───────────────────────────────────

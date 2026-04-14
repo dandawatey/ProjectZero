@@ -92,8 +92,8 @@ class AgentDispatcher:
                 qg_passed = True
                 retried = True
 
-            # 6. Write Brain (best-effort)
-            self._write_brain(product_id, skill_id, feature_id, output[:500])
+            # 6. Write Brain (best-effort) — pass qg_passed for promotion auto-flag (PRJ0-38)
+            self._write_brain(product_id, skill_id, feature_id, output[:500], quality_gate_passed=qg_passed)
             brain_ok = True
 
             # 7. Touch agent last_used_at (best-effort)
@@ -298,12 +298,20 @@ class AgentDispatcher:
         skill_id: str,
         feature_id: str,
         summary: str,
+        quality_gate_passed: bool = False,
     ) -> None:
-        """POST output summary to Brain. Best-effort — swallows all exceptions."""
+        """POST output summary to Brain. Best-effort — swallows all exceptions.
+
+        PRJ0-38: Auto-flags spec/arch memories as pending promotion when quality gate passes.
+        """
         import httpx  # type: ignore[import-untyped]
 
         try:
             base = os.getenv("API_BASE_URL", "http://localhost:8000")
+            # PRJ0-38: pattern-worthy skills → pending promotion when QG passes
+            promotion_status = "local"
+            if quality_gate_passed and skill_id in ("spec", "arch"):
+                promotion_status = "pending"
             httpx.post(
                 f"{base}/api/v1/brain/memories",
                 json={
@@ -313,6 +321,7 @@ class AgentDispatcher:
                     "content": (
                         f"[{skill_id}] feature={feature_id}: {summary}"
                     ),
+                    "promotion_status": promotion_status,
                 },
                 timeout=10,
             )

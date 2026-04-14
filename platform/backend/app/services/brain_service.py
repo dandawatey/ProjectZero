@@ -17,12 +17,14 @@ async def store_memory(
     product_id: Optional[str] = None, tags: list[str] = [],
     source_agent: Optional[str] = None, source_workflow: Optional[str] = None,
     source_stage: Optional[str] = None, confidence: float = 0.8,
+    promotion_status: str = "local",
 ) -> Memory:
     memory = Memory(
         scope=scope, product_id=product_id, category=category,
         title=title, content=content, tags=tags,
         source_agent=source_agent, source_workflow=source_workflow,
         source_stage=source_stage, confidence=confidence,
+        promotion_status=promotion_status,
     )
     db.add(memory)
     await db.commit()
