@@ -59,6 +59,12 @@ from app.temporal_integration.bootstrap_activities import (
     bootstrap_confluence_activity,
     bootstrap_db_activity,
 )
+from app.temporal_integration.mcra_workflow import MCRAWorkflow
+from app.temporal_integration.mcra_activities import (
+    mcra_checker_activity,
+    mcra_reviewer_activity,
+    mcra_notify_activity,
+)
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -93,6 +99,8 @@ async def start_worker() -> None:
             # Product lifecycle
             ProductBootstrapWorkflow,
             ReleaseWorkflow,
+            # MCRA 4-eye governance (PRJ0-37)
+            MCRAWorkflow,
         ],
         activities=[
             # Story activities
@@ -112,6 +120,8 @@ async def start_worker() -> None:
             # Release activities
             verify_release_activity, generate_changelog_activity,
             publish_release_activity, notify_release_activity,
+            # MCRA activities (PRJ0-37)
+            mcra_checker_activity, mcra_reviewer_activity, mcra_notify_activity,
         ],
     )
 

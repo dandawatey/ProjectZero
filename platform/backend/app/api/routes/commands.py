@@ -244,6 +244,33 @@ async def approve_command(req: ApproveRequest, db: AsyncSession = Depends(get_db
 
 
 # ---------------------------------------------------------------------------
+# /mcra-approve — send mcra_approve signal to MCRAWorkflow (PRJ0-37)
+# ---------------------------------------------------------------------------
+
+class MCRAApproveRequest(BaseModel):
+    workflow_run_id: str   # Temporal workflow ID of the MCRAWorkflow instance
+    approved: bool = True
+    comment: str = ""
+
+
+@router.post("/mcra-approve", status_code=200)
+async def mcra_approve_command(req: MCRAApproveRequest):
+    """Send mcra_approve signal to a running MCRAWorkflow (human approver gate)."""
+    try:
+        from app.temporal_integration.client import get_temporal_client
+        client = await get_temporal_client()
+        handle = client.get_workflow_handle(req.workflow_run_id)
+        await handle.signal("mcra_approve", req.approved, req.comment)
+        return {
+            "sent": True,
+            "workflow_run_id": req.workflow_run_id,
+            "approved": req.approved,
+        }
+    except Exception as exc:
+        return {"sent": False, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
 # /check — quality gate runner (PRJ0-34)
 # ---------------------------------------------------------------------------
 
