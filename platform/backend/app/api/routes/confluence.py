@@ -281,6 +281,16 @@ async def management_dashboard():
     return dashboard
 
 
+@router.post("/publish-iso")
+async def publish_iso():
+    """Create ISO Audit Hub + 12 sub-pages in Confluence (PRJ0-48)."""
+    from app.services.iso_publisher import publish_iso_hub
+    space = os.getenv("CONFLUENCE_SPACE_KEY", "PR")
+    parent = os.getenv("CONFLUENCE_PARENT_PAGE_TITLE", "")
+    result = await publish_iso_hub(space_key=space, parent_title=parent)
+    return result
+
+
 @router.post("/publish/temporal-guide")
 async def publish_temporal_guide():
     """Publish the Temporal knowledge page to Confluence (full-width, auto-generated)."""
