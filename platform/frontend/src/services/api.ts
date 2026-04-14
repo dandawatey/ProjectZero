@@ -72,6 +72,13 @@ function post<T>(path: string, body?: unknown) {
   });
 }
 
+function patch<T>(path: string, body?: unknown) {
+  return request<T>(path, {
+    method: 'PATCH',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
 export const api = {
   dashboard: () => get<DashboardSummary>('/dashboard/summary'),
 
@@ -107,5 +114,12 @@ export const api = {
     portfolio: () => get<Portfolio>('/cxo/portfolio'),
     project: (key: string) => get<ProjectMetrics>(`/cxo/projects/${key}`),
     refresh: (key: string) => post<ProjectMetrics>(`/cxo/projects/${key}/refresh`),
+  },
+
+  agentRegistry: {
+    list: () => get<Record<string, unknown>[]>('/agents'),
+    skills: () => get<Record<string, unknown>[]>('/agents/skills'),
+    patch: (agent_id: string, body: Record<string, unknown>) =>
+      patch<Record<string, unknown>>(`/agents/${agent_id}`, body),
   },
 };
