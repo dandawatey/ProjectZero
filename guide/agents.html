@@ -47,6 +47,9 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
 }
 .ham{display:none;position:fixed;top:1rem;left:1rem;z-index:200;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;padding:.4rem .6rem;cursor:pointer;color:var(--text);font-size:1.3rem}
 @media(max-width:860px){.ham{display:block}}
+
+.sidebar nav .nav-section{padding:.5rem 1.5rem .25rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:.5rem}
+.sidebar nav .nav-child{padding:.35rem 1.5rem .35rem 2.5rem;font-size:.8rem}
 </style>
 </head>
 <body>
@@ -68,7 +71,14 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <a href="recovery.html">Recovery</a>
   <a href="memory.html">Memory</a>
   <a href="diagrams.html">Diagrams</a>
-    <a href="uml-sequences.html">UML Sequences</a>
+    <div class="nav-section">UML Diagrams</div>
+    <a href="uml-system-context.html" class="nav-child">System Context</a>
+    <a href="uml-component.html" class="nav-child">Component</a>
+    <a href="uml-use-case.html" class="nav-child">Use Case</a>
+    <a href="uml-sequence-feature.html" class="nav-child">Sequence: Feature Dev</a>
+    <a href="uml-sequence-mcra.html" class="nav-child">Sequence: MCRA</a>
+    <a href="uml-class-brain.html" class="nav-child">Class: Brain Model</a>
+    <a href="uml-deployment.html" class="nav-child">Deployment</a>
 </nav>
 
 <main class="main">

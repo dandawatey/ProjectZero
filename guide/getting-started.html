@@ -141,6 +141,9 @@ pre code { background: none; padding: 0; color: inherit; }
   .content { padding: 4rem 1.25rem 3rem; }
   .branch { grid-template-columns: 1fr; }
 }
+
+.sidebar nav .nav-section{padding:.5rem 1.5rem .25rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:.5rem}
+.sidebar nav .nav-child{padding:.35rem 1.5rem .35rem 2.5rem;font-size:.8rem}
 </style>
 </head>
 <body>
@@ -163,7 +166,14 @@ pre code { background: none; padding: 0; color: inherit; }
     <a href="recovery.html">Recovery</a>
     <a href="memory.html">Memory</a>
     <a href="diagrams.html">Diagrams</a>
-    <a href="uml-sequences.html">UML Sequences</a>
+    <div class="nav-section">UML Diagrams</div>
+    <a href="uml-system-context.html" class="nav-child">System Context</a>
+    <a href="uml-component.html" class="nav-child">Component</a>
+    <a href="uml-use-case.html" class="nav-child">Use Case</a>
+    <a href="uml-sequence-feature.html" class="nav-child">Sequence: Feature Dev</a>
+    <a href="uml-sequence-mcra.html" class="nav-child">Sequence: MCRA</a>
+    <a href="uml-class-brain.html" class="nav-child">Class: Brain Model</a>
+    <a href="uml-deployment.html" class="nav-child">Deployment</a>
   </nav>
 </aside>
 

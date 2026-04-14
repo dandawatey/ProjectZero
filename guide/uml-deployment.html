@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deployment Diagram — ProjectZero</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--green:#22c55e;--yellow:#eab308;--cyan:#06b6d4;--purple:#a855f7;--orange:#f97316}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+aside{width:260px;background:#0b1120;border-right:1px solid var(--border);padding:1.5rem 0;flex-shrink:0;position:fixed;height:100vh;overflow-y:auto}
+aside .brand{padding:0 1.5rem 1rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
+aside .brand a{color:#fff;font-size:1.1rem;font-weight:700;text-decoration:none}
+aside .brand p{color:var(--muted);font-size:.7rem;margin-top:.25rem}
+aside a{display:block;padding:.4rem 1.5rem;color:var(--muted);text-decoration:none;font-size:.85rem;transition:all .15s}
+aside a:hover{color:#fff;background:rgba(255,255,255,.05)}
+aside a.active{color:#fff;background:rgba(59,130,246,.15);border-right:2px solid var(--accent)}
+aside .nav-section{padding:.5rem 1.5rem .25rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:.5rem}
+aside .nav-child{padding:.35rem 1.5rem .35rem 2.5rem;font-size:.8rem}
+main{margin-left:260px;flex:1;padding:2.5rem 3rem;max-width:1100px}
+h1{font-size:1.8rem;font-weight:800;margin-bottom:.4rem}
+h1 span{color:var(--accent)}
+.subtitle{color:var(--muted);margin-bottom:2rem;font-size:.95rem}
+.diagram{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:2rem;margin:1.5rem 0;overflow-x:auto}
+.diagram-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.5rem}
+.mermaid{min-width:800px}
+.back-link{display:inline-flex;align-items:center;gap:.4rem;color:var(--muted);text-decoration:none;font-size:.85rem;margin-bottom:1.5rem;transition:color .15s}
+.back-link:hover{color:var(--text)}
+.nav-pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2rem}
+.nav-pill{padding:.35rem .85rem;border-radius:20px;font-size:.8rem;text-decoration:none;background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.25);transition:all .15s}
+.nav-pill:hover,.nav-pill.active{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><a href="index.html">ProjectZero</a><p>Factory Platform</p></div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="architecture.html">Architecture</a>
+    <div class="nav-section">UML Diagrams</div>
+    <a href="uml-system-context.html" class="nav-child">System Context</a>
+    <a href="uml-component.html" class="nav-child">Component</a>
+    <a href="uml-use-case.html" class="nav-child">Use Case</a>
+    <a href="uml-sequence-feature.html" class="nav-child">Sequence: Feature Dev</a>
+    <a href="uml-sequence-mcra.html" class="nav-child">Sequence: MCRA</a>
+    <a href="uml-class-brain.html" class="nav-child">Class: Brain Model</a>
+    <a href="uml-deployment.html" class="nav-child active">Deployment</a>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html">Agents</a>
+    <a href="commands.html">Commands</a>
+    <a href="business-docs.html">Business Docs</a>
+    <a href="control-tower.html">Control Tower</a>
+    <a href="governance.html">Governance</a>
+    <a href="recovery.html">Recovery</a>
+    <a href="memory.html">Memory</a>
+    <a href="diagrams.html">Diagrams</a>
+  </nav>
+</aside>
+<main>
+  <a href="architecture.html" class="back-link">← Architecture</a>
+  <h1><span>UML</span> Deployment</h1>
+  <p class="subtitle">Local development topology vs cloud/SaaS production deployment.</p>
+  <div class="nav-pills">
+    <a href="uml-system-context.html" class="nav-pill">System Context</a>
+    <a href="uml-component.html" class="nav-pill">Component</a>
+    <a href="uml-use-case.html" class="nav-pill">Use Case</a>
+    <a href="uml-sequence-feature.html" class="nav-pill">Sequence: Feature Dev</a>
+    <a href="uml-sequence-mcra.html" class="nav-pill">Sequence: MCRA</a>
+    <a href="uml-class-brain.html" class="nav-pill">Class: Brain Model</a>
+    <a href="uml-deployment.html" class="nav-pill active">Deployment</a>
+  </div>
+  <div class="diagram">
+    <div class="diagram-title">Local Dev vs Cloud/SaaS — Full Deployment Topology</div>
+    <div class="mermaid">
+graph TB
+    subgraph LOCAL["Local Dev (Developer Machine)"]
+        DEV["Developer Machine<br/>Claude Code CLI / Browser"]
+        R3000["localhost:3000/5173<br/>React Control Tower"]
+        F8000["localhost:8000<br/>FastAPI (uvicorn)"]
+        T7233["localhost:7233<br/>Temporal Server (local)"]
+        P5432["localhost:5432<br/>PostgreSQL"]
+        M37777["localhost:37777<br/>claude-mem Worker (Bun)"]
+        SQLITE["~/.claude-mem/claude-mem.db<br/>SQLite"]
+        DEV --> R3000
+        DEV --> F8000
+        R3000 --> F8000
+        F8000 --> T7233
+        F8000 --> P5432
+        M37777 --> SQLITE
+        F8000 --> M37777
+    end
+    subgraph CLOUD["Cloud / SaaS"]
+        VERCEL["Vercel / CDN<br/>React Control Tower"]
+        RAILWAY["Railway / Fly.io<br/>FastAPI (Docker)"]
+        TEMPORAL_CLOUD["Temporal Cloud<br/>Workflow Orchestration"]
+        SUPABASE["Supabase / RDS<br/>PostgreSQL"]
+        JIRA["JIRA Cloud (SaaS)"]
+        CONFLUENCE["Confluence Cloud (SaaS)"]
+        GITHUB["GitHub (SaaS)"]
+        ANTHROPIC["Anthropic API (SaaS)"]
+        VERCEL --> RAILWAY
+        RAILWAY --> TEMPORAL_CLOUD
+        RAILWAY --> SUPABASE
+        RAILWAY --> JIRA
+        RAILWAY --> CONFLUENCE
+        RAILWAY --> GITHUB
+        RAILWAY --> ANTHROPIC
+    end
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:'dark',themeVariables:{background:'#1e293b',primaryColor:'#3b82f6',primaryTextColor:'#e2e8f0',lineColor:'#94a3b8',edgeLabelBackground:'#1e293b',nodeBorder:'#334155',clusterBkg:'#0f172a',titleColor:'#e2e8f0'}})</script>
+</body>
+</html>

@@ -100,6 +100,9 @@ code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: r
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .pipeline-line { width: 20px; }
 }
+
+.sidebar nav .nav-section{padding:.5rem 1.5rem .25rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:.5rem}
+.sidebar nav .nav-child{padding:.35rem 1.5rem .35rem 2.5rem;font-size:.8rem}
 </style>
 </head>
 <body>
@@ -121,7 +124,14 @@ code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: r
     <a href="governance.html">Governance</a>
     <a href="recovery.html">Recovery</a>
   <a href="diagrams.html">Diagrams</a>
-    <a href="uml-sequences.html">UML Sequences</a>
+    <div class="nav-section">UML Diagrams</div>
+    <a href="uml-system-context.html" class="nav-child">System Context</a>
+    <a href="uml-component.html" class="nav-child">Component</a>
+    <a href="uml-use-case.html" class="nav-child">Use Case</a>
+    <a href="uml-sequence-feature.html" class="nav-child">Sequence: Feature Dev</a>
+    <a href="uml-sequence-mcra.html" class="nav-child">Sequence: MCRA</a>
+    <a href="uml-class-brain.html" class="nav-child">Class: Brain Model</a>
+    <a href="uml-deployment.html" class="nav-child">Deployment</a>
   </nav>
 </aside>
 
