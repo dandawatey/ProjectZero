@@ -244,6 +244,41 @@ async def approve_command(req: ApproveRequest, db: AsyncSession = Depends(get_db
 
 
 # ---------------------------------------------------------------------------
+# /check — quality gate runner (PRJ0-34)
+# ---------------------------------------------------------------------------
+
+class CheckRequest(BaseModel):
+    product_id: str = ""
+    repo_path: str = "."
+    ticket_id: str = ""
+
+
+class CheckResponse(BaseModel):
+    passed: bool
+    coverage_pct: float
+    lint_errors: int
+    type_errors: int
+    gates: list[dict]
+
+
+@router.post("/check", response_model=CheckResponse)
+async def run_check(body: CheckRequest):
+    """Run quality gates (coverage ≥80%, lint, types) against a product repo."""
+    from app.services.quality_gate import run_quality_gates
+    result = run_quality_gates(body.repo_path)
+    return CheckResponse(
+        passed=result.passed,
+        coverage_pct=result.coverage_pct,
+        lint_errors=result.lint_errors,
+        type_errors=result.type_errors,
+        gates=[
+            {"name": g.name, "passed": g.passed, "score": g.score, "detail": g.detail}
+            for g in result.gates
+        ],
+    )
+
+
+# ---------------------------------------------------------------------------
 # /agent-map — expose STAGE_AGENT_MAP as JSON (PRJ0-39)
 # ---------------------------------------------------------------------------
 
