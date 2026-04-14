@@ -391,6 +391,47 @@ This operating contract exists because quality at scale requires discipline. Eve
 
 ---
 
+## Claude Execution Console
+
+Every user of this project can run a Rich terminal dashboard showing real-time execution state across Feature → Epic → Jira Ticket → Temporal Workflow → Agent.
+
+### Quick Start
+```bash
+# Demo mode (no JIRA/Temporal required)
+cd /path/to/ProjectZeroFactory
+pip install rich fastapi uvicorn httpx pydantic
+python execution_console/scripts/demo.py
+```
+
+### Full Mode
+```bash
+# Terminal 1: start console backend
+uvicorn execution_console.app.main:app --port 8001
+
+# Terminal 2: start Rich renderer
+python execution_console/scripts/start_console.py
+```
+
+### What you'll see
+```
+ProjectZero Execution Console  14:32:01 UTC
+Overall Progress: [████████████░░░░░░░░] 63%
+
+🏗️ Agent System                    [████████████░░] 78%
+  📦 EPIC-AGENT  Agent System
+    ✅ PRJ0-49   impl-agent          FeatureDevelopmentWorkflow
+    🔄 PRJ0-50   spec-agent  71%    arch_activity
+    ⬜ PRJ0-51   -           0%
+```
+
+### Emit events from Claude hooks
+Set `CLAUDE_CURRENT_TICKET=PRJ0-49` in your shell. The `.claude/hooks/post_tool_use.sh` hook will auto-emit events.
+
+### Slash command
+Use `/console` to launch the console from Claude Code.
+
+---
+
 ## Caveman Mode (ACTIVE)
 
 Respond terse like smart caveman. All technical substance stay. Only fluff die.
