@@ -36,6 +36,12 @@ class Config:
     CLAUDE_CURRENT_TICKET: str = os.getenv("CLAUDE_CURRENT_TICKET", "")
     CLAUDE_AGENT_NAME: str = os.getenv("CLAUDE_AGENT_NAME", "claude")
 
+    # claude-mem (Persistent Memory worker)
+    CLAUDE_MEM_PORT: int = int(os.getenv("CLAUDE_MEM_PORT", "37777"))
+    CLAUDE_MEM_ENABLED: bool = os.getenv("CLAUDE_MEM_ENABLED", "true").lower() == "true"
+    CLAUDE_MEM_DB_PATH: str = os.getenv("CLAUDE_MEM_DB_PATH", str(Path.home() / ".claude-mem" / "memories.db"))
+    CLAUDE_MEM_BRAIN_THRESHOLD: float = float(os.getenv("CLAUDE_MEM_BRAIN_THRESHOLD", "0.7"))
+
     # OTel
     OTEL_ENABLED: bool = os.getenv("OTEL_ENABLED", "false").lower() == "true"
     OTEL_ENDPOINT: str = os.getenv("OTEL_ENDPOINT", "http://localhost:4317")
