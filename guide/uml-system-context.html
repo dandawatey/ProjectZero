@@ -76,96 +76,265 @@ h1 span{color:var(--accent)}
     <a href="uml-class-brain.html" class="nav-pill">Class: Brain Model</a>
     <a href="uml-deployment.html" class="nav-pill">Deployment</a>
   </div>
-  <div class="diagram">
-    <div class="diagram-title">ProjectZeroFactory — External Systems &amp; Actors (C4 Context)</div>
-    <div class="mermaid">
-flowchart TB
-    subgraph External["☁️ External Systems"]
-        JIRA["JIRA Cloud
-Tickets · Sprints"]
-        Confluence["Confluence
-Docs · Reports"]
-        GitHub["GitHub
-PRs · Branches"]
-        Claude["Anthropic
-Claude API"]
-        Temporal["Temporal
-Workflow Engine"]
-    end
+  <style>
+  /* ── C4 Context Diagram ───────────────────────────────────────── */
+  .c4-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .c4-diagram-title {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+  .c4-canvas {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    align-items: center;
+    min-width: 820px;
+    position: relative;
+  }
 
-    subgraph Factory["🏭 ProjectZeroFactory — Agent Teams"]
-        direction TB
+  /* Actors column (left) */
+  .c4-actors {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: center;
+    padding-right: 1rem;
+  }
 
-        subgraph CXO["👔 CXO Team"]
-            CEO["CEO"] ~~~ CTO["CTO"]
-            CTO ~~~ CFO["CFO"]
-            CFO ~~~ COO["COO"]
-            COO ~~~ CPO["CPO"]
-            CPO ~~~ CMO["CMO"]
-            CMO ~~~ Ralph["Ralph
-Orchestrator"]
-        end
+  /* System (center) */
+  .c4-system {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    border: 2px solid #3b82f6;
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
+    background: linear-gradient(135deg, rgba(59,130,246,.12), rgba(99,102,241,.08));
+    text-align: center;
+    position: relative;
+  }
+  .c4-system-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #3b82f6;
+    margin-bottom: .4rem;
+    font-weight: 700;
+  }
+  .c4-system-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    margin-bottom: .35rem;
+  }
+  .c4-system-desc {
+    font-size: .78rem;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+  .c4-teams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+    margin-top: .5rem;
+  }
+  .c4-team {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: .45rem .65rem;
+    font-size: .72rem;
+    color: var(--muted);
+    text-align: left;
+  }
+  .c4-team strong {
+    display: block;
+    color: var(--text);
+    font-size: .75rem;
+    margin-bottom: .15rem;
+  }
 
-        subgraph Product["📋 Product Team"]
-            PM["ProductManager"]
-            UX["UXDesigner"]
-            MA["MarketAnalyst"]
-        end
+  /* External systems (right) */
+  .c4-externals {
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+    align-items: center;
+    padding-left: 1rem;
+  }
 
-        subgraph Engineering["💻 Engineering Team"]
-            Arch["Architect"]
-            Dev["Developer"]
-            FE["FrontendDev"]
-            BE["BackendDev"]
-            CR["CodeReviewer"]
-            DO["DevOps"]
-            IS["InfraSpecialist"]
-        end
+  /* Bottom row — infrastructure */
+  .c4-infra {
+    grid-column: 1 / 4;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed rgba(255,255,255,.1);
+  }
 
-        subgraph Governance["⚖️ Governance Team"]
-            CO["ComplianceOfficer"]
-            SA["SecurityAuditor"]
-            QG["QualityGatekeeper"]
-            QL["QALead"]
-            RM["ReleaseManager"]
-        end
+  /* Individual node boxes */
+  .c4-node {
+    border-radius: 10px;
+    padding: .6rem .9rem;
+    font-size: .78rem;
+    text-align: center;
+    min-width: 130px;
+    position: relative;
+  }
+  .c4-node-icon { font-size: 1.2rem; display: block; margin-bottom: .25rem; }
+  .c4-node-name { font-weight: 700; color: var(--text); font-size: .82rem; }
+  .c4-node-desc { color: var(--muted); font-size: .7rem; margin-top: .15rem; line-height: 1.35; }
 
-        subgraph Operations["⚙️ Operations Team"]
-            PC["ProjectCoordinator"]
-            TM["TicketManager"]
-            DW["DocWriter"]
-            RS["RecoverySpecialist"]
-            CT["ControlTowerOp"]
-            MC["MetricsCollector"]
-            QE["QAEngineer"]
-            EM["EnvManager"]
-        end
+  .c4-actor   { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3); }
+  .c4-saas    { background: rgba(59,130,246,.1);  border: 1px solid rgba(59,130,246,.3); }
+  .c4-infra-node { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.3); }
 
-        subgraph Sales["💼 Sales Team"]
-            SD["SalesDirector"]
-            BD["BizDevManager"]
-        end
+  /* Arrows / legend */
+  .c4-arrows {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .c4-arrow {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .75rem;
+    color: var(--muted);
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .75rem;
+  }
+  .c4-arrow-line {
+    width: 28px;
+    height: 2px;
+    background: var(--accent);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .c4-arrow-line::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: -3px;
+    border: 4px solid transparent;
+    border-left-color: var(--accent);
+  }
+  .c4-arrow-from { color: var(--text); font-weight: 600; }
+  </style>
 
-        subgraph Marketing["📣 Marketing Team"]
-            CS["ContentStrategist"]
-            GM["GrowthMarketer"]
-        end
-    end
+  <div class="c4-wrap">
+    <div class="c4-diagram-title">C4 Level 1 — System Context · ProjectZeroFactory</div>
 
-    User(["👤 Developer / PM"]) --> Factory
-    CXO_V(["📊 CXO Viewer"]) --> Factory
+    <div class="c4-canvas">
 
-    Ralph -->|"routes all work"| Product & Engineering & Governance & Operations
-    Product -->|"creates tickets"| JIRA
-    Engineering -->|"push branches · create PRs"| GitHub
-    Engineering -->|"LLM calls"| Claude
-    Engineering -->|"run workflows"| Temporal
-    Governance -->|"publish reports"| Confluence
-    Operations -->|"publish docs"| Confluence
-    CXO -->|"publish CXO metrics"| Confluence
-    Product -->|"manage sprints"| JIRA
-    RM -->|"tag releases"| GitHub
-</div>
+      <!-- LEFT: Actors -->
+      <div class="c4-actors">
+        <div class="c4-node c4-actor">
+          <span class="c4-node-icon">👤</span>
+          <div class="c4-node-name">Developer / PM</div>
+          <div class="c4-node-desc">Uses CLI, React UI<br>submits tickets<br>triggers workflows</div>
+        </div>
+        <div class="c4-node c4-actor">
+          <span class="c4-node-icon">📊</span>
+          <div class="c4-node-name">CXO Viewer</div>
+          <div class="c4-node-desc">Views dashboards<br>approves gates<br>reads CXO reports</div>
+        </div>
+      </div>
+
+      <!-- CENTER: System -->
+      <div class="c4-system">
+        <div class="c4-system-label">System Boundary</div>
+        <div class="c4-system-name">🏭 ProjectZeroFactory</div>
+        <div class="c4-system-desc">
+          Governed AI-powered product development platform.<br>
+          Orchestrates 34 specialized agents across 8 teams<br>
+          through Temporal workflows and a 4-eye governance model.
+        </div>
+        <div class="c4-teams">
+          <div class="c4-team"><strong>👔 CXO Team</strong>CEO · CTO · CFO · COO · CPO · CMO · Ralph</div>
+          <div class="c4-team"><strong>📋 Product Team</strong>ProductManager · UXDesigner · MarketAnalyst</div>
+          <div class="c4-team"><strong>💻 Engineering Team</strong>Architect · Developer · FrontendDev · BackendDev · CodeReviewer · DevOps · InfraSpecialist</div>
+          <div class="c4-team"><strong>⚖️ Governance Team</strong>ComplianceOfficer · SecurityAuditor · QualityGatekeeper · QALead · ReleaseManager</div>
+          <div class="c4-team"><strong>⚙️ Operations Team</strong>ProjectCoordinator · TicketManager · DocWriter · RecoverySpecialist · ControlTowerOp · MetricsCollector · QAEngineer · EnvManager</div>
+          <div class="c4-team"><strong>💼 Sales &amp; 📣 Marketing</strong>SalesDirector · BizDevManager · ContentStrategist · GrowthMarketer</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: SaaS integrations -->
+      <div class="c4-externals">
+        <div class="c4-node c4-saas">
+          <span class="c4-node-icon">📋</span>
+          <div class="c4-node-name">JIRA Cloud</div>
+          <div class="c4-node-desc">Tickets · Sprints<br>Transitions · Backlog</div>
+        </div>
+        <div class="c4-node c4-saas">
+          <span class="c4-node-icon">📄</span>
+          <div class="c4-node-name">Confluence</div>
+          <div class="c4-node-desc">Docs · CXO Reports<br>Architecture pages</div>
+        </div>
+        <div class="c4-node c4-saas">
+          <span class="c4-node-icon">🐙</span>
+          <div class="c4-node-name">GitHub</div>
+          <div class="c4-node-desc">Branches · PRs<br>CI · Release tags</div>
+        </div>
+      </div>
+
+    </div><!-- /c4-canvas grid row 1 -->
+
+    <!-- BOTTOM: Infrastructure -->
+    <div class="c4-infra">
+      <div class="c4-node c4-infra-node">
+        <span class="c4-node-icon">🤖</span>
+        <div class="c4-node-name">Anthropic API</div>
+        <div class="c4-node-desc">Claude Sonnet 4.6<br>All 34 agent LLM calls</div>
+      </div>
+      <div class="c4-node c4-infra-node">
+        <span class="c4-node-icon">⚙️</span>
+        <div class="c4-node-name">Temporal</div>
+        <div class="c4-node-desc">Workflow orchestration<br>Activity scheduling</div>
+      </div>
+      <div class="c4-node c4-infra-node">
+        <span class="c4-node-icon">🗄️</span>
+        <div class="c4-node-name">PostgreSQL</div>
+        <div class="c4-node-desc">Brain · State · Decisions<br>Memories · Patterns</div>
+      </div>
+      <div class="c4-node c4-infra-node">
+        <span class="c4-node-icon">🧠</span>
+        <div class="c4-node-name">claude-mem :37777</div>
+        <div class="c4-node-desc">Cross-session memory<br>SQLite · score→Brain</div>
+      </div>
+    </div>
+
+    <!-- Interaction legend -->
+    <div class="c4-arrows">
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Developer</span> → Factory: CLI commands · React UI · ticket submission</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> → JIRA: create tickets · transition sprints · update status</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> → Confluence: publish docs · CXO reports · architecture pages</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> → GitHub: push branches · open PRs · tag releases</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> → Anthropic: LLM completions for all 34 agents</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> ↔ Temporal: start / signal / query workflows</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> ↔ PostgreSQL: read/write Brain memories · workflow state</div>
+      <div class="c4-arrow"><div class="c4-arrow-line"></div><span class="c4-arrow-from">Factory</span> ↔ claude-mem: observe · search · promote to Brain</div>
+    </div>
+
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
