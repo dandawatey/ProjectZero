@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfraSpecialist — Infrastructure Specialist — ProjectZero Guide</title>
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-code: #1e293b;
+  --accent: #3b82f6;
+  --accent-dim: #2563eb;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --sidebar-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, monospace;
+}
+html { font-size: 16px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh; display: flex; }
+
+/* ---- Sidebar ---- */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w); background: #0b1120; border-right: 1px solid var(--border);
+  padding: 2rem 0; overflow-y: auto; z-index: 100;
+  display: flex; flex-direction: column;
+}
+.sidebar-brand { padding: 0 1.5rem 1.5rem; font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar nav a {
+  display: block; padding: 0.5rem 1.5rem; color: var(--text-muted); text-decoration: none;
+  font-size: 0.9rem; transition: color 0.15s, background 0.15s; border-left: 3px solid transparent;
+}
+.sidebar nav a:hover, .sidebar nav a.active {
+  color: var(--text); background: rgba(59,130,246,0.08); border-left-color: var(--accent);
+}
+.sidebar nav a.active { font-weight: 600; }
+
+/* ---- Hamburger ---- */
+.menu-toggle {
+  display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; align-items: center; justify-content: center;
+}
+
+/* ---- Main ---- */
+.main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.content { max-width: 900px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+
+/* ---- Hero ---- */
+.hero { text-align: center; padding: 4rem 0 3rem; }
+.hero h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem; background: linear-gradient(135deg, var(--accent), #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero .subtitle { font-size: 1.15rem; color: var(--text-muted); max-width: 640px; margin: 0 auto 2.5rem; line-height: 1.8; }
+.hero .subtitle strong { color: var(--text); font-weight: 600; }
+.badge { display: inline-block; padding: 0.35rem 1rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; background: rgba(59,130,246,0.15); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); margin-bottom: 1.5rem; }
+
+/* ---- Cards ---- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem; margin: 2rem 0; }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; text-decoration: none; color: var(--text);
+  transition: border-color 0.2s, transform 0.2s; display: flex; flex-direction: column;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.card p { font-size: 0.88rem; color: var(--text-muted); flex: 1; }
+.card .icon { font-size: 1.6rem; margin-bottom: 0.75rem; }
+
+/* ---- Quick Start ---- */
+.section-title { font-size: 1.6rem; font-weight: 700; margin: 3rem 0 1rem; letter-spacing: -0.02em; }
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps li {
+  counter-increment: step; position: relative; padding: 1.25rem 1.5rem 1.25rem 4rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 0.75rem;
+}
+.steps li::before {
+  content: counter(step); position: absolute; left: 1.25rem; top: 1.25rem;
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+  color: #fff; font-size: 0.85rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.steps li strong { display: block; margin-bottom: 0.25rem; }
+.steps li code { font-family: var(--mono); font-size: 0.85rem; background: rgba(59,130,246,0.12); color: var(--accent); padding: 0.15rem 0.5rem; border-radius: 4px; }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .menu-toggle { display: flex; }
+  .main { margin-left: 0; }
+  .hero h1 { font-size: 2rem; }
+  .content { padding: 4rem 1.25rem 3rem; }
+}
+
+.sidebar nav .nav-section{padding:.5rem 1.5rem .25rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-top:.5rem}
+.sidebar nav .nav-child{padding:.35rem 1.5rem .35rem 2.5rem;font-size:.8rem}
+
+
+/* Agent page extras */
+.agent-hero {
+  display: flex; align-items: flex-start; gap: 2rem; padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid var(--border); margin-bottom: 2rem;
+}
+.agent-avatar {
+  width: 80px; height: 80px; border-radius: 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; flex-shrink: 0;
+  background: #10b98122; border: 2px solid #10b98155;
+}
+.agent-meta h1 { font-size: 1.8rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem; }
+.agent-meta .agent-title { font-size: 1rem; color: #10b981; font-weight: 600; margin-bottom: 0.5rem; }
+.agent-meta .team-label {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 9999px;
+  background: #10b98122; color: #10b981; border: 1px solid #10b98144; margin-bottom: 0.75rem;
+}
+.agent-meta .role-desc { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; max-width: 640px; }
+
+.section-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.section-card h2 {
+  font-size: 1rem; font-weight: 700; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+}
+.section-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.section-card li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; padding-left: 1.25rem; position: relative; }
+.section-card li::before { content: '→'; position: absolute; left: 0; color: #10b981; font-weight: 700; }
+
+/* Skills — pill layout */
+.skills-list { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0; list-style: none; }
+.skills-list li { padding: 0 !important; }
+.skills-list li::before { display: none !important; }
+.skill-tag {
+  display: inline-block; padding: 0.3rem 0.85rem; border-radius: 9999px; font-size: 0.8rem;
+  font-weight: 600; background: #10b98118; color: #10b981; border: 1px solid #10b98144;
+}
+
+/* Guardrails */
+.guardrails li::before { content: '' !important; }
+.guardrails li { color: #fca5a5; padding-left: 0 !important; }
+
+/* Workflows */
+.workflows li code {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.82rem; color: #10b981;
+}
+.workflows li::before { content: '◆'; color: #10b981; font-size: 0.6rem; top: 0.1rem; }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.85rem; color: var(--text-muted); text-decoration: none;
+  margin-bottom: 1.5rem; transition: color 0.15s;
+}
+.back-link:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+<div class="sidebar">
+  <div class="sidebar-brand">ProjectZero</div>
+  <nav>
+    <a href="index.html" class="active">Home</a>
+    <a href="getting-started.html">Getting Started</a>
+    <details class="nav-group">
+      <summary class="nav-group-label">Architecture</summary>
+      <a href="architecture.html" class="nav-child">Overview</a>
+      <a href="diagrams.html" class="nav-child">Diagrams</a>
+      <details class="nav-group nav-group-nested">
+        <summary class="nav-group-label nav-child">UML Diagrams</summary>
+        <a href="uml-system-context.html" class="nav-child nav-deep">System Context</a>
+        <a href="uml-component.html" class="nav-child nav-deep">Component</a>
+        <a href="uml-use-case.html" class="nav-child nav-deep">Use Case</a>
+        <a href="uml-sequence-feature.html" class="nav-child nav-deep">Sequence: Feature Dev</a>
+        <a href="uml-sequence-mcra.html" class="nav-child nav-deep">Sequence: MCRA</a>
+        <a href="uml-class-brain.html" class="nav-child nav-deep">Class: Brain Model</a>
+        <a href="uml-deployment.html" class="nav-child nav-deep">Deployment</a>
+      </details>
+    </details>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html" class="nav-child active">Agents</a>
+    <a href="commands.html">Commands</a>
+    <a href="business-docs.html">Business Docs</a>
+    <a href="control-tower.html">Control Tower</a>
+    <a href="governance.html">Governance</a>
+    <a href="recovery.html">Recovery</a>
+    <a href="memory.html">Memory</a>
+  </nav>
+</div>
+<div class="main">
+<div class="content">
+  <a href="agents.html" class="back-link">← Agent Directory</a>
+
+  <div class="agent-hero">
+    <div class="agent-avatar">🏢</div>
+    <div class="agent-meta">
+      <div class="team-label">Engineering Team</div>
+      <h1>InfraSpecialist</h1>
+      <div class="agent-title">Infrastructure Specialist</div>
+      <p class="role-desc">Configures cloud resources, manages environments, handles scaling, networking, and infrastructure security.</p>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h2>📋 Responsibilities</h2>
+    <ul><li>Provision and configure cloud infrastructure</li>
+<li>Manage dev, staging, and production environments</li>
+<li>Design and implement network architecture</li>
+<li>Handle auto-scaling and capacity planning</li>
+<li>Implement and maintain security groups and IAM policies</li>
+<li>Conduct infrastructure cost optimisation</li></ul>
+  </div>
+
+  <div class="section-card">
+    <h2>🛠️ Skills</h2>
+    <ul class="skills-list"><li><span class="skill-tag">Cloud platform management (AWS/GCP/Azure)</span></li>
+<li><span class="skill-tag">Network architecture and VPC design</span></li>
+<li><span class="skill-tag">IAM and security policy configuration</span></li>
+<li><span class="skill-tag">Auto-scaling and load balancing</span></li>
+<li><span class="skill-tag">Cost optimisation</span></li>
+<li><span class="skill-tag">Disaster recovery planning</span></li></ul>
+  </div>
+
+  <div class="section-card guardrails">
+    <h2>🚧 Guardrails</h2>
+    <ul><li>⛔ Must not modify production infrastructure without change approval</li>
+<li>⛔ Must always use IaC — no manual console changes</li>
+<li>⛔ Must follow least-privilege principle for all IAM policies</li>
+<li>⛔ Must involve SecurityAuditor for security group changes</li>
+<li>⛔ Must document all infrastructure components</li>
+<li>⛔ Must have rollback plan for every infrastructure change</li></ul>
+  </div>
+
+  <div class="section-card workflows">
+    <h2>🔄 Workflows</h2>
+    <ul><li><code>InfrastructureWorkflow</code></li>
+<li><code>DeploymentWorkflow</code></li>
+<li><code>SecurityAuditWorkflow</code></li></ul>
+  </div>
+
+</div>
+</div>
+</body>
+</html>

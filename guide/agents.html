@@ -69,6 +69,17 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
     .nav-deep { padding-left: 3.75rem !important; font-size: 0.83rem; }
     .nav-section { display: none; }
 
+    
+    /* Clickable agent cards */
+    .agent-link { text-decoration: none; color: inherit; display: block; }
+    .agent-link .agent { transition: border-color 0.2s, transform 0.15s; cursor: pointer; }
+    .agent-link:hover .agent {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      background: rgba(59,130,246,0.06);
+    }
+    .agent-link:focus-visible { outline: 2px solid var(--accent); border-radius: 10px; }
+
     </style>
 </head>
 <body>
@@ -114,41 +125,41 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details open>
     <summary>CXO Team <span class="team-badge" style="background:var(--purple)">7 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-ceo.html" class="agent-link"><div class="agent">
         <div class="name">CEO</div>
         <div class="role">Chief Executive Officer</div>
         <div class="resp">Sets product vision, makes final strategic decisions, resolves cross-team conflicts, approves major milestones.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-cto.html" class="agent-link"><div class="agent">
         <div class="name">CTO</div>
         <div class="role">Chief Technology Officer</div>
         <div class="resp">Defines technical strategy, approves architecture decisions, oversees engineering quality and technology choices.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-cfo.html" class="agent-link"><div class="agent">
         <div class="name">CFO</div>
         <div class="role">Chief Financial Officer</div>
         <div class="resp">Manages financial projections, costing models, investor data rooms, and budget allocation across teams.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-coo.html" class="agent-link"><div class="agent">
         <div class="name">COO</div>
         <div class="role">Chief Operating Officer</div>
         <div class="resp">Oversees operational workflows, resource allocation, process optimization, and cross-team coordination.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-cpo.html" class="agent-link"><div class="agent">
         <div class="name">CPO</div>
         <div class="role">Chief Product Officer</div>
         <div class="resp">Owns product roadmap, prioritizes features, aligns product decisions with business goals and user needs.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-cmo.html" class="agent-link"><div class="agent">
         <div class="name">CMO</div>
         <div class="role">Chief Marketing Officer</div>
         <div class="resp">Directs go-to-market strategy, brand positioning, marketing campaigns, and market analysis.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-ralph.html" class="agent-link"><div class="agent">
         <div class="name">Ralph Controller</div>
         <div class="role">Master Orchestrator</div>
         <div class="resp">Routes work to agents, tracks progress, manages queues, detects blocks, triggers recovery. Never implements.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -156,21 +167,21 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Product Team <span class="team-badge" style="background:var(--accent)">3 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-product-manager.html" class="agent-link"><div class="agent">
         <div class="name">ProductManager</div>
         <div class="role">Product Manager</div>
         <div class="resp">Writes specs, manages tickets, prioritizes backlog, coordinates between design and engineering, tracks delivery.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-ux-designer.html" class="agent-link"><div class="agent">
         <div class="name">UXDesigner</div>
         <div class="role">UX Designer</div>
         <div class="resp">Creates user flows, wireframes, interaction patterns. Validates designs against user personas and accessibility standards.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-market-analyst.html" class="agent-link"><div class="agent">
         <div class="name">MarketAnalyst</div>
         <div class="role">Market Analyst</div>
         <div class="resp">Conducts TAM-SAM-SOM analysis, competitive research, market sizing, and trend identification for product decisions.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -178,41 +189,41 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Engineering Team <span class="team-badge" style="background:var(--green)">7 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-architect.html" class="agent-link"><div class="agent">
         <div class="name">Architect</div>
         <div class="role">Software Architect</div>
         <div class="resp">Designs system architecture, defines API contracts, selects technology stack, ensures scalability and maintainability.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-developer.html" class="agent-link"><div class="agent">
         <div class="name">Developer</div>
         <div class="role">Software Developer</div>
         <div class="resp">Implements features per spec and architecture, writes clean code, creates unit tests, follows coding standards.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-frontend-dev.html" class="agent-link"><div class="agent">
         <div class="name">FrontendDeveloper</div>
         <div class="role">Frontend Developer</div>
         <div class="resp">Builds UI components, implements design system, ensures responsive layouts, optimizes client-side performance.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-backend-dev.html" class="agent-link"><div class="agent">
         <div class="name">BackendDeveloper</div>
         <div class="role">Backend Developer</div>
         <div class="resp">Implements server-side logic, database operations, API endpoints, and integration with external services.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-code-reviewer.html" class="agent-link"><div class="agent">
         <div class="name">CodeReviewer</div>
         <div class="role">Code Reviewer</div>
         <div class="resp">Reviews pull requests for quality, security, performance, and adherence to architecture patterns and standards.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-devops.html" class="agent-link"><div class="agent">
         <div class="name">DevOpsEngineer</div>
         <div class="role">DevOps Engineer</div>
         <div class="resp">Manages CI/CD pipelines, infrastructure as code, monitoring, alerting, and deployment automation.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-infra.html" class="agent-link"><div class="agent">
         <div class="name">InfraSpecialist</div>
         <div class="role">Infrastructure Specialist</div>
         <div class="resp">Configures cloud resources, manages environments, handles scaling, networking, and infrastructure security.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -220,16 +231,16 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Sales Team <span class="team-badge" style="background:var(--orange)">2 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-sales-director.html" class="agent-link"><div class="agent">
         <div class="name">SalesDirector</div>
         <div class="role">Sales Director</div>
         <div class="resp">Develops sales strategy, defines pricing models, creates sales playbooks, and manages pipeline forecasting.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-bizdev.html" class="agent-link"><div class="agent">
         <div class="name">BizDevManager</div>
         <div class="role">Business Development Manager</div>
         <div class="resp">Identifies partnership opportunities, manages strategic alliances, evaluates market expansion channels.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -237,16 +248,16 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Marketing Team <span class="team-badge" style="background:var(--cyan)">2 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-content-strategist.html" class="agent-link"><div class="agent">
         <div class="name">ContentStrategist</div>
         <div class="role">Content Strategist</div>
         <div class="resp">Creates content plans, writes marketing copy, develops messaging frameworks, and manages brand voice consistency.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-growth-marketer.html" class="agent-link"><div class="agent">
         <div class="name">GrowthMarketer</div>
         <div class="role">Growth Marketer</div>
         <div class="resp">Designs growth experiments, optimizes conversion funnels, manages acquisition channels, and tracks growth metrics.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -254,31 +265,31 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Governance Team <span class="team-badge" style="background:var(--yellow);color:#000">5 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-compliance.html" class="agent-link"><div class="agent">
         <div class="name">ComplianceOfficer</div>
         <div class="role">Compliance Officer</div>
         <div class="resp">Enforces regulatory compliance, reviews code and processes for legal requirements, manages compliance documentation.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-security-auditor.html" class="agent-link"><div class="agent">
         <div class="name">SecurityAuditor</div>
         <div class="role">Security Auditor</div>
         <div class="resp">Performs security scans, vulnerability assessments, penetration testing reviews, and security policy enforcement.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-quality-gatekeeper.html" class="agent-link"><div class="agent">
         <div class="name">QualityGatekeeper</div>
         <div class="role">Quality Gatekeeper</div>
         <div class="resp">Enforces quality gates at each phase, validates deliverable completeness, blocks progression on unmet criteria.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-qa-lead.html" class="agent-link"><div class="agent">
         <div class="name">QALead</div>
         <div class="role">QA Lead</div>
         <div class="resp">Defines test strategy, manages test plans, coordinates QA activities, and signs off on release quality.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-release-manager.html" class="agent-link"><div class="agent">
         <div class="name">ReleaseManager</div>
         <div class="role">Release Manager</div>
         <div class="resp">Coordinates release process, manages versioning, creates release notes, and oversees deployment orchestration.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
@@ -286,46 +297,46 @@ summary .team-badge{font-size:.7rem;padding:2px 10px;border-radius:99px;font-wei
   <details>
     <summary>Operations Team <span class="team-badge" style="background:var(--text3)">8 agents</span></summary>
     <div class="agent-grid">
-      <div class="agent">
+      <a href="agent-project-coordinator.html" class="agent-link"><div class="agent">
         <div class="name">ProjectCoordinator</div>
         <div class="role">Project Coordinator</div>
         <div class="resp">Tracks project timelines, manages dependencies, coordinates cross-team handoffs, and reports project status.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-ticket-manager.html" class="agent-link"><div class="agent">
         <div class="name">TicketManager</div>
         <div class="role">Ticket Manager</div>
         <div class="resp">Creates and manages tickets, tracks ticket lifecycle, ensures proper categorization and assignment.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-doc-writer.html" class="agent-link"><div class="agent">
         <div class="name">DocumentationWriter</div>
         <div class="role">Documentation Writer</div>
         <div class="resp">Writes technical documentation, API docs, user guides, and maintains documentation consistency and accuracy.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-recovery-specialist.html" class="agent-link"><div class="agent">
         <div class="name">RecoverySpecialist</div>
         <div class="role">Recovery Specialist</div>
         <div class="resp">Handles workflow recovery, resolves stuck states, manages checkpoint restoration, and diagnoses failure points.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-control-tower-op.html" class="agent-link"><div class="agent">
         <div class="name">ControlTowerOperator</div>
         <div class="role">Control Tower Operator</div>
         <div class="resp">Monitors all active workflows, manages the control tower dashboard, escalates anomalies, and coordinates responses.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-metrics-collector.html" class="agent-link"><div class="agent">
         <div class="name">MetricsCollector</div>
         <div class="role">Metrics Collector</div>
         <div class="resp">Gathers performance metrics, tracks KPIs, generates analytics reports, and feeds data to optimization workflows.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-qa-engineer.html" class="agent-link"><div class="agent">
         <div class="name">QAEngineer</div>
         <div class="role">QA Engineer</div>
         <div class="resp">Writes and executes test cases, performs regression testing, validates bug fixes, and reports test results.</div>
-      </div>
-      <div class="agent">
+      </div></a>
+      <a href="agent-env-manager.html" class="agent-link"><div class="agent">
         <div class="name">EnvironmentManager</div>
         <div class="role">Environment Manager</div>
         <div class="resp">Manages dev/staging/prod environments, handles environment provisioning, and ensures environment parity.</div>
-      </div>
+      </div></a>
     </div>
   </details>
 
