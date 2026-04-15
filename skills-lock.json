@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "api-setup": {
+      "source": "block/agent-skills",
+      "sourceType": "github",
+      "computedHash": "a8ba6f1cd46683478ba61e5478d3395a5e1c6c6d40e30aa3c7f9914f7dffe917"
+    },
+    "code-review": {
+      "source": "block/agent-skills",
+      "sourceType": "github",
+      "computedHash": "206a8f9446c66b75a52dff6bc3ebe1e60977e7619208fd9993bf6280e8615924"
+    },
+    "frontend-design": {
+      "source": "block/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ec1023e47ce8ef1a77c48318bd1a6f246e1beec40c0b6773c80d14cb3e5ed7ce"
+    },
+    "testing-strategy": {
+      "source": "block/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ed86ba00aa980ee97852b0b2beaa093b32a6d2c152bfcfb972d19c75f67cb9b7"
+    }
+  }
+}
