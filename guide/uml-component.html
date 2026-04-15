@@ -37,15 +37,21 @@ h1 span{color:var(--accent)}
   <nav>
     <a href="index.html">Home</a>
     <a href="getting-started.html">Getting Started</a>
-    <a href="architecture.html">Architecture</a>
-    <div class="nav-section">UML Diagrams</div>
-    <a href="uml-system-context.html" class="nav-child">System Context</a>
-    <a href="uml-component.html" class="nav-child active">Component</a>
-    <a href="uml-use-case.html" class="nav-child">Use Case</a>
-    <a href="uml-sequence-feature.html" class="nav-child">Sequence: Feature Dev</a>
-    <a href="uml-sequence-mcra.html" class="nav-child">Sequence: MCRA</a>
-    <a href="uml-class-brain.html" class="nav-child">Class: Brain Model</a>
-    <a href="uml-deployment.html" class="nav-child">Deployment</a>
+    <details class="nav-group" open>
+      <summary class="nav-group-label">Architecture</summary>
+      <a href="architecture.html" class="nav-child">Overview</a>
+      <a href="diagrams.html" class="nav-child">Diagrams</a>
+      <details class="nav-group nav-group-nested" open>
+        <summary class="nav-group-label nav-child">UML Diagrams</summary>
+        <a href="uml-system-context.html" class="nav-child nav-deep">System Context</a>
+        <a href="uml-component.html" class="active" class="nav-child nav-deep">Component</a>
+        <a href="uml-use-case.html" class="nav-child nav-deep">Use Case</a>
+        <a href="uml-sequence-feature.html" class="nav-child nav-deep">Sequence: Feature Dev</a>
+        <a href="uml-sequence-mcra.html" class="nav-child nav-deep">Sequence: MCRA</a>
+        <a href="uml-class-brain.html" class="nav-child nav-deep">Class: Brain Model</a>
+        <a href="uml-deployment.html" class="nav-child nav-deep">Deployment</a>
+      </details>
+    </details>
     <a href="phases.html">Phases</a>
     <a href="workflows.html">Workflows</a>
     <a href="agents.html">Agents</a>
@@ -55,7 +61,6 @@ h1 span{color:var(--accent)}
     <a href="governance.html">Governance</a>
     <a href="recovery.html">Recovery</a>
     <a href="memory.html">Memory</a>
-    <a href="diagrams.html">Diagrams</a>
   </nav>
 </aside>
 <main>
