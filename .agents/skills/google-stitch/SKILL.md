@@ -1,8 +1,8 @@
 ---
 name: google-stitch
-description: Generate, iterate, and export production-ready websites using Google Stitch (AI-powered web builder). Use this skill when building landing pages, marketing sites, product pages, or any web presence that benefits from AI-generated layouts and component scaffolding.
+description: Generate, iterate, and export production-ready websites using Google Stitch (AI-powered web builder). Use this skill when building landing pages, marketing sites, product pages, or any web presence that benefits from AI-generated layouts and component scaffolding. NOT for component work inside existing React apps — use /ui-ux-pro-max for that. See WHEN-TO-USE.md for full decision guidelines.
 author: projectzero
-version: "1.0"
+version: "1.1"
 tags:
   - ui
   - ux
