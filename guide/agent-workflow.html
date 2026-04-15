@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Workflow — ProjectZero Development</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-code: #1e293b;
+  --accent: #3b82f6;
+  --accent-dim: #2563eb;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --sidebar-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, monospace;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+}
+html { font-size: 16px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh; display: flex; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w); background: #0b1120; border-right: 1px solid var(--border);
+  padding: 2rem 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+}
+.sidebar-brand { padding: 0 1.5rem 1.5rem; font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+.sidebar nav a {
+  display: block; padding: 0.5rem 1.5rem; color: var(--text-muted); text-decoration: none;
+  font-size: 0.9rem; transition: color 0.15s, background 0.15s; border-left: 3px solid transparent;
+}
+.sidebar nav a:hover, .sidebar nav a.active { color: var(--text); background: rgba(59,130,246,0.08); border-left-color: var(--accent); }
+.sidebar nav a.active { font-weight: 600; }
+
+.main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.content { max-width: 900px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+
+h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
+h2 { font-size: 1.5rem; font-weight: 700; margin: 2.5rem 0 1rem; letter-spacing: -0.02em; }
+h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; }
+p { margin-bottom: 1rem; }
+
+.lead { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+.flow-diagram {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px;
+  padding: 2rem; margin: 2rem 0; overflow-x: auto;
+}
+
+.flow-step {
+  display: inline-block; min-width: 200px; padding: 1.5rem;
+  background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px;
+  margin-right: 1rem; margin-bottom: 1rem; vertical-align: top;
+}
+
+.flow-step.gate-maker { border-color: var(--green); }
+.flow-step.gate-checker { border-color: var(--yellow); }
+.flow-step.gate-reviewer { border-color: var(--accent); }
+.flow-step.gate-approver { border-color: var(--red); }
+
+.flow-step-title { font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.flow-step-desc { font-size: 0.85rem; color: var(--text-muted); }
+
+.arrow { display: inline-block; color: var(--text-muted); font-size: 1.5rem; margin: 0 0.5rem; vertical-align: middle; }
+
+.code-block {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1rem 0 1.5rem;
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.8; color: var(--text);
+}
+
+.timeline {
+  border-left: 3px solid var(--border); padding-left: 2rem; position: relative; margin: 2rem 0;
+}
+
+.timeline-item {
+  position: relative; margin-bottom: 2rem;
+}
+
+.timeline-item::before {
+  content: ''; position: absolute; left: -2.5rem; top: 0.5rem;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--bg);
+}
+
+.timeline-item.complete::before { background: var(--green); }
+.timeline-item.in-progress::before { background: var(--yellow); }
+.timeline-item.blocked::before { background: var(--red); }
+
+.timeline-item-title { font-weight: 700; margin-bottom: 0.25rem; }
+.timeline-item-desc { color: var(--text-muted); font-size: 0.9rem; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem; margin: 2rem 0; }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; text-decoration: none; color: var(--text);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.card p { margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+
+.badge { display: inline-block; padding: 0.35rem 1rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; background: rgba(59,130,246,0.15); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); margin-bottom: 1.5rem; }
+
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 1rem 0; }
+.steps li {
+  counter-increment: step; position: relative; padding: 1.25rem 1.5rem 1.25rem 4rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 0.75rem;
+}
+.steps li::before {
+  content: counter(step); position: absolute; left: 1.25rem; top: 1.25rem;
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+  color: #fff; font-size: 0.85rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .content { padding: 2rem 1.25rem; }
+}
+
+.menu-toggle { display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200; }
+@media (max-width: 768px) {
+  .menu-toggle { display: flex; width: 40px; height: 40px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; cursor: pointer; font-size: 1.3rem; align-items: center; justify-content: center; }
+}
+
+.status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.status-ready { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+.status-in-progress { background: rgba(234, 179, 8, 0.2); color: var(--yellow); }
+.status-blocked { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">ProjectZero</div>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <a href="agent-workflow.html" class="active">Agent Workflow</a>
+    <a href="phases.html">Phases</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="agents.html">Agents</a>
+    <a href="commands.html">Commands</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="content">
+
+    <section>
+      <div class="badge">How Development Happens</div>
+      <h1>Agent-Driven Development Workflow</h1>
+      <p class="lead">
+        Agents autonomously build features through TDD and MCRA gates.
+        Every feature traces to JIRA, passes automated quality checks,
+        gets reviewed, and is approved before merge.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- OVERVIEW -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Development Overview</h2>
+      <p>
+        When you bootstrap a new product (e.g., <code>i-comply</code>) with
+        <code>/bootstrap-product --enterprise-features tenant-isolation,multi-db,encryption</code>,
+        you get:
+      </p>
+      <ul class="steps">
+        <li><strong>JIRA Project</strong> with 13 enterprise tickets (P0, P1, P2, P3)</li>
+        <li><strong>Agent Team</strong> (11 agents ready to work)</li>
+        <li><strong>MCRA Workflow</strong> (Maker → Checker → Reviewer → Approver gates)</li>
+        <li><strong>Git Repository</strong> configured for feature branches + PRs</li>
+      </ul>
+
+      <p>
+        Then, for each JIRA ticket, you invoke agents:
+      </p>
+      <div class="code-block">
+/agent-work \
+  --ticket ICOMPLY-1 \
+  --product i-comply \
+  --repo https://github.com/org/i-comply.git \
+  --user yogesh@example.com
+      </div>
+
+      <p>
+        Agents autonomously:
+      </p>
+      <ul class="steps">
+        <li><strong>Clone repo</strong>, read acceptance criteria</li>
+        <li><strong>TDD cycle</strong>: write tests → implement → refactor</li>
+        <li><strong>Commit & push</strong> with ticket reference</li>
+        <li><strong>Open PR</strong> on GitHub</li>
+        <li><strong>Pass quality gates</strong> (Checker: tests, coverage, lint, types)</li>
+        <li><strong>Get code reviewed</strong> (Reviewer: quality, architecture, tests)</li>
+        <li><strong>Merge to main</strong> (Approver: business sign-off)</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- MCRA GATES -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>MCRA Gates (4-Step Workflow)</h2>
+
+      <div class="flow-diagram">
+        <div class="flow-step gate-maker">
+          <div class="flow-step-title">🔵 MAKER</div>
+          <div class="flow-step-desc">
+            Backend/Frontend/Data Engineer<br/>
+            Writes code (TDD)
+          </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="flow-step gate-checker">
+          <div class="flow-step-title">🟢 CHECKER</div>
+          <div class="flow-step-desc">
+            Automated quality gates<br/>
+            Tests, coverage, lint, types
+          </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="flow-step gate-reviewer">
+          <div class="flow-step-title">🟡 REVIEWER</div>
+          <div class="flow-step-desc">
+            Code review agent<br/>
+            Quality, architecture, tests
+          </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="flow-step gate-approver">
+          <div class="flow-step-title">🟠 APPROVER</div>
+          <div class="flow-step-desc">
+            Leadership (CTO/CEO)<br/>
+            Final sign-off + merge
+          </div>
+        </div>
+      </div>
+
+      <h3>Gate 1: MAKER (Backend Engineer + Specialists)</h3>
+      <p><strong>Responsibility</strong>: Write code that passes all acceptance criteria.</p>
+      <p><strong>Process</strong>:</p>
+      <ol class="steps">
+        <li><strong>Clone repo</strong> from GitHub</li>
+        <li><strong>Create feature branch</strong> (e.g., <code>icomply-1-tenant-isolation</code>)</li>
+        <li><strong>Write tests first</strong> (TDD RED phase) — tests should FAIL</li>
+        <li><strong>Implement code</strong> (TDD GREEN phase) — tests should PASS</li>
+        <li><strong>Refactor</strong> (TDD REFACTOR phase) — improve code quality</li>
+        <li><strong>Commit</strong> with ticket reference: <code>feat: tenant isolation (ICOMPLY-1)</code></li>
+        <li><strong>Push</strong> to GitHub</li>
+        <li><strong>Open PR</strong> with description + acceptance criteria</li>
+        <li><strong>Route to Checker</strong></li>
+      </ol>
+
+      <p><strong>Example Output</strong>:</p>
+      <div class="code-block">
+Branch: icomply-1-tenant-isolation
+Files:
+  + tests/test_tenant_isolation.py (42 tests)
+  + src/tenancy.py (RLS enforcement)
+  + src/middleware/tenant_context.py (JWT → context)
+PR: https://github.com/org/i-comply/pull/1
+Coverage: 85%
+      </div>
+
+      <h3>Gate 2: CHECKER (Automated Quality)</h3>
+      <p><strong>Responsibility</strong>: Verify code quality, coverage, and security.</p>
+      <p><strong>Automated Checks</strong>:</p>
+      <ul class="steps">
+        <li>✅ <strong>Tests pass</strong> (pytest) — all tests must pass</li>
+        <li>✅ <strong>Coverage ≥80%</strong> — minimum threshold enforced</li>
+        <li>✅ <strong>Linting</strong> (ruff) — zero errors</li>
+        <li>✅ <strong>Type checking</strong> (pyright) — zero errors</li>
+        <li>✅ <strong>Security scan</strong> (OWASP ZAP) — no critical issues</li>
+        <li>✅ <strong>Ticket reference</strong> — commit message includes ICOMPLY-1</li>
+      </ul>
+
+      <p>
+        <strong>If all pass</strong> → ✅ Proceed to Reviewer<br/>
+        <strong>If any fail</strong> → ❌ Loop back to Maker with specific error messages
+      </p>
+
+      <p><strong>Example Output</strong>:</p>
+      <div class="code-block">
+✓ pytest: 42 passed in 5.2s
+✓ coverage: 85% (≥80%)
+✓ ruff: 0 errors
+✓ pyright: 0 errors
+✓ OWASP ZAP: 0 critical issues
+✓ ticket ref: ICOMPLY-1 found
+
+Status: ✅ ALL GATES PASSED → Proceed to Reviewer
+      </div>
+
+      <h3>Gate 3: REVIEWER (Code Review Agent)</h3>
+      <p><strong>Responsibility</strong>: Review code quality, architecture, test coverage.</p>
+      <p><strong>Review Checks</strong>:</p>
+      <ul class="steps">
+        <li>✅ <strong>Code quality</strong> — follows style guide, readable, maintainable</li>
+        <li>✅ <strong>Architecture</strong> — matches ADR (Architecture Decision Records)</li>
+        <li>✅ <strong>Test coverage</strong> — tests comprehensive, edge cases handled</li>
+        <li>✅ <strong>Performance</strong> — no obvious performance issues</li>
+      </ul>
+
+      <p>
+        <strong>If approved</strong> → ✅ Proceed to Approver<br/>
+        <strong>If changes requested</strong> → 🔄 Maker updates code, re-review
+      </p>
+
+      <p><strong>Example Review Comment</strong>:</p>
+      <div class="code-block">
+Code quality: ✓ Looks good. Well-structured RLS policies.
+Architecture: ✓ Matches tenancy ADR-001. Correct use of contextvars.
+Tests: ✓ 85% coverage. All edge cases tested: cross-tenant access blocked, audit logs created.
+
+Status: ✅ APPROVED → Proceed to Approver
+      </div>
+
+      <h3>Gate 4: APPROVER (Leadership)</h3>
+      <p><strong>Responsibility</strong>: Final business sign-off, governance check, merge.</p>
+      <p><strong>Approval Checks</strong>:</p>
+      <ul class="steps">
+        <li>✅ <strong>Business requirements</strong> — acceptance criteria met</li>
+        <li>✅ <strong>Governance</strong> — no security/compliance violations</li>
+        <li>✅ <strong>Risk assessment</strong> — no breaking changes</li>
+      </ul>
+
+      <p>
+        <strong>If approved</strong> → ✅ <strong>Merge PR to main</strong> → <strong>Close JIRA ticket</strong> → Feature LIVE<br/>
+        <strong>If rejected</strong> → ❌ Explain reasons, ticket stays open
+      </p>
+
+      <p><strong>Example Approval</strong>:</p>
+      <div class="code-block">
+Business: ✓ Tenant isolation required for compliance. Acceptance criteria met.
+Governance: ✓ RLS enforced. No security issues. Audit logging enabled.
+Risk: ✓ No breaking changes. Backward compatible.
+
+Status: ✅ APPROVED
+Action: Merging PR to main...
+Action: Closing ICOMPLY-1 (status: Done)
+
+✅ Feature LIVE in production
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TIMELINE EXAMPLE -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Example: Building ICOMPLY-1 (Tenant Isolation)</h2>
+
+      <div class="timeline">
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Monday 9am: Start ICOMPLY-1</div>
+          <div class="timeline-item-desc">
+            Invoked: <code>/agent-work --ticket ICOMPLY-1 --product i-comply --repo ... --user ...</code><br/>
+            Backend Engineer + Tenancy-Architect start TDD cycle
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Monday 10am: RED phase (tests written)</div>
+          <div class="timeline-item-desc">
+            Tests written: <code>tests/test_tenant_isolation.py</code> (42 tests)<br/>
+            All tests FAILING (expected) — RED phase ✓
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Monday 2pm: GREEN phase (implementation)</div>
+          <div class="timeline-item-desc">
+            Code written: <code>src/tenancy.py</code> (RLS policies, audit logging)<br/>
+            All tests PASSING (expected) — GREEN phase ✓
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Monday 5pm: REFACTOR phase</div>
+          <div class="timeline-item-desc">
+            Code cleaned up, docstrings added, edge cases handled<br/>
+            Tests still passing — REFACTOR phase ✓
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Tuesday 9am: Commit & PR opened</div>
+          <div class="timeline-item-desc">
+            Commit: <code>feat: tenant isolation RLS + audit (ICOMPLY-1)</code><br/>
+            PR opened: https://github.com/org/i-comply/pull/1<br/>
+            Routed to Checker gate
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Tuesday 9:15am: CHECKER gate passes</div>
+          <div class="timeline-item-desc">
+            ✓ Tests: 42 passed<br/>
+            ✓ Coverage: 85% (≥80%)<br/>
+            ✓ Linting: 0 errors<br/>
+            ✓ Types: 0 errors<br/>
+            ✓ Security: 0 issues<br/>
+            Routed to Reviewer gate
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Tuesday 10am: REVIEWER approves</div>
+          <div class="timeline-item-desc">
+            Code quality: ✓<br/>
+            Architecture: ✓<br/>
+            Tests: ✓<br/>
+            Routed to Approver gate
+          </div>
+        </div>
+
+        <div class="timeline-item complete">
+          <div class="timeline-item-title">Tuesday 11am: APPROVER signs off</div>
+          <div class="timeline-item-desc">
+            Business: ✓ Tenant isolation required for compliance<br/>
+            Governance: ✓ RLS enforced, audit logs active<br/>
+            PR merged to main ✅<br/>
+            ICOMPLY-1 closed (status: Done) ✅<br/>
+            <strong>Feature LIVE</strong>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Total time: ~26 hours (9am Monday to 11am Tuesday)</strong><br/>
+        No manual code writes. Fully autonomous MCRA workflow.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- AGENT ROUTING -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Agent Routing by Ticket Type</h2>
+
+      <p>Agents automatically route based on ticket content:</p>
+
+      <div class="cards">
+        <div class="card">
+          <h3>Tenant Isolation</h3>
+          <p>
+            <strong>Makers</strong>: Backend Engineer + <strong>Tenancy-Architect</strong><br/>
+            <strong>Reviewer</strong>: Code + Tenancy-Architect<br/>
+            <strong>Approver</strong>: CTO
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Multi-DB Routing</h3>
+          <p>
+            <strong>Makers</strong>: Data Engineer + <strong>Sharding-Strategy</strong><br/>
+            <strong>Reviewer</strong>: Code + Architect<br/>
+            <strong>Approver</strong>: CTO
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Encryption</h3>
+          <p>
+            <strong>Makers</strong>: Backend Engineer + <strong>Encryption-Specialist</strong><br/>
+            <strong>Reviewer</strong>: Security Reviewer<br/>
+            <strong>Approver</strong>: CTO
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Compliance Testing</h3>
+          <p>
+            <strong>Makers</strong>: QA Engineer + <strong>Compliance-Test-Engineer</strong><br/>
+            <strong>Reviewer</strong>: Security Reviewer<br/>
+            <strong>Approver</strong>: Approver
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Multi-Geography</h3>
+          <p>
+            <strong>Makers</strong>: DevOps + <strong>Geo-Failover-Architect</strong><br/>
+            <strong>Reviewer</strong>: SRE Reviewer<br/>
+            <strong>Approver</strong>: CTO
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Backup & DR</h3>
+          <p>
+            <strong>Makers</strong>: DevOps + <strong>DR-Orchestrator</strong><br/>
+            <strong>Reviewer</strong>: SRE Reviewer<br/>
+            <strong>Approver</strong>: CTO
+          </p>
+        </div>
+      </div>
+
+      <p>
+        Each specialist agent brings domain expertise (e.g., <strong>Tenancy-Architect</strong>
+        knows RLS policies, isolation patterns, tenant context injection).
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- PARALLEL EXECUTION -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Parallel Execution (P0 Phase Example)</h2>
+
+      <p>
+        When you bootstrap a product with enterprise features, 13 tickets are created.
+        P0 has 3 critical tickets that execute with dependencies:
+      </p>
+
+      <div class="flow-diagram" style="overflow-x: auto;">
+        <strong>Week 0-2</strong><br/>
+        <div class="flow-step" style="min-width: 180px; margin-top: 1rem;">
+          <div class="flow-step-title">ICOMPLY-1</div>
+          <div class="flow-step-desc">
+            Tenant Isolation<br/>
+            ← Backend Engineer
+          </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <strong>Week 2-4</strong><br/>
+        <div class="flow-step" style="min-width: 180px; margin-top: 1rem;">
+          <div class="flow-step-title">ICOMPLY-2</div>
+          <div class="flow-step-desc">
+            Multi-DB Routing<br/>
+            ← Data Engineer
+          </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <strong>Week 4-6</strong><br/>
+        <div class="flow-step" style="min-width: 180px; margin-top: 1rem;">
+          <div class="flow-step-title">ICOMPLY-3</div>
+          <div class="flow-step-desc">
+            Encryption<br/>
+            ← Backend Engineer
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Dependencies</strong>:
+        <ul class="steps">
+          <li>ICOMPLY-2 (sharding) blocks until ICOMPLY-1 (isolation) complete</li>
+          <li>ICOMPLY-3 (encryption) blocks until ICOMPLY-1 (isolation) complete</li>
+        </ul>
+      </p>
+
+      <p>
+        <strong>Timeline</strong>:
+        <ul class="steps">
+          <li>Week 0: Bootstrap product, agents ready</li>
+          <li>Week 0-2: ICOMPLY-1 (tenant isolation) built by agents</li>
+          <li>Week 2-4: ICOMPLY-2 (sharding) built, using isolation from ICOMPLY-1</li>
+          <li>Week 4-6: ICOMPLY-3 (encryption) built, using isolation + sharding</li>
+          <li>Week 6: P0 complete ✅ All 3 features built, tests passing, live</li>
+        </ul>
+      </p>
+
+      <p>
+        <strong>No manual coding required.</strong> Agents fully autonomous.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- HOW TO INVOKE -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>How to Invoke Agents</h2>
+
+      <h3>Step 1: Bootstrap Product</h3>
+      <div class="code-block">
+/bootstrap-product \
+  --name i-comply \
+  --enterprise-features tenant-isolation,multi-db,encryption,compliance,multi-geography,audit,rbac,backup,observability,cost,networking,testing,dpdp
+      </div>
+
+      <p><strong>Result</strong>: New product repo, JIRA project, agents ready</p>
+
+      <h3>Step 2: Invoke Agent on Ticket</h3>
+      <div class="code-block">
+/agent-work \
+  --ticket ICOMPLY-1 \
+  --product i-comply \
+  --repo https://github.com/dandawatey/i-comply.git \
+  --user yogesh@example.com
+      </div>
+
+      <p><strong>Result</strong>: Agent starts TDD cycle, passes through MCRA gates</p>
+
+      <h3>Step 3: Monitor Progress</h3>
+      <div class="code-block">
+/agent-status --ticket ICOMPLY-1 --product i-comply
+      </div>
+
+      <p><strong>Result</strong>:</p>
+      <div class="code-block">
+Ticket: ICOMPLY-1 (Tenant Isolation)
+Status: IN_PROGRESS
+Current Gate: MAKER
+Agent: Backend Engineer + Tenancy-Architect
+Progress: TDD cycle, writing RLS policies
+ETA: 2h
+Branch: icomply-1-tenant-isolation
+
+Next: Checker (automated quality gates)
+      </div>
+
+      <h3>Step 4: View MCRA Status</h3>
+      <div class="code-block">
+/mcra-status --product i-comply
+      </div>
+
+      <p><strong>Result</strong>: All tickets, their gates, and overall progress</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- KEY DIFFERENCES -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Key Differences from Manual Development</h2>
+
+      <div class="cards">
+        <div class="card">
+          <h3>❌ Manual: "I'll write code now"</h3>
+          <p>
+            Human writes code, then writes tests, then commits. No discipline on TDD.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>✅ Agent: "Test first, then code"</h3>
+          <p>
+            Agent writes tests first (RED), then code (GREEN), then refactors. Always TDD.
+          </p>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <h3>❌ Manual: "Merge when I think it's done"</h3>
+          <p>
+            Code merged without automated quality checks. Coverage can be 10-50%.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>✅ Agent: "Only merge if tests + coverage + lint + types pass"</h3>
+          <p>
+            Automated gates enforce ≥80% coverage, zero lint/type errors. No exceptions.
+          </p>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <h3>❌ Manual: "I'll optimize later"</h3>
+          <p>
+            Code shipped with tech debt, performance issues, no docs.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>✅ Agent: "Refactor while TDD, document in code, optimize per ADR"</h3>
+          <p>
+            Refactoring built into TDD cycle. Architecture documented. Decisions traced.
+          </p>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <h3>❌ Manual: "I'll push to main, figure it out"</h3>
+          <p>
+            Direct commits to main. Breaks production. Ticket status unclear.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>✅ Agent: "Feature branch → PR → 4 gates → merged only when all pass"</h3>
+          <p>
+            Every commit traced to JIRA. PR visible. All gates enforced. Clear audit trail.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- NEXT STEPS -->
+    <!-- ============================================================ -->
+    <section>
+      <h2>Next Steps</h2>
+
+      <ol class="steps">
+        <li>
+          <strong>Bootstrap new product</strong><br/>
+          <code>/bootstrap-product --name my-product --enterprise-features ...</code>
+        </li>
+        <li>
+          <strong>View JIRA tickets</strong><br/>
+          Project auto-created with 13 tickets (P0/P1/P2/P3)
+        </li>
+        <li>
+          <strong>Invoke agent on first P0 ticket</strong><br/>
+          <code>/agent-work --ticket MY-PRODUCT-1 --product my-product --repo ... --user ...</code>
+        </li>
+        <li>
+          <strong>Watch MCRA gates</strong><br/>
+          Agent works through Maker → Checker → Reviewer → Approver
+        </li>
+        <li>
+          <strong>Repeat for P0 tickets (3 total)</strong><br/>
+          Parallel execution with dependencies enforced
+        </li>
+        <li>
+          <strong>Move to P1, P2, P3</strong><br/>
+          6 weeks to complete all 13 enterprise features
+        </li>
+      </ol>
+
+      <p><strong>Result</strong>: Enterprise-grade product, fully built by agents, all tests passing, zero tech debt.</p>
+    </section>
+
+  </div>
+</div>
+
+</body>
+</html>
