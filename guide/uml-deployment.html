@@ -80,40 +80,111 @@ h1 span{color:var(--accent)}
     <div class="diagram-title">Local Dev vs Cloud/SaaS — Full Deployment Topology</div>
     <div class="mermaid">
 graph TB
-    subgraph LOCAL["Local Dev (Developer Machine)"]
-        DEV["Developer Machine<br/>Claude Code CLI / Browser"]
-        R3000["localhost:3000/5173<br/>React Control Tower"]
-        F8000["localhost:8000<br/>FastAPI (uvicorn)"]
-        T7233["localhost:7233<br/>Temporal Server (local)"]
-        P5432["localhost:5432<br/>PostgreSQL"]
-        M37777["localhost:37777<br/>claude-mem Worker (Bun)"]
-        SQLITE["~/.claude-mem/claude-mem.db<br/>SQLite"]
-        DEV --> R3000
-        DEV --> F8000
-        R3000 --> F8000
-        F8000 --> T7233
-        F8000 --> P5432
-        M37777 --> SQLITE
-        F8000 --> M37777
+    subgraph DEV["💻 Local Dev Machine"]
+        Browser["Browser :5173
+React Control Tower"]
+        FastAPI_l["FastAPI :8000
+uvicorn"]
+        Temporal_l["Temporal :7233
+local server"]
+        Postgres_l[("PostgreSQL :5432
+Brain + State")]
+        ClaudeMem_l["claude-mem :37777
+Bun worker"]
+        SQLite_l[("SQLite
+~/.claude-mem/*.db")]
+        Workers_l["Temporal Workers
+Spec·Arch·Impl
+Review·Deploy"]
+        Browser --> FastAPI_l --> Postgres_l
+        FastAPI_l --> Temporal_l --> Workers_l
+        ClaudeMem_l --> SQLite_l
+        FastAPI_l --> ClaudeMem_l
     end
-    subgraph CLOUD["Cloud / SaaS"]
-        VERCEL["Vercel / CDN<br/>React Control Tower"]
-        RAILWAY["Railway / Fly.io<br/>FastAPI (Docker)"]
-        TEMPORAL_CLOUD["Temporal Cloud<br/>Workflow Orchestration"]
-        SUPABASE["Supabase / RDS<br/>PostgreSQL"]
-        JIRA["JIRA Cloud (SaaS)"]
-        CONFLUENCE["Confluence Cloud (SaaS)"]
-        GITHUB["GitHub (SaaS)"]
-        ANTHROPIC["Anthropic API (SaaS)"]
-        VERCEL --> RAILWAY
-        RAILWAY --> TEMPORAL_CLOUD
-        RAILWAY --> SUPABASE
-        RAILWAY --> JIRA
-        RAILWAY --> CONFLUENCE
-        RAILWAY --> GITHUB
-        RAILWAY --> ANTHROPIC
+
+    subgraph AGENT_LAYER["🤖 Agent Execution Layer (Temporal Workers)"]
+        direction LR
+        subgraph CXO_W["CXO Team Agents"]
+            WCEO["CEO
+Approver"] 
+            WCTO["CTO
+Reviewer"]
+            WCPO["CPO
+Reviewer"]
+        end
+        subgraph ENG_W["Engineering Team Agents"]
+            WArch["Architect
+Design · ADR"]
+            WDev["Developer
+TDD · Impl"]
+            WFE["FrontendDev
+Design System"]
+            WBE["BackendDev
+FastAPI · DB"]
+            WCR["CodeReviewer
+PR Review"]
+        end
+        subgraph GOV_W["Governance Team Agents"]
+            WQG["QualityGatekeeper
+Gate enforcement"]
+            WSA["SecurityAuditor
+OWASP scan"]
+            WRM["ReleaseManager
+Semver · Deploy"]
+            WQL["QALead
+Sign-off"]
+        end
+        subgraph OPS_W["Operations Team Agents"]
+            WRalph["Ralph
+Orchestrator"]
+            WCT["ControlTowerOp
+Monitor"]
+            WRS["RecoverySpecialist
+Recover"]
+            WDW["DocWriter
+Confluence"]
+            WQE["QAEngineer
+Regression"]
+        end
     end
-    </div>
+
+    subgraph CLOUD_EXT["☁️ External SaaS"]
+        JIRA_c["JIRA Cloud
+Tickets · Sprints"]
+        Conf_c["Confluence Cloud
+Docs · CXO reports"]
+        GH_c["GitHub
+PRs · Branches · CI"]
+        Anthropic_c["Anthropic API
+Claude Sonnet 4.6
+all agent LLM calls"]
+        Temporal_c["Temporal Cloud
+Workflow orchestration
+(production)"]
+    end
+
+    subgraph PROD["🚀 Production"]
+        Vercel["Vercel
+React Control Tower"]
+        Railway["Railway / Fly.io
+FastAPI (Docker)"]
+        PG_prod[("Managed PostgreSQL
+Brain · State")]
+        ClaudeMem_p["claude-mem
+Bun (containerised)"]
+    end
+
+    Workers_l -. "uses same code as" .-> AGENT_LAYER
+    AGENT_LAYER -->|"LLM completions"| Anthropic_c
+    AGENT_LAYER -->|"ticket ops"| JIRA_c
+    AGENT_LAYER -->|"git ops"| GH_c
+    WDW -->|"publish pages"| Conf_c
+    Temporal_l -. "prod: replace with" .-> Temporal_c
+
+    Vercel --> Railway --> PG_prod
+    Railway --> ClaudeMem_p
+    Railway --> Temporal_c
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

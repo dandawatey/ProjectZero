@@ -80,72 +80,120 @@ h1 span{color:var(--accent)}
     <div class="diagram-title">Brain Postgres Schema — Entity Relationships</div>
     <div class="mermaid">
 classDiagram
+    class BaseAgent {
+        +String name
+        +String team
+        +String role
+        +List~String~ skills
+        +List~String~ guardrails
+        +List~String~ workflows
+        +read_brain(scope) List~Memory~
+        +write_brain(key, content) Memory
+        +observe(context) void
+        +search_mem(query) List~Observation~
+    }
+
+    class CXOAgent {
+        +approve_gate(artifact) ApprovalResult
+        +review_okrs() OKRStatus
+        +publish_cxo_report() void
+    }
+    class EngineeringAgent {
+        +write_tests_first() TestSuite
+        +implement(ticket) Artifact
+        +push_branch() GitRef
+        +check_coverage() Float
+    }
+    class GovernanceAgent {
+        +run_quality_gate() GateResult
+        +audit_security() AuditReport
+        +sign_off_release() ReleaseSign
+    }
+    class OrchestratorAgent {
+        +route(ticket) AgentRef
+        +detect_blocks() List~Block~
+        +trigger_recovery() RecoveryResult
+    }
+
     class Memory {
-      +UUID id
-      +String key
-      +String content
-      +String category
-      +String scope
-      +UUID product_id
-      +Boolean promoted
-      +String promotion_status
-      +String reviewer_note
-      +DateTime reviewed_at
-      +JSON metadata
-      +DateTime created_at
-      +read_memories(scope, product_id) List~Memory~
-      +promote(reviewer_note) void
+        +UUID id
+        +String key
+        +String content
+        +String category
+        +String scope
+        +Float score
+        +Boolean promoted
+        +DateTime created_at
+        +promote(note) void
+        +search(query) List~Memory~
     }
     class Decision {
-      +UUID id
-      +String key
-      +String context
-      +String options_considered
-      +String chosen
-      +String rationale
-      +String scope
-      +UUID product_id
-      +DateTime created_at
-      +record(context, chosen, rationale) void
+        +UUID id
+        +String context
+        +String options_considered
+        +String chosen
+        +String rationale
+        +String scope
+        +record(context, chosen, rationale) void
     }
     class Pattern {
-      +UUID id
-      +String name
-      +String problem
-      +String solution
-      +String anti_patterns
-      +Float success_rate
-      +Int usage_count
-      +String scope
-      +DateTime created_at
-      +apply() void
-      +record_outcome(success) void
+        +UUID id
+        +String name
+        +String problem
+        +String solution
+        +String example
+        +promote() void
     }
     class Conversation {
-      +UUID id
-      +UUID workflow_step_id
-      +String mode
-      +JSON messages
-      +JSON decisions_extracted
-      +DateTime created_at
-      +switch_mode(mode) void
-      +extract_decisions() List~Decision~
+        +UUID id
+        +String mode
+        +String stage
+        +JSON messages
+        +append(message) void
+        +summarise() String
     }
-    class ClaudeMemObservation {
-      +Int id
-      +String memory_session_id
-      +String title
-      +String narrative
-      +String facts
-      +String concepts
-      +Int relevance_count
-      +String content_hash
-      +sync_to_brain() Memory
+    class Observation {
+        +String id
+        +String content
+        +Float score
+        +DateTime timestamp
+        +fetch() Observation
     }
-    Memory "1" --> "0..*" Decision : promotes
-    ClaudeMemObservation ..> Memory : sync (relevance>=2)
-    Conversation "1" --> "0..*" Decision : extracts
-    </div>
+    class ClaudeMem {
+        +Int port
+        +observe(context) Observation
+        +search(query) List~Observation~
+        +timeline(id) List~Observation~
+        +sync() SyncResult
+        +compress() void
+    }
+    class MemBridge {
+        +Float threshold
+        +sync(dry_run) SyncResult
+        +promote(obs) Memory
+        +dedup(content) Boolean
+    }
+
+    BaseAgent <|-- CXOAgent
+    BaseAgent <|-- EngineeringAgent
+    BaseAgent <|-- GovernanceAgent
+    BaseAgent <|-- OrchestratorAgent
+
+    BaseAgent "1" --> "many" Memory : reads/writes
+    BaseAgent "1" --> "many" Decision : records
+    BaseAgent "1" --> "many" Pattern : discovers
+    BaseAgent "1" --> "many" Conversation : participates
+    BaseAgent --> ClaudeMem : observes via hook
+    ClaudeMem --> MemBridge : score≥0.7
+    MemBridge --> Memory : promotes
+    Memory "1" --o "1" Observation : source
+    Decision --* Memory : linked
+    Pattern --* Memory : derived
+
+    note for OrchestratorAgent "Ralph Controller\nNEVER implements\nonly routes + monitors"
+    note for GovernanceAgent "QualityGatekeeper, SecurityAuditor,\nComplianceOfficer, QALead, ReleaseManager"
+    note for EngineeringAgent "TDD mandatory\ncoverage ≥ 80%\nno hardcoded tokens"
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

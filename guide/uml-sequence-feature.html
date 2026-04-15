@@ -81,49 +81,84 @@ h1 span{color:var(--accent)}
     <div class="mermaid">
 sequenceDiagram
     autonumber
-    participant Dev as Developer
+    participant PM as ProductManager
+    participant TM as TicketManager
+    participant Ralph as Ralph Controller
     participant JIRA as JIRA
     participant Tmp as Temporal
-    participant SA as SpecAgent
-    participant AA as ArchAgent
-    participant IA as ImplAgent
-    participant RA as ReviewAgent
-    participant DA as DeployAgent
+    participant Arch as Architect
+    participant Dev as Developer
+    participant FE as FrontendDev
+    participant BE as BackendDev
+    participant QE as QAEngineer
+    participant CR as CodeReviewer
+    participant SA as SecurityAuditor
+    participant QG as QualityGatekeeper
+    participant QL as QALead
+    participant RM as ReleaseManager
+    participant DW as DocWriter
     participant Br as Brain
     participant GH as GitHub
+    participant Claude as Anthropic API
 
-    Dev->>JIRA: POST /tickets/submit
-    JIRA->>Tmp: start FeatureDevelopmentWorkflow
-    Tmp->>JIRA: transition "In Progress"
-    Tmp->>SA: spec_activity(AgentInput)
-    SA->>Br: GET /brain/memories
-    Br-->>SA: prior context
-    SA->>SA: call Claude API → generate spec
-    SA->>SA: call Claude API → generate TDD test outline
-    SA-->>Tmp: AgentOutput(spec_path, test_path)
-    Note over Tmp: approval gate 1 — spec review<br/>wait_condition up to 72h
-    Dev->>Tmp: signal: approve spec
-    Tmp->>AA: arch_activity(spec_path)
-    AA->>Br: GET /brain/memories
-    Br-->>AA: prior context
-    AA->>AA: call Claude API → generate ADR
-    AA-->>Tmp: AgentOutput(adr_path)
-    Note over Tmp: approval gate 2 — arch review<br/>wait_condition up to 72h
-    Dev->>Tmp: signal: approve arch
-    Tmp->>IA: impl_activity(arch_path)
-    IA->>IA: check TDD test outline exists (block if missing)
-    IA->>IA: create git branch feature/{ticket_id}
-    IA->>IA: call Claude API → TDD impl plan
-    IA->>GH: commit artifact
-    Tmp->>RA: review_activity(impl_path)
-    RA->>RA: call Claude API → code review
-    RA-->>Tmp: AgentOutput(review_path)
-    Tmp->>DA: deploy_activity(review_path)
-    DA->>GH: push branch + create PR
-    DA->>JIRA: transition "Done"
-    DA->>Br: POST /brain/memories — write release memory
-    DA-->>Tmp: AgentOutput(release_path, pr_url)
-    </div>
+    PM->>TM: write user story + acceptance criteria
+    TM->>JIRA: create SPARC ticket (status: To Do)
+    Ralph->>JIRA: poll open tickets
+    Ralph->>Tmp: start FeatureDevelopmentWorkflow(ticket_id)
+    Tmp->>JIRA: transition → In Progress
+
+    Note over Arch,Br: PHASE 1 — SPECIFICATION + ARCHITECTURE
+    Arch->>Br: GET /brain/memories + /brain/decisions
+    Br-->>Arch: prior arch decisions, patterns
+    Arch->>Claude: generate ADR + API contracts
+    Claude-->>Arch: ADR draft
+    Arch->>Br: POST /brain/decisions (ADR)
+    Arch-->>Tmp: arch_output(adr_path, api_contracts)
+    Tmp-->>Ralph: ⏸ gate 1 — arch review
+    Ralph-->>PM: notify: arch ready for review
+
+    Note over Dev,QE: PHASE 2 — TDD IMPLEMENTATION
+    Dev->>Br: GET /brain/patterns (reuse proven approaches)
+    Dev->>Dev: write failing tests FIRST (TDD)
+    BE->>BE: FastAPI endpoints + SQLAlchemy models
+    FE->>FE: compose from Glassmorphism Design System
+    FE->>FE: write Storybook stories + component tests
+    Dev->>GH: push branch, all tests green ≥80% coverage
+    QE->>QE: write E2E tests (Playwright)
+    QE->>QE: run regression suite
+    QE-->>Tmp: qa_output(test_results)
+
+    Note over CR,SA: PHASE 3 — CODE REVIEW + SECURITY
+    CR->>GH: review PR — OWASP, coverage, arch conformance
+    SA->>GH: security audit — OWASP Top 10, secrets scan
+    alt security issue found
+        SA-->>Tmp: BLOCK — security vulnerability
+        Tmp->>JIRA: comment: security issue
+        Tmp-->>Dev: remediate
+    else clean
+        CR-->>Tmp: review_approved
+        SA-->>Tmp: security_approved
+    end
+
+    Note over QG,QL: PHASE 4 — QUALITY GATES
+    QG->>QG: enforce: tests pass, coverage ≥80%, lint, types
+    QG->>QG: verify TDD compliance (tests before impl)
+    alt gates fail
+        QG-->>Tmp: BLOCK — gate failed: {reason}
+        Tmp->>JIRA: comment: gate failure
+    else gates pass
+        QL->>QL: sign off test strategy + release quality
+        QG-->>Tmp: gates_passed
+    end
+
+    Note over RM,DW: PHASE 5 — RELEASE + DOCS
+    RM->>GH: tag semver release + changelog
+    DW->>DW: update API docs + user guide in Confluence
+    Tmp->>JIRA: transition → Done
+    Tmp->>Br: POST /brain/memories (learnings)
+    Tmp-->>Ralph: workflow_complete
+    Ralph-->>PM: notify: feature shipped ✓
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

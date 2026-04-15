@@ -82,71 +82,70 @@ h1 span{color:var(--accent)}
 flowchart LR
     subgraph Actors["👥 Actors"]
         Dev["👤 Developer"]
-        PM["📋 PM / Tech Lead"]
-        CXO["📊 CXO Viewer"]
-        Worker["⚙️ Temporal Worker"]
-        Agent["🤖 AI Agent"]
+        PM_a["📋 ProductManager"]
+        CXO_a["📊 CXO / Viewer"]
+        Ralph_a["🎛️ Ralph Controller"]
+        Governance_a["⚖️ Governance Team"]
+        Ops_a["⚙️ Operations Team"]
     end
-    subgraph System["🏭 ProjectZeroFactory — Use Cases"]
+
+    subgraph PF["🏭 ProjectZeroFactory"]
         direction TB
-        UC1(["Run /factory-init"])
-        UC2(["Create Product"])
-        UC3(["Submit Ticket"])
-        UC4(["View Factory Floor"])
-        UC5(["Approve Stage Gate"])
-        UC6(["Run /spec"])
-        UC7(["Run /arch"])
-        UC8(["Run /implement"])
-        UC9(["Run /check"])
-        UC10(["Run /review"])
-        UC11(["Run /release"])
-        UC12(["View CXO Dashboard"])
-        UC13(["View Sprint Metrics"])
-        UC14(["Publish to Confluence"])
-        UC15(["Execute Workflow Activity"])
-        UC16(["Transition JIRA Ticket"])
-        UC17(["Call Claude API"])
-        UC18(["Read Brain Memories"])
-        UC19(["Write Brain Memories"])
-        UC20(["Create Git Branch & PR"])
-        UC21(["Run Quality Gates"])
-        UC22(["Search claude-mem"])
+
+        subgraph Setup["Factory Setup"]
+            UC1(["factory-init"])
+            UC2(["bootstrap-product"])
+        end
+
+        subgraph Planning["📋 Planning — Product + PM"]
+            UC3(["Create SPARC ticket"])
+            UC4(["Prioritise backlog"])
+            UC5(["Sprint planning"])
+            UC6(["Market analysis"])
+            UC7(["UX wireframes"])
+        end
+
+        subgraph Build["💻 Build — Engineering Team"]
+            UC8(["run /spec — SpecAgent"])
+            UC9(["run /arch — Architect"])
+            UC10(["run /implement — Developer TDD"])
+            UC11(["Frontend: compose from Design System"])
+            UC12(["Backend: FastAPI endpoint + tests"])
+            UC13(["run /check — quality gates"])
+            UC14(["run /review — CodeReviewer + Security"])
+        end
+
+        subgraph Gate["🚦 Governance — 4-Eye MCRA"]
+            UC15(["Maker commits"])
+            UC16(["Checker: QualityGatekeeper"])
+            UC17(["Reviewer: CTO / Architect"])
+            UC18(["Approver: CEO / CPO"])
+        end
+
+        subgraph Release["🏷️ Release — Operations + Governance"]
+            UC19(["QA: test cases + regression"])
+            UC20(["ReleaseManager: tag + changelog"])
+            UC21(["DocWriter: publish docs"])
+            UC22(["DevOps: deploy pipeline"])
+            UC23(["EnvManager: promote to prod"])
+        end
+
+        subgraph Observe["📊 Observe + Report"]
+            UC24(["ControlTower: monitor workflows"])
+            UC25(["MetricsCollector: track KPIs"])
+            UC26(["publish CXO dashboard"])
+            UC27(["ProjectCoordinator: RAID log"])
+            UC28(["RecoverySpecialist: handle failures"])
+        end
     end
-    Dev --> UC1
-    Dev --> UC2
-    Dev --> UC3
-    Dev --> UC4
-    Dev --> UC5
-    Dev --> UC6
-    Dev --> UC7
-    Dev --> UC8
-    Dev --> UC9
-    Dev --> UC10
-    Dev --> UC11
-    Dev --> UC22
-    PM --> UC3
-    PM --> UC4
-    PM --> UC5
-    PM --> UC13
-    PM --> UC14
-    CXO --> UC12
-    CXO --> UC13
-    Worker --> UC15
-    Worker --> UC16
-    Worker --> UC21
-    Agent --> UC17
-    Agent --> UC18
-    Agent --> UC19
-    Agent --> UC20
-    Agent --> UC16
-    style Actors fill:#0f172a,stroke:#334155,color:#e2e8f0
-    style System fill:#0f172a,stroke:#334155,color:#e2e8f0
-    style Dev fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style PM fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style CXO fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style Worker fill:#2d1b4e,stroke:#a855f7,color:#e2e8f0
-    style Agent fill:#1a3320,stroke:#22c55e,color:#e2e8f0
-    </div>
+
+    Dev --> UC1 & UC2 & UC8 & UC10 & UC11 & UC12 & UC15
+    PM_a --> UC3 & UC4 & UC5 & UC6 & UC7
+    CXO_a --> UC26 & UC18
+    Ralph_a --> UC8 & UC9 & UC10 & UC13 & UC14
+    Governance_a --> UC16 & UC17 & UC19 & UC20
+    Ops_a --> UC21 & UC22 & UC23 & UC24 & UC25 & UC27 & UC28
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

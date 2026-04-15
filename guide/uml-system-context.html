@@ -79,27 +79,93 @@ h1 span{color:var(--accent)}
   <div class="diagram">
     <div class="diagram-title">ProjectZeroFactory — External Systems &amp; Actors (C4 Context)</div>
     <div class="mermaid">
-flowchart LR
-    User(["👤 User / Developer\nCLI + React UI"])
-    JIRA["☁️ JIRA Cloud\nTickets · Sprints · Transitions"]
-    Confluence["☁️ Confluence Cloud\nPage Publishing · CXO Reports"]
-    GitHub["🐙 GitHub\nPR Creation · Branch Push"]
-    Claude["🤖 Anthropic Claude API\nAI Model — all 5 agents"]
-    Temporal["⚙️ Temporal Cloud / Local\nWorkflow Orchestration"]
-    Postgres[("🗄️ PostgreSQL\nState + Brain")]
+flowchart TB
+    subgraph External["☁️ External Systems"]
+        JIRA["JIRA Cloud
+Tickets · Sprints"]
+        Confluence["Confluence
+Docs · Reports"]
+        GitHub["GitHub
+PRs · Branches"]
+        Claude["Anthropic
+Claude API"]
+        Temporal["Temporal
+Workflow Engine"]
+    end
 
-    PZF["🏭 ProjectZeroFactory\n─────────────────\nFastAPI · React · Agents\nTemporal Workers · claude-mem"]
+    subgraph Factory["🏭 ProjectZeroFactory — Agent Teams"]
+        direction TB
 
-    User -->|"commands / UI actions"| PZF
-    PZF -->|"REST / WS"| User
-    PZF -->|"create tickets\ntransition sprints"| JIRA
-    PZF -->|"publish pages\nhierarchy + CXO"| Confluence
-    PZF -->|"push branches\ncreate PRs"| GitHub
-    PZF -->|"LLM completions\nall agent calls"| Claude
-    PZF -->|"start workflows\nsignals · queries"| Temporal
-    Temporal -->|"activity results\nstate sync"| PZF
-    PZF -->|"SQLAlchemy async\nread / write"| Postgres
-    </div>
+        subgraph CXO["👔 CXO Team"]
+            CEO["CEO"] ~~~ CTO["CTO"]
+            CTO ~~~ CFO["CFO"]
+            CFO ~~~ COO["COO"]
+            COO ~~~ CPO["CPO"]
+            CPO ~~~ CMO["CMO"]
+            CMO ~~~ Ralph["Ralph
+Orchestrator"]
+        end
+
+        subgraph Product["📋 Product Team"]
+            PM["ProductManager"]
+            UX["UXDesigner"]
+            MA["MarketAnalyst"]
+        end
+
+        subgraph Engineering["💻 Engineering Team"]
+            Arch["Architect"]
+            Dev["Developer"]
+            FE["FrontendDev"]
+            BE["BackendDev"]
+            CR["CodeReviewer"]
+            DO["DevOps"]
+            IS["InfraSpecialist"]
+        end
+
+        subgraph Governance["⚖️ Governance Team"]
+            CO["ComplianceOfficer"]
+            SA["SecurityAuditor"]
+            QG["QualityGatekeeper"]
+            QL["QALead"]
+            RM["ReleaseManager"]
+        end
+
+        subgraph Operations["⚙️ Operations Team"]
+            PC["ProjectCoordinator"]
+            TM["TicketManager"]
+            DW["DocWriter"]
+            RS["RecoverySpecialist"]
+            CT["ControlTowerOp"]
+            MC["MetricsCollector"]
+            QE["QAEngineer"]
+            EM["EnvManager"]
+        end
+
+        subgraph Sales["💼 Sales Team"]
+            SD["SalesDirector"]
+            BD["BizDevManager"]
+        end
+
+        subgraph Marketing["📣 Marketing Team"]
+            CS["ContentStrategist"]
+            GM["GrowthMarketer"]
+        end
+    end
+
+    User(["👤 Developer / PM"]) --> Factory
+    CXO_V(["📊 CXO Viewer"]) --> Factory
+
+    Ralph -->|"routes all work"| Product & Engineering & Governance & Operations
+    Product -->|"creates tickets"| JIRA
+    Engineering -->|"push branches · create PRs"| GitHub
+    Engineering -->|"LLM calls"| Claude
+    Engineering -->|"run workflows"| Temporal
+    Governance -->|"publish reports"| Confluence
+    Operations -->|"publish docs"| Confluence
+    CXO -->|"publish CXO metrics"| Confluence
+    Product -->|"manage sprints"| JIRA
+    RM -->|"tag releases"| GitHub
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

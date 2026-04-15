@@ -81,38 +81,76 @@ h1 span{color:var(--accent)}
     <div class="mermaid">
 sequenceDiagram
     autonumber
-    participant Dev as Developer
+    participant Dev as Developer (Maker)
+    participant Ralph as Ralph Controller
     participant Tmp as Temporal
-    participant Ch as Checker
-    participant Rev as Reviewer
-    participant Ap as Approver
+    participant QG as QualityGatekeeper (Checker)
+    participant SA as SecurityAuditor
+    participant CR as CodeReviewer
+    participant CTO as CTO (Reviewer)
+    participant CEO as CEO/CPO (Approver)
     participant JIRA as JIRA
     participant Br as Brain
+    participant GH as GitHub
 
-    Dev->>Tmp: POST /tickets/{id}/approve — submit for MCRA review
-    Tmp->>Ch: mcra_checker_activity
-    Note over Ch: run quality gates<br/>pytest · ruff · pyright
-    Ch-->>Tmp: GateResult(passed/failed, details)
+    Dev->>GH: push branch — tests pass, coverage ≥80%
+    Dev->>JIRA: transition ticket → In Review
+    Dev->>Tmp: POST /tickets/{id}/approve — submit for MCRA
+
+    Note over QG,SA: STEP 1 — CHECKER (QualityGatekeeper + SecurityAuditor)
+    Tmp->>QG: mcra_checker_activity
+    QG->>QG: run quality gates: pytest · ruff · pyright
+    QG->>QG: verify TDD compliance — tests before impl
+    QG->>QG: check coverage ≥80% on all changed files
+    SA->>GH: scan for OWASP Top10, secrets, injections
     alt quality gates failed
-        Tmp->>JIRA: add comment "Checker FAILED: {details}"
-        Tmp-->>Dev: MCRAResult(status=failed)
+        QG-->>Tmp: CheckerResult(FAIL, details)
+        Tmp->>JIRA: add comment "❌ Checker FAILED: {details}"
+        Tmp-->>Dev: return to Maker — fix required
+    else security issue
+        SA-->>Tmp: CheckerResult(BLOCK, security_issue)
+        Tmp->>JIRA: add comment "🔐 Security BLOCK"
+        Tmp-->>Dev: critical fix required
+    else checker passed
+        QG-->>Tmp: CheckerResult(PASS)
+        SA-->>Tmp: SecurityResult(CLEAN)
     end
-    Tmp->>Rev: mcra_reviewer_activity
-    Rev->>Br: GET /brain/patterns + /brain/decisions
-    Br-->>Rev: prior patterns + decisions
-    Rev->>Rev: call Claude API → review artifact
-    Rev->>JIRA: add comment "Reviewer: {verdict}"
-    Rev-->>Tmp: verdict(approved / changes_required)
+
+    Note over CR,CTO: STEP 2 — REVIEWER (CodeReviewer + CTO)
+    Tmp->>CR: mcra_reviewer_activity
+    CR->>Br: GET /brain/patterns + /brain/decisions
+    Br-->>CR: prior patterns, ADRs, known anti-patterns
+    CR->>GH: review PR — architecture conformance, code quality
+    Tmp->>CTO: mcra_cto_review_activity
+    CTO->>Br: GET /brain/decisions (ADR context)
+    CTO->>CTO: review: technical correctness, arch alignment
     alt reviewer requests changes
-        Tmp-->>Dev: MCRAResult(status=changes_required)
+        CR-->>Tmp: ReviewResult(CHANGES_REQUESTED, comments)
+        CTO-->>Tmp: ReviewResult(CHANGES_REQUESTED, arch_note)
+        Tmp->>JIRA: add comment "🔄 Reviewer changes requested"
+        Tmp-->>Dev: return to Maker
+    else reviewer approved
+        CR-->>Tmp: ReviewResult(APPROVED)
+        CTO-->>Tmp: ReviewResult(APPROVED)
+        Tmp->>Br: POST /brain/patterns (any new patterns found)
     end
-    Note over Tmp: wait for human APPROVER signal<br/>72h timeout
-    Tmp->>JIRA: add comment "Awaiting APPROVER"
-    Dev->>Tmp: signal: mcra_approve(approved=true, comment)
-    Tmp->>JIRA: add comment "APPROVED by {approver}"
-    Tmp->>Br: POST /brain/decisions — write decision memory
-    Tmp-->>Dev: MCRAResult(status=approved, pr_url)
-    </div>
+
+    Note over CEO: STEP 3 — APPROVER (CEO / CPO)
+    Tmp->>CEO: mcra_approver_activity
+    CEO->>CEO: review: aligns with product vision and OKRs?
+    CEO->>CEO: review: no governance violations?
+    alt approver rejects
+        CEO-->>Tmp: ApprovalResult(REJECTED, reason)
+        Tmp->>JIRA: add comment "❌ Approver REJECTED: {reason}"
+        Tmp-->>Dev: escalated rejection
+    else approver approves
+        CEO-->>Tmp: ApprovalResult(APPROVED)
+        Tmp->>JIRA: transition → Done
+        Tmp->>GH: merge PR
+        Tmp->>Br: POST /brain/memories (approval context)
+        Tmp-->>Ralph: MCRAResult(APPROVED) — continue pipeline
+    end
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>

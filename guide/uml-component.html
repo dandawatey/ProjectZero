@@ -80,41 +80,158 @@ h1 span{color:var(--accent)}
     <div class="diagram-title">Internal Components — React → FastAPI → Postgres/Temporal → Agents → Claude API</div>
     <div class="mermaid">
 flowchart TB
-    ReactUI["⚛️ React Control Tower\nDashboard · Approval Queue · Live Feed"]
-    FastAPI["🚀 FastAPI Backend\nREST + WebSocket · SQLAlchemy async"]
-    Postgres[("🗄️ PostgreSQL\nState + Brain")]
-    TemporalWorker["⚙️ Temporal Worker\nWorkflow + Activity host"]
-    SpecAgent["🔍 Spec Agent"]
-    ArchAgent["🏗️ Arch Agent"]
-    ImplAgent["💻 Impl Agent"]
-    ReviewAgent["🔎 Review Agent"]
-    DeployAgent["🚀 Deploy Agent"]
-    AnthropicAPI["🤖 Anthropic Claude API"]
-    JIRAClient["📋 JIRA Client\nticket transitions"]
-    ConfluenceClient["📄 Confluence Client\npage publishing"]
-    ClaudeCodeCLI["💻 Claude Code CLI\nslash commands · hooks"]
-    ClaudeMem["🧠 claude-mem Worker :37777\nSQLite local store"]
-    BrainSync["🔄 Brain Sync\nscore ≥ 0.7 → promote"]
+    subgraph UI["⚛️ React Control Tower"]
+        Dashboard["Dashboard
++ Approval Queue
++ Live Feed"]
+    end
 
-    ReactUI -->|"REST / WebSocket"| FastAPI
-    FastAPI -->|"SQLAlchemy async"| Postgres
-    FastAPI -->|"start workflows · signals"| TemporalWorker
-    FastAPI -->|"publish pages"| ConfluenceClient
-    TemporalWorker --> SpecAgent
-    TemporalWorker --> ArchAgent
-    TemporalWorker --> ImplAgent
-    TemporalWorker --> ReviewAgent
-    TemporalWorker --> DeployAgent
-    SpecAgent -->|"LLM calls"| AnthropicAPI
-    ArchAgent -->|"LLM calls"| AnthropicAPI
-    ImplAgent -->|"LLM calls"| AnthropicAPI
-    ReviewAgent -->|"LLM calls"| AnthropicAPI
-    DeployAgent -->|"LLM calls"| AnthropicAPI
-    TemporalWorker -->|"transition tickets"| JIRAClient
-    ClaudeCodeCLI -->|"PostToolUse hook"| ClaudeMem
-    ClaudeMem -->|"Stop hook · flush + compress"| BrainSync
-    BrainSync -->|"POST /api/v1/brain/memories"| Postgres
-    </div>
+    subgraph API["🚀 FastAPI Backend :8000"]
+        Routes["REST Routes
+/agents /products /brain
+/confluence /workflows"]
+    end
+
+    subgraph Mem["🧠 Memory Layer"]
+        ClaudeMem["claude-mem :37777
+SQLite local store"]
+        Brain[("PostgreSQL Brain
+/api/v1/brain/
+memories · decisions
+patterns · conversations")]
+        BridgeSync["MemBridge
+score≥0.7 → promote"]
+    end
+
+    subgraph WorkflowEngine["⚙️ Temporal Workers"]
+        Ralph["🎛️ Ralph Controller
+Route · Queue · Detect blocks"]
+    end
+
+    subgraph CXO_T["👔 CXO Team"]
+        CEO_c["CEO
+Vision · Final approval
+OKR · Escalation"]
+        CTO_c["CTO
+Tech strategy · ADR approval
+Arch review"]
+        CFO_c["CFO
+Financial models · Budgets
+Investor data rooms"]
+        COO_c["COO
+Ops · Resource allocation
+Cross-team coord"]
+        CPO_c["CPO
+Roadmap · Prioritisation
+Acceptance criteria"]
+        CMO_c["CMO
+GTM · Brand positioning
+Campaign mgmt"]
+    end
+
+    subgraph Prod_T["📋 Product Team"]
+        PM_c["ProductManager
+User stories · Backlog
+SPARC tickets · JIRA"]
+        UX_c["UXDesigner
+Wireframes · Flows
+Glassmorphism · a11y"]
+        MA_c["MarketAnalyst
+TAM-SAM-SOM · Competitive
+Market sizing"]
+    end
+
+    subgraph Eng_T["💻 Engineering Team"]
+        Arch_c["Architect
+System design · ADRs
+API contracts · Stack selection"]
+        Dev_c["Developer
+TDD · Feature impl
+80% coverage · Commits"]
+        FE_c["FrontendDev
+React+TS · Design System
+Storybook · WCAG"]
+        BE_c["BackendDev
+FastAPI · SQLAlchemy
+REST APIs · Integrations"]
+        CR_c["CodeReviewer
+OWASP · Coverage check
+Arch conformance · PR gating"]
+        DO_c["DevOps
+CI/CD · IaC
+Monitoring · Deployment"]
+        IS_c["InfraSpecialist
+Cloud · VPC · IAM
+Scaling · DR"]
+    end
+
+    subgraph Gov_T["⚖️ Governance Team"]
+        CO_c["ComplianceOfficer
+GDPR · SOC2 · ISO27001
+Audit trails"]
+        SA_c["SecurityAuditor
+OWASP Top10 · Pentest
+Security policy"]
+        QG_c["QualityGatekeeper
+Gate enforcement · Coverage
+TDD compliance · Stage gates"]
+        QL_c["QALead
+Test strategy · Plans
+Release sign-off"]
+        RM_c["ReleaseManager
+Semver · Changelogs
+Deployment orchestration"]
+    end
+
+    subgraph Ops_T["⚙️ Operations Team"]
+        PC_c["ProjectCoordinator
+Timelines · RAID log
+Dependency mgmt"]
+        TM_c["TicketManager
+JIRA lifecycle · SLA
+Backlog hygiene"]
+        DW_c["DocWriter
+API docs · Confluence
+User guides"]
+        RS_c["RecoverySpecialist
+Workflow recovery
+Checkpoint restore"]
+        CT_c["ControlTowerOp
+Monitor · Anomaly detect
+Incident coord"]
+        MC_c["MetricsCollector
+KPIs · Analytics
+Trend analysis"]
+        QE_c["QAEngineer
+Test cases · Regression
+Playwright E2E"]
+        EM_c["EnvManager
+Dev/Staging/Prod
+Secrets · Parity"]
+    end
+
+    subgraph Ext["☁️ External"]
+        JIRA_e["JIRA"] 
+        Conf_e["Confluence"]
+        GH_e["GitHub"]
+        Anth_e["Anthropic API"]
+        Tmp_e["Temporal"]
+    end
+
+    UI --> API
+    API --> Brain
+    API --> ClaudeMem
+    ClaudeMem --> BridgeSync --> Brain
+    API --> WorkflowEngine
+    WorkflowEngine --> Ralph
+    Ralph --> Prod_T & Eng_T & Gov_T & Ops_T
+    CXO_T -->|"approve gates"| WorkflowEngine
+    Eng_T -->|"LLM calls"| Anth_e
+    PM_c & TM_c -->|"tickets · sprints"| JIRA_e
+    DW_c & COO_c -->|"publish pages"| Conf_e
+    Dev_c & FE_c & BE_c & DO_c -->|"push · PR"| GH_e
+    Ralph -->|"start · signal"| Tmp_e
+</div>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
