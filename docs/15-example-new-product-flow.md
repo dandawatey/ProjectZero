@@ -154,8 +154,22 @@ Bootstrapping product: HealthTracker Pro
   src/api/                                   FastAPI application
   src/web/                                   React application
   src/shared/                                Shared types and utilities
-  packages/ui/                               Design system (Storybook)
+  src/design-system/                         Design system (auto-initialized)
   .claude/                                   Agent OS initialized
+
+[Design System] Initializing (Step 10/13)...
+  Installing framer-motion, clsx, cva       DONE
+  Installing Storybook                       DONE
+  src/design-system/tokens.ts               CREATED (colors, typography, spacing, radii, shadows, z-index, breakpoints)
+  src/design-system/motion.ts               CREATED (fadeIn, fadeUp, scaleIn, stagger, drawerSlide, buttonTap, cardHover)
+  src/design-system/components/Button/      CREATED (+ Button.stories.tsx)
+  src/design-system/components/Input/       CREATED (+ Input.stories.tsx)
+  src/design-system/components/Card/        CREATED (+ Card.stories.tsx)
+  src/design-system/components/Badge/       CREATED (+ Badge.stories.tsx)
+  src/design-system/components/Spinner/     CREATED (+ Spinner.stories.tsx)
+  src/design-system/components/Avatar/      CREATED (+ Avatar.stories.tsx)
+  .storybook/main.ts                        CREATED
+  .storybook/preview.tsx                    CREATED
 
 [Postgres] Registering product...
   Product record:                            CREATED (id: prod_htp_001)
@@ -411,8 +425,10 @@ Architecture Decision Records:
   ADR-003: WebSockets for real-time vital sign updates
   ADR-004: Redis pub/sub for alert distribution
   ADR-005: AES-256 encryption for PHI at rest
-  ADR-006: OpenTelemetry for distributed tracing
+  ADR-006: OpenTelemetry for distributed tracing (observability strategy)
   ADR-007: React with server components for dashboard
+  ADR-008: Structured logging with correlation IDs (every request)
+  ADR-009: Prometheus metrics + Grafana dashboards for SLO tracking
 
 [Brain] Decisions stored:
   brain/decisions/ADR-001 through ADR-007        PERSISTED

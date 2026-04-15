@@ -83,10 +83,12 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 4. `ScaffoldProductActivity` -- generate project scaffold based on type + stack
 5. `InitProductStateActivity` -- create product record in Postgres
 6. `CommitAndPushActivity` -- initial commit to product repo
+7. `DesignSystemInitActivity` -- auto-runs `/design-system-init`: installs framer-motion/clsx/cva/Storybook, creates `src/design-system/tokens.ts`, `motion.ts`, 6 base components with stories, Storybook config. Skip with `--skip=design-system`.
+8–13. Additional pipeline, workspace, and config steps
 
-**Artifacts**: GitHub repo. JIRA project. Confluence space. Product record in Postgres.
+**Artifacts**: GitHub repo. JIRA project. Confluence space. Product record in Postgres. Design system scaffold with tokens, motion variants, base components, and Storybook.
 
-**Exit Criteria**: Repo exists and is accessible. JIRA project has board. Confluence space has page hierarchy. Product state = CREATED.
+**Exit Criteria**: Repo exists and is accessible. JIRA project has board. Confluence space has page hierarchy. Design system initialized. Product state = CREATED.
 
 ---
 
@@ -159,9 +161,21 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 8. `PublishToConfluenceActivity` -- specification docs
 9. `GovernanceChainWorkflow` -- checker validates, approver signs off
 
-**Artifacts**: Module specs. API contracts. JIRA epics + stories. Confluence spec pages.
+**Mandatory Observability Tickets (OBS-001..010)**: During spec, create mandatory pre-feature observability tickets. These must be implemented before any feature work begins:
+- OBS-001: Structured logging (correlation ID on every log line)
+- OBS-002: Request/response audit middleware
+- OBS-003: `/health` endpoint (liveness + readiness)
+- OBS-004: Distributed tracing (OpenTelemetry)
+- OBS-005: Metrics collection (Prometheus)
+- OBS-006: Error tracking integration (Sentry or equivalent)
+- OBS-007: Database query logging
+- OBS-008: Background job observability
+- OBS-009: Auth event audit trail
+- OBS-010: Performance baseline benchmarks
 
-**Exit Criteria**: All modules defined. All stories have acceptance criteria. All contracts documented. Checker passed. Approver approved. JIRA synced.
+**Artifacts**: Module specs. API contracts. JIRA epics + stories (including OBS-001..010). Confluence spec pages.
+
+**Exit Criteria**: All modules defined. All stories have acceptance criteria. All contracts documented. OBS-001..010 tickets created. Checker passed. Approver approved. JIRA synced.
 
 ---
 
@@ -181,14 +195,18 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 3. `CreateAdrsActivity` -- architecture decision records
 4. `DefineInfraActivity` -- compute, storage, networking, CI/CD
 5. `DefineSecurityActivity` -- auth mechanism, encryption, OWASP mitigation
-6. `DefineObservabilityActivity` -- logging, metrics, tracing, dashboards, runbooks
+6. `DefineObservabilityActivity` -- logging strategy (structured + correlation IDs), metrics (Prometheus), distributed tracing (OpenTelemetry), error tracking, dashboards, SLOs, runbooks
 7. `CostEstimateActivity` -- FinOps cost projections
 8. `PublishToConfluenceActivity` -- architecture docs
 9. `GovernanceChainWorkflow` -- checker validates, security reviewer checks, approver signs off
 
-**Artifacts**: ADRs. Infrastructure spec. Security architecture. Observability plan. Cost estimate. Confluence pages.
+**Planned: Phase 4b commands** (not yet built):
+- `/infra` -- generate docker-compose + CI/CD + IaC (Terraform/Pulumi) from architecture spec *(Planned)*
+- `/observability-init` -- create OBS-001..010 tickets + provision middleware templates + add Loki/Prometheus/Grafana to docker-compose *(Planned)*
 
-**Exit Criteria**: All ADRs documented. Infra defined. Security reviewed. Observability defined. Checker passed. Approver approved.
+**Artifacts**: ADRs. Infrastructure spec. Security architecture. Observability plan (logging/metrics/tracing/audit strategy, SLOs defined). Cost estimate. Confluence pages.
+
+**Exit Criteria**: All ADRs documented. Infra defined. Security reviewed. Observability architecture defined (logging, metrics, tracing, audit, error tracking). SLOs documented. Checker passed. Approver approved.
 
 ---
 
@@ -222,6 +240,12 @@ Users switch modes at any step via the Control Tower UI or Temporal signal. The 
 **Exit Criteria (per story)**: All acceptance criteria met. All tests pass. Coverage >= 80%. Governance chain complete. PR created. JIRA updated.
 
 **Exit Criteria (per module)**: All stories done. Module integration tests pass. Module gate checklist complete. `/approve --module {name}` passed.
+
+**Observability gate (enforced by `/check`)**: OBS-001..010 tickets must be implemented before any feature story can be marked done:
+- Correlation ID present on all log lines
+- Audit middleware active on all mutation endpoints
+- `/health` endpoint returns 200
+- No raw `print()` / `console.log()` in production code paths
 
 ### The 10-Stage Feature Development Workflow (Detail)
 
@@ -292,7 +316,7 @@ Each stage is a Temporal activity. Failure at any stage blocks progression. Retr
 
 **Artifacts**: Release notes. Deployment records. Monitoring dashboards. Alert rules.
 
-**Exit Criteria**: Production deployment successful. Monitoring active. No critical issues. Release notes published. All JIRA tickets closed.
+**Exit Criteria**: Production deployment successful. Monitoring active. No critical issues. Release notes published. All JIRA tickets closed. SLOs defined. Monitoring dashboards provisioned. Runbook exists for top failure modes.
 
 ---
 

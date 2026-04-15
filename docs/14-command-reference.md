@@ -43,11 +43,23 @@ Full sequence:
 | **Command** | `/bootstrap-product` |
 | **Phase** | 1 |
 | **Scope** | Factory repo (creates product repo) |
-| **Purpose** | Create product repo with full .claude OS, configure integrations, create JIRA project, create Confluence space with hub |
+| **Purpose** | Create product repo with full .claude OS, configure integrations, create JIRA project, create Confluence space with hub. 13-step workflow including auto-run of `/design-system-init` at Step 10. |
 | **Temporal Workflow** | `BootstrapProductWorkflow` |
-| **Inputs** | Product name, type, stack. Optionally BMAD/PRD. |
-| **Outputs** | Initialized product repo. GitHub repo created via API. JIRA project created. Confluence space created with hub page. |
+| **Inputs** | Product name, type, stack. Optionally BMAD/PRD. Skip flags: `--skip=design-system`, `--skip=storybook`, `--skip=framer`. |
+| **Outputs** | Initialized product repo. GitHub repo. JIRA project. Confluence space with hub. Design system scaffold (tokens, motion, 6 components, Storybook). |
 | **Next Command** | `/vision-to-prd` (if no PRD) or `/spec` (if PRD provided) |
+
+### bootstrap-agent.py (Agentic Bootstrap)
+
+| Field | Value |
+|---|---|
+| **Script** | `python scripts/bootstrap-agent.py "<natural language prompt>"` |
+| **Phase** | 1 |
+| **Scope** | Factory repo |
+| **Purpose** | Natural-language driven bootstrap using claude-opus-4-6. Streaming output, adaptive thinking, prompt caching, 16 tools. Same 13-step output as `/bootstrap-product`. |
+| **Inputs** | Natural language string describing the product and org |
+| **Outputs** | Identical to `/bootstrap-product` |
+| **Example** | `python scripts/bootstrap-agent.py "bootstrap i-comply for iSourceInnovations"` |
 
 ### /factory-audit
 
@@ -288,12 +300,12 @@ Full sequence:
 | Field | Value |
 |---|---|
 | **Command** | `/design-system-init` |
-| **Phase** | 1 (during bootstrap) |
-| **Scope** | Factory repo (standards) + Product repo (implementation) |
-| **Purpose** | Initialize design system: tokens in factory, packages/ui with Storybook in product repo |
-| **Temporal Workflow** | `initialize_design_system` activity |
-| **Inputs** | None (uses factory defaults) or `--regenerate-tokens` to refresh |
-| **Outputs** | `.claude/design-system/` in factory, `packages/ui/` in product repo |
+| **Phase** | 1 (auto-runs at bootstrap Step 10) |
+| **Scope** | Product repo |
+| **Purpose** | Initialize design system. Auto-runs during `/bootstrap-product`. Manual invocation re-initializes or regenerates. Installs framer-motion, clsx, class-variance-authority, Storybook. Creates tokens.ts, motion.ts, 6 base components with stories, Storybook config. |
+| **Temporal Workflow** | `DesignSystemInitActivity` inside `BootstrapProductWorkflow` |
+| **Inputs** | None (auto at bootstrap). `--skip=storybook`, `--skip=framer`, `--regenerate-tokens` for manual runs. |
+| **Outputs** | `src/design-system/tokens.ts`, `src/design-system/motion.ts`, `src/design-system/components/` (Button/Input/Card/Badge/Spinner/Avatar + stories), `.storybook/main.ts`, `.storybook/preview.tsx` |
 
 ### /component-create
 
@@ -355,6 +367,42 @@ Full sequence:
 | **Temporal Workflow** | `UIAuditWorkflow` |
 | **Inputs** | None |
 | **Outputs** | Audit report with pass/fail per component, overall compliance score |
+
+---
+
+## Planned Commands (Not Yet Built)
+
+These commands are defined in the architecture and will be implemented in future factory releases.
+
+### /infra *(Planned)*
+
+| Field | Value |
+|---|---|
+| **Command** | `/infra` |
+| **Phase** | 4b (after `/arch`) |
+| **Scope** | Product repo |
+| **Purpose** | Generate docker-compose + CI/CD pipeline + IaC (Terraform/Pulumi) from architecture spec. Provisions dev/staging/prod environments. |
+| **Status** | Planned — not yet implemented |
+
+### /observability-init *(Planned)*
+
+| Field | Value |
+|---|---|
+| **Command** | `/observability-init` |
+| **Phase** | 4b (after `/arch`) |
+| **Scope** | Product repo |
+| **Purpose** | Create OBS-001..010 JIRA tickets + generate middleware templates (correlation ID, audit logging, /health endpoint) + add Loki/Prometheus/Grafana services to docker-compose. |
+| **Status** | Planned — not yet implemented |
+
+### /obs-audit *(Planned)*
+
+| Field | Value |
+|---|---|
+| **Command** | `/obs-audit` |
+| **Phase** | Any (5+) |
+| **Scope** | Product repo |
+| **Purpose** | Scan codebase for observability violations: missing correlation IDs, raw print()/console.log(), untraced API calls, missing /health endpoint, no audit trail on mutations. |
+| **Status** | Planned — not yet implemented |
 
 ---
 

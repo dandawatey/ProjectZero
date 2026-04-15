@@ -118,8 +118,15 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
         <td><code>/bootstrap-product</code></td>
         <td>Setup</td>
         <td><span class="scope factory">Factory</span></td>
-        <td>Bootstrap a new product within the factory&mdash;creates repo, ticket board, environments, and initial configuration.</td>
+        <td>Bootstrap a new product &mdash; 13-step workflow: creates repo, JIRA project, Confluence space, product scaffold, and auto-runs <code>/design-system-init</code> at Step 10 (tokens, motion, 6 base components, Storybook). Skip flags: <code>--skip=design-system</code>, <code>--skip=storybook</code>, <code>--skip=framer</code>.</td>
         <td>BootstrapProductWorkflow</td>
+      </tr>
+      <tr>
+        <td><code>scripts/bootstrap-agent.py</code></td>
+        <td>Setup</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Agentic bootstrap via natural language. Powered by claude-opus-4-6 with streaming, adaptive thinking, 16 tools, and prompt caching. Same 13-step output as <code>/bootstrap-product</code>. Usage: <code>python scripts/bootstrap-agent.py "bootstrap i-comply for iSourceInnovations"</code></td>
+        <td>N/A (direct agent)</td>
       </tr>
       <tr>
         <td><code>/factory-audit</code></td>
@@ -272,10 +279,10 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
     <tbody>
       <tr>
         <td><code>/design-system-init</code></td>
-        <td>Setup</td>
+        <td>Setup (auto at bootstrap)</td>
         <td><span class="scope ui">UI</span></td>
-        <td>Initialize the product design system: tokens, color palette, typography, spacing, and base components.</td>
-        <td>DesignSystemWorkflow</td>
+        <td>Auto-runs at <code>/bootstrap-product</code> Step 10. Installs framer-motion, clsx, class-variance-authority, Storybook. Creates <code>src/design-system/tokens.ts</code> (colors/typography/spacing/radii/shadows/z-index/breakpoints), <code>motion.ts</code> (Framer Motion variants: fadeIn, fadeUp, scaleIn, stagger, drawerSlide, buttonTap, cardHover), 6 base components (Button/Input/Card/Badge/Spinner/Avatar) each with <code>.stories.tsx</code>, and Storybook config. Run manually to regenerate. Skip flags: <code>--skip=storybook</code>, <code>--skip=framer</code>.</td>
+        <td>DesignSystemInitActivity</td>
       </tr>
       <tr>
         <td><code>/component-create</code></td>
@@ -341,6 +348,38 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
         <td><span class="scope factory">Factory</span></td>
         <td>Launch the Rich terminal execution console showing Feature&rarr;Epic&rarr;Ticket&rarr;Workflow live progress bars. Demo mode available via <code>execution_console/scripts/demo.py</code> (no infra needed).</td>
         <td>execution_console :8001</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Planned Commands -->
+  <h2 class="group-title"><span class="dot" style="background:var(--yellow)"></span> Planned Commands</h2>
+  <p style="color:var(--text2);font-size:.9rem;margin-bottom:1rem">These commands are defined in the architecture and will be implemented in future factory releases.</p>
+  <table class="cmd-table">
+    <thead>
+      <tr><th>Command</th><th>Phase</th><th>Scope</th><th>Purpose</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>/infra</code></td>
+        <td>4b</td>
+        <td><span class="scope factory">Factory</span></td>
+        <td>Generate docker-compose, CI/CD pipeline, and IaC (Terraform/Pulumi) from architecture spec. Provisions dev/staging/prod environments automatically.</td>
+        <td>Planned</td>
+      </tr>
+      <tr>
+        <td><code>/observability-init</code></td>
+        <td>4b</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Create OBS-001&ndash;010 JIRA tickets + generate middleware templates (correlation ID, audit logging, /health endpoint) + add Loki/Prometheus/Grafana to docker-compose.</td>
+        <td>Planned</td>
+      </tr>
+      <tr>
+        <td><code>/obs-audit</code></td>
+        <td>Any (5+)</td>
+        <td><span class="scope product">Product</span></td>
+        <td>Scan codebase for observability violations: missing correlation IDs, raw print()/console.log(), untraced API calls, missing /health endpoint, no audit trail on mutations.</td>
+        <td>Planned</td>
       </tr>
     </tbody>
   </table>

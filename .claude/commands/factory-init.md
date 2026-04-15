@@ -6,8 +6,25 @@ Validate factory repo structure AND all integrations. Gate to all execution.
 ## Rule
 NO INTEGRATION → NO EXECUTION. All required systems must validate before proceeding.
 
+**Exception — brownfield mode**: Integrations explicitly skipped via `--skip` are excluded from the gate. Skipped integrations are disabled in product .env, not assumed present.
+
 ## Trigger
 User runs `/factory-init` after cloning factory. First command always.
+
+## Flags
+
+| Flag | Effect |
+|------|--------|
+| `--brownfield` | Enables brownfield mode. Prompts which integrations to skip. |
+| `--skip=jira` | Skip JIRA validation (sets JIRA_ENABLED=false) |
+| `--skip=confluence` | Skip Confluence validation |
+| `--skip=temporal` | Skip Temporal validation |
+| `--skip=jira,confluence` | Skip multiple (comma-separated) |
+| `--skip=all-optional` | Skip Sentry, PostHog |
+| `--partial` | Alias for `--brownfield` |
+
+Required integrations that cannot be skipped: **GitHub, Postgres, Anthropic**.
+Redis and Temporal can be skipped in brownfield mode (async features disabled).
 
 ## Step-by-Step Process
 
@@ -16,22 +33,36 @@ User runs `/factory-init` after cloning factory. First command always.
 - If missing → run `./scripts/guided-setup.sh` (interactive)
 - If exists → proceed to validation
 
-### Step 2: Validate Integrations (MANDATORY)
+### Step 1b: Detect Mode
+If `--brownfield` or `--partial` flag present:
+```
+Brownfield mode active.
+Which integrations are NOT available for this project?
+  [ ] JIRA
+  [ ] Confluence
+  [ ] Temporal
+  [ ] Redis
+  (GitHub, Postgres, Anthropic always required)
+```
+Mark selected as SKIP. Store in session context.
+
+### Step 2: Validate Integrations (MANDATORY for non-skipped)
 Run `./scripts/validate-integrations.sh`. Checks:
 
-| Integration | Validation Method | Blocks If Failed? |
-|-------------|------------------|-------------------|
-| GitHub | API call to /user | YES |
-| JIRA | API call to /myself | YES |
-| Confluence | API call to /space | YES |
-| Temporal | TCP connect or SDK list | YES |
-| Postgres | psql SELECT 1 or TCP | YES |
-| Redis | PING or TCP | YES |
-| Anthropic | API call to /messages | YES |
-| Sentry | Check DSN format | NO (optional) |
-| PostHog | Check key format | NO (optional) |
+| Integration | Validation Method | Blocks If Failed? | Skippable? |
+|-------------|------------------|-------------------|------------|
+| GitHub | API call to /user | YES | NO |
+| JIRA | API call to /myself | YES | YES (brownfield) |
+| Confluence | API call to /space | YES | YES (brownfield) |
+| Temporal | TCP connect or SDK list | YES | YES (brownfield) |
+| Postgres | psql SELECT 1 or TCP | YES | NO |
+| Redis | PING or TCP | YES | YES (brownfield) |
+| Anthropic | API call to /messages | YES | NO |
+| Sentry | Check DSN format | NO (optional) | YES |
+| PostHog | Check key format | NO (optional) | YES |
 
-**ALL required integrations must pass. ANY failure → BLOCK.**
+**All non-skipped required integrations must pass. ANY failure → BLOCK.**
+**Skipped integrations → logged as DISABLED, not failed.**
 
 ### Step 3: Validate Factory Structure
 Check directories: agents/, skills/, workflows/, commands/, templates/, guardrails/

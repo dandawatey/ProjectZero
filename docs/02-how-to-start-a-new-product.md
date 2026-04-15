@@ -96,15 +96,25 @@ Status: READY for /bootstrap-product
 
 This creates a SEPARATE product repo. Factory and product are different git repos.
 
-What happens (all via Temporal workflow):
+What happens (all via Temporal workflow, 13 steps total):
 1. Creates GitHub repo `your-org/MyProduct`
 2. Creates JIRA project with key derived from name
 3. Creates Confluence space with standard page hierarchy
 4. Initializes product repo structure (src, tests, configs)
 5. Creates initial product state in Postgres
 6. Commits and pushes initial product scaffold
+7. Scaffolds design system (`src/design-system/`) with tokens, motion variants, 6 base components, Storybook config — see Step 10 below for details
+8–13. Additional pipeline, config, and workspace setup steps
 
 Product repo is now live. Factory orchestrates it. Code lives there, not here.
+
+**Agentic alternative**: Use `scripts/bootstrap-agent.py` for a natural-language driven bootstrap powered by claude-opus-4-6 with streaming, adaptive thinking, and prompt caching:
+
+```bash
+python scripts/bootstrap-agent.py "bootstrap i-comply for iSourceInnovations"
+```
+
+Same 13-step output as `/bootstrap-product` but driven by a single natural-language prompt.
 
 ### Brain Persistence
 
@@ -200,6 +210,28 @@ Post-build business artifacts:
 ```
 
 Ongoing. Temporal cron workflows for continuous monitoring.
+
+## Step 10: Design System (Auto-runs during Bootstrap)
+
+`/design-system-init` runs automatically as part of `/bootstrap-product` (Step 10 of 13). No manual invocation needed for new products.
+
+What gets created in `src/design-system/`:
+- **`tokens.ts`** — colors (brand/neutral/semantic), typography, spacing, radii, shadows, z-index, breakpoints
+- **`motion.ts`** — Framer Motion variants: `fadeIn`, `fadeUp`, `scaleIn`, `stagger`, `drawerSlide`, `buttonTap`, `cardHover`
+- **`components/`** — Button, Input, Card, Badge, Spinner, Avatar each with `.stories.tsx`
+- **`.storybook/main.ts`** + **`.storybook/preview.tsx`**
+- `package.json` scripts: `storybook`, `storybook:build`, `storybook:test`
+
+Dependencies installed: `framer-motion`, `clsx`, `class-variance-authority`, Storybook.
+
+Skip flags if needed:
+```bash
+/bootstrap-product --name "MyProduct" --skip=design-system
+/bootstrap-product --name "MyProduct" --skip=storybook
+/bootstrap-product --name "MyProduct" --skip=framer
+```
+
+See [11 - Design System and Storybook Model](11-design-system-and-storybook-model.md) for full details.
 
 ## Full Quick-Start
 
