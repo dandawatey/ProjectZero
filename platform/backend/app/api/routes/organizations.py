@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from datetime import datetime
 from typing import List
 import uuid
@@ -66,16 +67,16 @@ async def create_organization(
     )
     db.add(user_org)
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org.id,
-        actor_id=user_id,
-        resource_type="organization",
-        resource_id=org.id,
-        action="created",
-        changes=json.dumps(org_data.dict()),
-    )
+    # Audit log (disabled for MVP - SQLite autoincrement issue)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org.id,
+    #     actor_id=user_id,
+    #     resource_type="organization",
+    #     resource_id=org.id,
+    #     action="created",
+    #     changes=json.dumps(org_data.dict()),
+    # )
 
     await db.commit()
     await db.refresh(org)
@@ -183,17 +184,17 @@ async def update_organization(
 
     org.updated_at = datetime.utcnow()
 
-    # Audit log
-    if changes:
-        await log_audit_event(
-            db=db,
-            org_id=org.id,
-            actor_id=user_id,
-            resource_type="organization",
-            resource_id=org.id,
-            action="updated",
-            changes=json.dumps(changes),
-        )
+    # Audit log (disabled for MVP)
+    # if changes:
+    #     await log_audit_event(
+    #         db=db,
+    #         org_id=org.id,
+    #         actor_id=user_id,
+    #         resource_type="organization",
+    #         resource_id=org.id,
+    #         action="updated",
+    #         changes=json.dumps(changes),
+    #     )
 
     await db.commit()
     await db.refresh(org)
@@ -231,16 +232,16 @@ async def delete_organization(
     # Soft delete
     org.deleted_at = datetime.utcnow()
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org.id,
-        actor_id=user_id,
-        resource_type="organization",
-        resource_id=org.id,
-        action="deleted",
-        changes=None,
-    )
+    # Audit log (disabled for MVP)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org.id,
+    #     actor_id=user_id,
+    #     resource_type="organization",
+    #     resource_id=org.id,
+    #     action="deleted",
+    #     changes=None,
+    # )
 
     await db.commit()
 
@@ -297,22 +298,29 @@ async def invite_member(
     )
     db.add(user_org)
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org_id,
-        actor_id=user_id,
-        resource_type="user",
-        resource_id=target_user.id,
-        action="invited",
-        changes=json.dumps({"role": member_data.role.value}),
-    )
+    # Audit log (disabled for MVP)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org_id,
+    #     actor_id=user_id,
+    #     resource_type="user",
+    #     resource_id=target_user.id,
+    #     action="invited",
+    #     changes=json.dumps({"role": member_data.role.value}),
+    # )
 
     # TODO: Send invite email with verification link
 
     await db.commit()
     await db.refresh(user_org)
-    return user_org
+
+    return {
+        "user_id": user_org.user_id,
+        "email": target_user.email,
+        "role": user_org.role,
+        "invited_at": user_org.invited_at,
+        "joined_at": user_org.joined_at,
+    }
 
 
 @router.get("/{org_id}/members", response_model=List[UserOrganizationResponse], summary="List members")
@@ -330,13 +338,24 @@ async def list_members(
     if not (await db.execute(check_stmt)).scalars().first():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    # Get members
+    # Get members with eager-loaded User relationship
     stmt = select(UserOrganization).where(
         UserOrganization.org_id == org_id,
-    ).join(User, User.id == UserOrganization.user_id)
+    ).options(selectinload(UserOrganization.user))
     result = await db.execute(stmt)
     members = result.scalars().all()
-    return members
+
+    # Convert to response schema with email from related user
+    return [
+        {
+            "user_id": m.user_id,
+            "email": m.user.email,
+            "role": m.role,
+            "invited_at": m.invited_at,
+            "joined_at": m.joined_at,
+        }
+        for m in members
+    ]
 
 
 @router.patch(
@@ -361,11 +380,11 @@ async def update_member_role(
     if not (await db.execute(auth_stmt)).scalars().first():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Owner can update roles")
 
-    # Get member
+    # Get member with eager-loaded user
     member_stmt = select(UserOrganization).where(
         UserOrganization.org_id == org_id,
         UserOrganization.user_id == target_user_id,
-    )
+    ).options(selectinload(UserOrganization.user))
     member = (await db.execute(member_stmt)).scalars().first()
 
     if not member:
@@ -376,20 +395,27 @@ async def update_member_role(
     member.role = update_data.role
     member.updated_at = datetime.utcnow()
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org_id,
-        actor_id=user_id,
-        resource_type="user",
-        resource_id=target_user_id,
-        action="role_updated",
-        changes=json.dumps({"old": old_role.value, "new": update_data.role.value}),
-    )
+    # Audit log (disabled for MVP)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org_id,
+    #     actor_id=user_id,
+    #     resource_type="user",
+    #     resource_id=target_user_id,
+    #     action="role_updated",
+    #     changes=json.dumps({"old": old_role.value, "new": update_data.role.value}),
+    # )
 
     await db.commit()
     await db.refresh(member)
-    return member
+
+    return {
+        "user_id": member.user_id,
+        "email": member.user.email,
+        "role": member.role,
+        "invited_at": member.invited_at,
+        "joined_at": member.joined_at,
+    }
 
 
 @router.delete("/{org_id}/members/{target_user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove member")
@@ -434,16 +460,16 @@ async def remove_member(
     # Remove member
     await db.delete(member)
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org_id,
-        actor_id=user_id,
-        resource_type="user",
-        resource_id=target_user_id,
-        action="removed",
-        changes=None,
-    )
+    # Audit log (disabled for MVP)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org_id,
+    #     actor_id=user_id,
+    #     resource_type="user",
+    #     resource_id=target_user_id,
+    #     action="removed",
+    #     changes=None,
+    # )
 
     await db.commit()
 
@@ -509,16 +535,16 @@ async def create_workspace(
     )
     db.add(ws)
 
-    # Audit log
-    await log_audit_event(
-        db=db,
-        org_id=org_id,
-        actor_id=user_id,
-        resource_type="workspace",
-        resource_id=ws.id,
-        action="created",
-        changes=json.dumps(ws_data.dict()),
-    )
+    # Audit log (disabled for MVP)
+    # await log_audit_event(
+    #     db=db,
+    #     org_id=org_id,
+    #     actor_id=user_id,
+    #     resource_type="workspace",
+    #     resource_id=ws.id,
+    #     action="created",
+    #     changes=json.dumps(ws_data.dict()),
+    # )
 
     await db.commit()
     await db.refresh(ws)

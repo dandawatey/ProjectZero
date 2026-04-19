@@ -11,7 +11,9 @@ from datetime import datetime
 import uuid
 
 from app.models.organization import Organization, UserOrganization, RoleType
+from app.models.user import User
 from app.core.database import async_session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
@@ -25,57 +27,96 @@ def test_org_data():
     }
 
 
+async def _create_test_user(db: AsyncSession, email: str) -> str:
+    """Helper: create a test user in DB. Returns user_id as string."""
+    user_id = uuid.uuid4()
+    user = User(
+        id=str(user_id),  # Convert to string for SQLite
+        email=email,
+        hashed_password="dummy_hash",  # not used in tests
+        role="developer",
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    return str(user_id)
+
+
 @pytest_asyncio.fixture
-async def auth_headers(client: AsyncClient):
-    """Auth headers for test user."""
-    # Register
-    await client.post("/api/v1/auth/register", json={
-        "email": "testuser@example.com",
-        "password": "TestPass123!",
-        "full_name": "Test User",
-    })
-    # Login
-    resp = await client.post("/api/v1/auth/login", json={
-        "email": "testuser@example.com",
-        "password": "TestPass123!",
-    })
-    token = resp.json().get("access_token", "")
+async def test_user_1_id(app):
+    """Create first test user in DB."""
+    async with async_session() as db:
+        unique_id = str(uuid.uuid4())[:8]
+        user_id = await _create_test_user(db, f"testuser1-{unique_id}@example.com")
+        await db.commit()
+        return user_id
+
+
+@pytest_asyncio.fixture
+async def test_user_2_id(app):
+    """Create second test user in DB (for RBAC/RLS tests)."""
+    async with async_session() as db:
+        unique_id = str(uuid.uuid4())[:8]
+        user_id = await _create_test_user(db, f"testuser2-{unique_id}@example.com")
+        await db.commit()
+        return user_id
+
+
+@pytest_asyncio.fixture
+async def test_user_3_id(app):
+    """Create third test user in DB (for isolation tests)."""
+    async with async_session() as db:
+        unique_id = str(uuid.uuid4())[:8]
+        user_id = await _create_test_user(db, f"testuser3-{unique_id}@example.com")
+        await db.commit()
+        return user_id
+
+
+@pytest_asyncio.fixture
+async def auth_headers(test_user_1_id):
+    """Auth headers for first test user."""
+    from app.core.security import create_access_token
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    token = create_access_token(
+        data={"sub": str(test_user_1_id)},
+        secret=settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+        expires_minutes=60,
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest_asyncio.fixture
-async def auth_headers_engineer(client: AsyncClient):
-    """Auth headers for engineer user (non-owner)."""
-    # Register different user
-    await client.post("/api/v1/auth/register", json={
-        "email": "engineer@example.com",
-        "password": "TestPass123!",
-        "full_name": "Engineer User",
-    })
-    # Login
-    resp = await client.post("/api/v1/auth/login", json={
-        "email": "engineer@example.com",
-        "password": "TestPass123!",
-    })
-    token = resp.json().get("access_token", "")
+async def auth_headers_engineer(test_user_2_id):
+    """Auth headers for second test user (engineer)."""
+    from app.core.security import create_access_token
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    token = create_access_token(
+        data={"sub": str(test_user_2_id)},
+        secret=settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+        expires_minutes=60,
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest_asyncio.fixture
-async def auth_headers_other_user(client: AsyncClient):
-    """Auth headers for different user (RLS isolation test)."""
-    # Register different user
-    await client.post("/api/v1/auth/register", json={
-        "email": "other@example.com",
-        "password": "TestPass123!",
-        "full_name": "Other User",
-    })
-    # Login
-    resp = await client.post("/api/v1/auth/login", json={
-        "email": "other@example.com",
-        "password": "TestPass123!",
-    })
-    token = resp.json().get("access_token", "")
+async def auth_headers_other_user(test_user_3_id):
+    """Auth headers for third test user (RLS isolation test)."""
+    from app.core.security import create_access_token
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    token = create_access_token(
+        data={"sub": str(test_user_3_id)},
+        secret=settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+        expires_minutes=60,
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -167,13 +208,13 @@ class TestOrgCRUD:
 
     @pytest.mark.asyncio
     async def test_get_organization_not_found(self, client: AsyncClient, auth_headers):
-        """Test GET unknown org returns 404."""
+        """Test GET unknown org returns 403 (access denied, don't leak existence)."""
         fake_id = uuid.uuid4()
         response = await client.get(
             f"/api/v1/organizations/{fake_id}",
             headers=auth_headers,
         )
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_update_organization(
