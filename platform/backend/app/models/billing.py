@@ -1,15 +1,19 @@
 """Billing + Subscription models — SaaS-BILL-2."""
 
 import uuid
-from datetime import datetime
+
 from sqlalchemy import (
-    Column, String, Integer, Boolean, DateTime, ForeignKey, CheckConstraint, Numeric
+    Column, String, Integer, Boolean, DateTime, ForeignKey, CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+
+# Import User to ensure SQLAlchemy mapper can resolve "User" relationship
+# Must be after Base import to avoid circular deps
+from app.models.user import User  # noqa: F401
 
 
 class BillingSubscription(Base):

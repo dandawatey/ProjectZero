@@ -17,7 +17,7 @@ from app.models.user import User
 from app.schemas.billing import (
     CheckoutSessionRequest, CheckoutSessionResponse, SubscriptionRead,
     CancelSubscriptionRequest, CancelSubscriptionResponse,
-    PaymentMethodRequest, PaymentMethodResponse, WebhookEvent, WebhookResponse,
+    PaymentMethodRequest, PaymentMethodResponse, WebhookResponse,
     TierInfo
 )
 from app.services import billing_service as svc

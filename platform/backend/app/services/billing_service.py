@@ -3,7 +3,7 @@
 import os
 import hmac
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 import stripe
@@ -130,7 +130,7 @@ async def get_subscription(
     result = await db.execute(
         select(BillingSubscription).where(
             BillingSubscription.user_id == user.id,
-            BillingSubscription.cancelled_at == None,
+            BillingSubscription.cancelled_at.is_(None),
         )
     )
     sub = result.scalars().first()
