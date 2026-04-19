@@ -51,3 +51,78 @@ async def test_webhook_signature_invalid(client):
         headers={"stripe-signature": "test_sig_invalid"}
     )
     assert r.status_code == 401
+
+
+# Service layer tests (mocked Stripe)
+@pytest.mark.asyncio
+async def test_billing_subscription_model():
+    """Test BillingSubscription model attributes."""
+    from app.models.billing import BillingSubscription
+    import uuid
+
+    sub = BillingSubscription(
+        user_id=uuid.uuid4(),
+        org_id=uuid.uuid4(),
+        tier="professional",
+        stripe_customer_id="cus_test_1234",
+        price_per_month=9900,
+        status="active",
+    )
+    assert sub.tier == "professional"
+    assert sub.price_per_month == 9900
+    assert sub.status == "active"
+
+
+@pytest.mark.asyncio
+async def test_billing_invoice_model():
+    """Test BillingInvoice model."""
+    from app.models.billing import BillingInvoice, BillingSubscription
+    import uuid
+
+    sub = BillingSubscription(
+        user_id=uuid.uuid4(),
+        org_id=uuid.uuid4(),
+        tier="starter",
+        stripe_customer_id="cus_test",
+        price_per_month=2900,
+    )
+    inv = BillingInvoice(
+        subscription_id=sub.id,
+        stripe_invoice_id="in_test_1234",
+        amount_cents=2900,
+        status="sent",
+    )
+    assert inv.status == "sent"
+    assert inv.amount_cents == 2900
+
+
+@pytest.mark.asyncio
+async def test_get_tier_pricing():
+    """Test tier pricing list."""
+    from app.services import billing_service as svc
+
+    tiers = svc.get_tier_pricing()
+    assert len(tiers) == 3
+    assert tiers[0].price == 2900
+    assert tiers[1].price == 9900
+    assert tiers[2].price is None  # enterprise
+
+
+@pytest.mark.asyncio
+async def test_verify_webhook_signature():
+    """Test webhook signature verification."""
+    from app.services.billing_service import verify_webhook_signature
+    import os
+    import hmac
+    import hashlib
+
+    os.environ["STRIPE_WEBHOOK_SECRET"] = "test_secret"
+    payload = b"test_payload"
+    secret = "test_secret"
+
+    # Generate valid signature
+    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    assert verify_webhook_signature(payload, expected) is True
+
+    # Invalid signature
+    assert verify_webhook_signature(payload, "invalid_sig") is False
