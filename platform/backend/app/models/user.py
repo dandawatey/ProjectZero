@@ -31,6 +31,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    organizations = relationship("UserOrganization", back_populates="user", cascade="all, delete-orphan")  # SaaS
 
 
 class RefreshToken(Base):

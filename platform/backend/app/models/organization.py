@@ -1,0 +1,173 @@
+"""Organization and multi-tenant models for SaaS."""
+
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Index, BigInteger, Boolean
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.core.database import Base
+import enum
+
+
+class TierType(str, enum.Enum):
+    """Subscription tier levels."""
+    STARTER = "starter"
+    PROFESSIONAL = "professional"
+    ENTERPRISE = "enterprise"
+
+
+class RoleType(str, enum.Enum):
+    """User roles within organization."""
+    OWNER = "Owner"
+    ENGINEER = "Engineer"
+    REVIEWER = "Reviewer"
+
+
+class Organization(Base):
+    """Multi-tenant organization."""
+
+    __tablename__ = "organizations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(String(1000), nullable=True)
+    tier = Column(Enum(TierType), default=TierType.STARTER, nullable=False, index=True)
+    region = Column(String(50), default="us-east-1", nullable=False)
+    billing_contact_email = Column(String(255), nullable=True)
+    logo_url = Column(String(500), nullable=True)
+    deleted_at = Column(DateTime, nullable=True)  # Soft delete
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    members = relationship("UserOrganization", back_populates="organization", cascade="all, delete-orphan")
+    workspaces = relationship("Workspace", back_populates="organization", cascade="all, delete-orphan")
+    subscriptions = relationship("BillingSubscription", back_populates="organization", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="organization", cascade="all, delete-orphan")
+    usage = relationship("BillingUsage", back_populates="organization", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("idx_org_tier_created", "tier", "created_at"),
+        Index("idx_org_deleted_at", "deleted_at"),
+    )
+
+
+class UserOrganization(Base):
+    """Many-to-many: Users ↔ Organizations + role assignment."""
+
+    __tablename__ = "users_organizations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(Enum(RoleType), default=RoleType.ENGINEER, nullable=False)
+    invited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    joined_at = Column(DateTime, nullable=True)  # NULL until user accepts invite
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="organizations")
+    organization = relationship("Organization", back_populates="members")
+
+    __table_args__ = (
+        Index("idx_user_org_unique", "user_id", "org_id", unique=True),
+        Index("idx_org_role", "org_id", "role"),
+    )
+
+
+class Workspace(Base):
+    """Workspace (repo) within organization."""
+
+    __tablename__ = "workspaces"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(1000), nullable=True)
+    region = Column(String(50), default="us-east-1", nullable=False)
+    github_repo_url = Column(String(500), nullable=True)
+    storage_gb = Column(BigInteger, default=0, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)  # Soft delete
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="workspaces")
+
+    __table_args__ = (
+        Index("idx_ws_org_created", "org_id", "created_at"),
+        Index("idx_ws_deleted_at", "deleted_at"),
+    )
+
+
+class AuditLog(Base):
+    """Immutable audit log for compliance."""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    resource_type = Column(String(100), nullable=False)  # "organization", "user", "subscription"
+    resource_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    action = Column(String(100), nullable=False, index=True)  # "created", "updated", "deleted"
+    changes = Column(String(10000), nullable=True)  # JSON diff as string
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="audit_logs")
+    actor = relationship("User", foreign_keys=[actor_id])
+
+    __table_args__ = (
+        Index("idx_audit_org_created", "org_id", "created_at"),
+        Index("idx_audit_action", "action", "created_at"),
+    )
+
+
+class BillingSubscription(Base):
+    """Stripe subscription per organization."""
+
+    __tablename__ = "billing_subscriptions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    stripe_subscription_id = Column(String(255), nullable=True, unique=True, index=True)
+    stripe_customer_id = Column(String(255), nullable=True, unique=True, index=True)
+    tier = Column(Enum(TierType), default=TierType.STARTER, nullable=False)
+    status = Column(String(50), default="active", nullable=False, index=True)  # active, past_due, canceled, paused
+    current_period_start = Column(DateTime, nullable=True)
+    current_period_end = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="subscriptions")
+
+    __table_args__ = (
+        Index("idx_sub_status", "status", "current_period_end"),
+    )
+
+
+class BillingUsage(Base):
+    """Usage metering for billing."""
+
+    __tablename__ = "billing_usage"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    metric_name = Column(String(100), nullable=False)  # "agents_runs", "repos_created", "users_invited"
+    value = Column(BigInteger, default=0, nullable=False)
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="usage")
+
+    __table_args__ = (
+        Index("idx_usage_org_metric_period", "org_id", "metric_name", "period_start", "period_end"),
+    )
