@@ -13,6 +13,7 @@ import app.models.product    # noqa: F401 — registers Product with Base
 import app.models.story      # noqa: F401 — registers Story + AcceptanceCriteria with Base
 import app.models.agent      # noqa: F401 — registers Agent with Base (PRJ0-49)
 import app.models.agent_execution  # noqa: F401 — registers AgentExecution with Base (PRJ0-53)
+import app.models.billing    # noqa: F401 — registers BillingSubscription + BillingInvoice + BillingWebhookEvent with Base (SaaS-BILL-2)
 from app.api.routes import (
     workflows,
     steps,
@@ -36,6 +37,7 @@ from app.api.routes import (
     factory_build,
     tickets,
     factory_floor,
+    billing,
 )
 from app.services.integration_health import validate_on_startup, start_all_monitors
 from app.services.agent_seeder import seed_agents
@@ -111,6 +113,7 @@ app.include_router(stories.router, prefix="/api/v1/stories", tags=["stories"])
 app.include_router(factory_build.router, prefix="/api/v1/factory-build", tags=["factory-build"])
 app.include_router(tickets.router, prefix="/api/v1/tickets", tags=["tickets"])
 app.include_router(factory_floor.router, prefix="/api/v1/factory", tags=["factory-floor"])
+app.include_router(billing.router)
 
 
 @app.get("/health")

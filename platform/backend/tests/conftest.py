@@ -13,6 +13,8 @@ os.environ.setdefault("JIRA_USER_EMAIL", "test@example.com")
 os.environ.setdefault("JIRA_API_TOKEN", "test-token")
 os.environ.setdefault("CONFLUENCE_BASE_URL", "https://mock-confluence.example.com")
 os.environ.setdefault("CONFLUENCE_SPACE_KEY", "TEST")
+os.environ.setdefault("STRIPE_API_KEY", "sk_test_fake_key")
+os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_test_fake_secret")
 
 # Patch PostgreSQL-specific types (ARRAY, JSONB, UUID) to SQLite-compatible equivalents
 # MUST happen before any model imports

@@ -15,7 +15,7 @@ from app.core.config import get_settings
 from app.core.security import decode_access_token
 from fastapi import HTTPException
 
-_SKIP_PREFIXES = ("/health", "/api/v1/auth/", "/docs", "/openapi.json", "/redoc")
+_SKIP_PREFIXES = ("/health", "/api/v1/auth/", "/api/v1/billing/tiers", "/api/v1/billing/webhook", "/docs", "/openapi.json", "/redoc")
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
