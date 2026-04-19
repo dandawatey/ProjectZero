@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LoginForm } from '@/components/auth/LoginForm';
 import { Layers } from 'lucide-react';
 
 export default function LoginPage() {
@@ -9,24 +10,14 @@ export default function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const handleSuccess = async (sessionId: string) => {
+    // Session established via API, proceed to navigation
+    navigate(from, { replace: true });
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(email, password);
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError((err as Error).message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const handleMFARequired = (sessionId: string) => {
+    navigate('/mfa', { state: { sessionId } });
+  };
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-gray-950">
@@ -44,45 +35,7 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                className="w-full rounded-xl bg-gray-800 px-3.5 py-2.5 text-sm text-white placeholder-gray-600 border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-xl bg-gray-800 px-3.5 py-2.5 text-sm text-white placeholder-gray-600 border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <p className="text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2.5">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 py-2.5 text-sm font-semibold text-white disabled:opacity-60 transition-all"
-            >
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
+          <LoginForm onSuccess={handleSuccess} onMFARequired={handleMFARequired} />
         </div>
       </div>
     </div>
